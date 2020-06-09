@@ -4,9 +4,9 @@ This repository contains the code accompanying NeurIPS 2020 submission
 /Mixture of Two Gaussian Process Experts using Stochastic Variational Inference/.
 
 This repository contains,
-1. The saved models that were used to generate the figures in the paper,
-2. The data sets,
-3. All of the code (including training scripts).
+1. saved models that were used to generate the figures in the paper,
+2. the data sets,
+3. all of the code (including training scripts).
 
 We detail how to,
 1. generate the figures in the paper from the saved models,
@@ -19,7 +19,7 @@ Create a new virtualenv and activate it, for example,
 mkvirtualenv --python=python3 mogpe-env
 workon mogpe-env
 #+END_SRC
-cd into the root of this package and install it and its dependencies,
+cd into the root of this package and install it and its dependencies with,
 #+BEGIN_SRC
 pip install -r requirements.txt
 #+END_SRC
@@ -28,17 +28,12 @@ pip install -r requirements.txt
 ** Figures
 To reproduce the figures in the paper (using the models saved in [[models/saved_model]]),
 - Figure 3a - Run [[src/visualization/plot_artificial_rbf_gating.py]],
-  #+BEGIN_SRC
-  python src/visualization/plot_artificial_rbf_gating.py
-  #+END_SRC
+  `python src/visualization/plot_artificial_rbf_gating.py`
 - Figure 3b - Run [[src/visualization/plot_artificial_prod_cosine_rbf_gating.py]],
-  #+BEGIN_SRC
-  python src/visualization/plot_artificial_prod_cosine_rbf_gating.py
-  #+END_SRC
+  `python src/visualization/plot_artificial_prod_cosine_rbf_gating.py`
 - Figure 4 - Run [[src/visualization/plot_mcycle.py]],
-  #+BEGIN_SRC
-  python src/visualization/plot_mcycle.py
-  #+END_SRC
+  `python src/visualization/plot_mcycle.py`
+
 
 The json [[configs][config files]] contain the configurations that were used to train the model for each figure.
 To train our model from scratch using these config files,
@@ -46,6 +41,10 @@ To train our model from scratch using these config files,
   - Figure 3a - Run [[src/models/train_and_plot_artificial.py]]
   - Figure 3b - Run [[src/models/train_and_plot_artificial.py]]
 - Motorcycle data (Figure 4) - Run [[src/models/train_and_plot_mcycle.py]]
+
+Figure 1 is not based on our model but instead provides intuition about different
+gating network formulations. It uses a standalone script
+[[src/visualization/figure_1_comparing_gating_networks.py]].
 
 
 ** Data Sets
