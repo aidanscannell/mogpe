@@ -1,0 +1,34 @@
+{
+    "expert_1":{
+        "mean_func": "constant",
+        "kern": "cosine",
+        "lengthscale": 3.0,
+        "kern_var": 3.0,
+        "noise_var": 0.001,
+        "num_inducing": "None"
+    },
+    "expert_2":{
+        "mean_func": "constant",
+        "kern": "rbf",
+        "lengthscale": 10.0,
+        "kern_var": 1.0,
+        "noise_var": 1.9,
+        "num_inducing": "None"
+    },
+    "gating":{
+        "mean_func": "zero",
+        "kern": "rbf",
+        "lengthscale": 3.0,
+        "num_inducing": "None"
+    },
+    "num_samples_expert_expectation": "None",
+    "add_date_to_logging_dir": "True",
+    "fast_period": 10,
+    "slow_period": 1000,
+    "exp_name": "example",
+    "num_epochs": 20000,
+    "num_iter_per_epoch": 10,
+    "learning_rate": 0.001,
+    "batch_size": 100,
+    "max_to_keep":5
+}
