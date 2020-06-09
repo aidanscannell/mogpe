@@ -18,6 +18,7 @@
     "gating":{
         "mean_func": "zero",
         "kern": "rbf",
+        "kern_var": 1.0,
         "lengthscale": 3.0,
         "num_inducing": "None"
     },
@@ -25,9 +26,6 @@
     "add_date_to_logging_dir": "True",
     "fast_period": 10,
     "slow_period": 1000,
-    "exp_name": "example",
     "num_epochs": 20000,
-    "num_iter_per_epoch": 10,
-    "learning_rate": 0.001,
     "batch_size": 100,
 }

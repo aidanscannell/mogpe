@@ -18,6 +18,7 @@
     "gating":{
         "mean_func": "zero",
         "kern": "prod-rbf-cosine",
+        "kern_var": 1.0,
         "lengthscale": 3.0,
         "num_inducing": "None"
     },
