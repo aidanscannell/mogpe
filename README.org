@@ -1,0 +1,65 @@
+* mixtures-of-two-gp-experts
+
+This repository contains the code accompanying NeurIPS 2020 submission
+/Mixture of Two Gaussian Process Experts using Stochastic Variational Inference/.
+
+** Model
+*** Experts
+The [[src/models/experts.py][experts.py]] file contains the base experts and two instantiations,
+1. =ExpertsSeparate= - this class creates separate inducing points for each expert.
+2. =ExpertsShared= - this class creates one set of inducing points shared by all experts.
+Each experts class
+Two experts classes
+*** Gating Network
+*** Stochastic Variational Mixture of GP Experts
+
+** Figures
+
+To reproduce the figures in the paper run =src/models/train\_artificial.py= and select
+1. Train the model on
+#+BEGIN_SRC
+json_file = '../../configs/figure-3a.json'
+json_file = '../../configs/figure-3a.json'
+#+END_SRC
+Running the training scripts
+
+** Data Sets
+The model is tested on two data sets 1) an artificial data set and 2) the motorcycle data set.
+
+The data sets can be found in the data directory.
+The artificial data set was generated with [[src/data/gen_artificial_dataset.py][this script]] and the data set used in the paper is this
+[[data/processed/artificial-data-used-in-paper.npz][numpy file]].
+The motorcycle data set was obtained from [[https://vincentarelbundock.github.io/Rdatasets/datasets.html][here]] and is saved at [[data/external/mcycle.csv]].
+
+
+** Training
+The =Trainer= class in [[src/models/trainer.py]] contains several training methods
+1. A simple TensorFlow training loop,
+2. A checkpointing training loop,
+3. A monitoring tf training loop - a TensorFlow training loop with monitoring within tf.function().
+   This method only monitors model parameters and elbo and does not generate images.
+4. A monitoring training loop - this loop generates images during training. The matplotlib functions
+   cannot be inside the tf.function so this training loop should be slower but provide more insights.
+5. A monitor and checkpoint loop - this loop only monitors model parameters and elbo (no images)
+   but also saves checkpoints of the model.
+
+The Trainer class defines its own simple plotting methods.
+
+A custom training script
+
+*** Monitored Training
+The training is monitored with Tensorboard and logged in [[models/logs]].
+To monitor the training cd to the logs directory and start Tensorboard,
+#+BEGIN_SRC
+cd /path-to-this-repo/models/logs
+tensorboard --logdir . --reload_multifile=true
+#+END_SRC
+Tensorboard can then be found by visiting [[http://localhost:6006/]] in your browser.
+
+**** Configure Monitoring
+In the config files (e.g. [[configs/example.json]]) the fast period variable ="fast_period": 10=
+refers to how frequently the trainer should log the model parameters
+(kernel parameters, noise variances, elbo) and the slow period ="slow_period": 1000=
+refers to how frequently the trainer should generate images of the model (in number of iterations).
+
+During training
