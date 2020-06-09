@@ -119,7 +119,7 @@ class Plotter:
         return fig, axs
 
     def load_svgp_data(self, filename='./logs/svgp/y_samples.npz'):
-        svgp = np.load('./logs/svgp/y_samples.npz')
+        svgp = np.load(filename)
         self.input_samples = svgp['input_samples']
         self.input_broadcast = svgp['input_broadcast']
         self.y_mean_svgp = svgp['y_mean']
@@ -219,7 +219,7 @@ class Plotter:
     def plot_y_svmogpe(self, fig=None, ax=None, size=10):
         if fig is None:
             fig, ax = self.init_subplot_1()
-        self.load_svgp_data(filename='./logs/svgp/y_samples.npz')
+        # self.load_svgp_data(filename='./logs/svgp/y_samples.npz')
         # y_samples = self.model.sample_y(self.input_samples)
         y_samples = self.model.sample_y(self.test_input)
         # self.plot_samples(fig, ax, self.input_broadcast, y_samples)
