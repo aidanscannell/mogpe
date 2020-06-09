@@ -40,16 +40,18 @@ To reproduce the figures in the paper (using the models saved in [[models/saved_
   #+END_SRC
 
 The json [[configs][config files]] contain the configurations that were used to train the model for each figure.
-To train our model from scratch using these config files,
+Our model can be trained from scratch using these config files,
 - Artificial data (Figure 3)
-  - Figure 3a - Set the json file =json_file = '../../configs/figure-3a.json'=
-    in [[src/models/train_and_plot_artificial.py]] and then run it.
-  - Figure 3b - Set the json file =json_file = '../../configs/figure-3b.json'=
-    in [[src/models/train_and_plot_artificial.py]] and then run it.
+  - Figure 3a - Set the =json_file= variable in
+    [[src/models/train_and_plot_artificial.py]] to ='../../configs/figure-3a.json'=
+    and then run it.
+  - Figure 3b - Set the =json_file= variable in
+    [[src/models/train_and_plot_artificial.py]] to ='../../configs/figure-3b.json'=
+    and then run it.
 - Motorcycle data (Figure 4) - Run [[src/models/train_and_plot_mcycle.py]]
 
 Figure 1 is not based on our model but instead provides intuition about different
-gating network formulations. It uses a standalone script
+gating network formulations. It was generated with
 [[src/visualization/figure_1_comparing_gating_networks.py]].
 
 
