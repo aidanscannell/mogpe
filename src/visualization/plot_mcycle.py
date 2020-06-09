@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from plotter import Plotter
+from src.visualization.plotter import Plotter
 
 
 def plot_mcycle_svgp_comparison_and_gating(plotter, svgp_filename):
