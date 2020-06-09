@@ -2,8 +2,8 @@
 This directory contains the saved models that were used to generate the plot in the paper.
 
 - [[artificial/rbf_gating_kernel]] is our model trained on the artificial data set using a squared exponential
-covariance function for the gating network GP.
+  covariance function for the gating network GP.
 - [[artificial/prod_rbf_cosine_kernel]] is our model trained on the artificial data set using the product
-of a squared exponential kernel and a cosine kernel as the covariance function for the gating network GP.
+  of a squared exponential kernel and a cosine kernel as the covariance function for the gating network GP.
 - =svgp_cycle.npz= is the result of running a sparse variational GP (SVGP) on the motorcycle data set.
-It is used in [[src/visualization]] for generating plots comparing our method to a SVGP.
+  It is used in [[src/visualization]] for generating plots comparing our method to a SVGP.
