@@ -43,10 +43,10 @@ The json [[configs][config files]] contain the configurations that were used to 
 Our model can be trained from scratch using these config files,
 - Artificial data (Figure 3)
   - Figure 3a - Set the =json_file= variable in
-    [[src/models/train_and_plot_artificial.py]] to ='../../configs/figure-3a.json'=
+    [[src/models/train_and_plot_artificial.py]] to =\'../../configs/figure-3a.json\'=
     and then run it.
   - Figure 3b - Set the =json_file= variable in
-    [[src/models/train_and_plot_artificial.py]] to ='../../configs/figure-3b.json'=
+    [[src/models/train_and_plot_artificial.py]] to =\'../../configs/figure-3b.json\'=
     and then run it.
 - Motorcycle data (Figure 4) - Run [[src/models/train_and_plot_mcycle.py]]
 
