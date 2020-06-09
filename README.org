@@ -3,10 +3,10 @@
 This repository contains the code accompanying NeurIPS 2020 submission
 /Mixture of Two Gaussian Process Experts using Stochastic Variational Inference/.
 
-This repository contains
-1. the saved models that were used to generate the figures in the paper,
-2. both of the data sets,
-3. all of the code (including training scripts).
+This repository contains,
+1. The saved models that were used to generate the figures in the paper,
+2. The data sets,
+3. All of the code (including training scripts).
 
 We detail how to,
 1. generate the figures in the paper from the saved models,
@@ -19,7 +19,7 @@ Create a new virtualenv and activate it, for example,
 mkvirtualenv --python=python3 mogpe-env
 workon mogpe-env
 #+END_SRC
-cd into the root of this package and install the dependencies,
+cd into the root of this package and install it and its dependencies,
 #+BEGIN_SRC
 pip install -r requirements.txt
 #+END_SRC
@@ -40,7 +40,7 @@ To reproduce the figures in the paper (using the models saved in [[models/saved_
   python src/visualization/plot_mcycle.py
   #+END_SRC
 
-The json [[configs][config files]] contain the configurations that we used to train the model for each figure,
+The json [[configs][config files]] contain the configurations that were used to train the model for each figure.
 To train our model from scratch using these config files,
 - Artificial data (Figure 3)
   - Figure 3a - Run [[src/models/train_and_plot_artificial.py]]
