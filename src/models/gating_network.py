@@ -7,7 +7,7 @@ from gpflow.conditionals import conditional, sample_conditional
 from gpflow.conditionals.util import sample_mvn
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
-from util import init_variational_parameters
+from utils.model import init_variational_parameters
 
 
 def inv_probit(x):
@@ -90,117 +90,23 @@ class GatingNetwork(Module):
         h_mean, h_var = self.predict_f(Xnew)
         return self.predict_prob_a_0_given_h(h_mean, h_var)
 
-    # def predict_prob_a_0_sample_inducing(self, Xnew: InputData, u_samples):
-    #     f_mean, f_var = self.predict_f_given_u(Xnew, u_samples)
-    #     print('inside predict prob_a_0 sample u')
-    #     print(f_mean)
-    #     print(f_var)
-    #     # f_mean, f_var = self.predict_f(Xnew)
-    #     # return 1 - inv_probit(f_samples)
-    #     return 1 - inv_probit(f_mean / (tf.sqrt(1 + f_var)))
-
     def predict_mixing_probs(self, Xnew: InputData):
         prob_a_0 = self.predict_prob_a_0(Xnew)
         prob_a_0 = tf.reshape(prob_a_0, [-1])
         prob_a_1 = 1 - prob_a_0
         return [prob_a_0, prob_a_1]
 
-    # def predict_mixing_probs_sample_u_old(self, Xnew: InputData, num_samples):
-    #     num_data = Xnew.shape[0]
-    #     print('gating LL^2')
-    #     # print(self.q_sqrt)
-    #     cov = tf.linalg.diag_part(self.q_sqrt)
-    #     # print(cov)
-    #     cov = tf.transpose(cov, [1, 0])
-    #     # print(cov)
-    #     cov = tf.math.square(cov)
-    #     # print(cov)
-    #     u_samples = sample_mvn(self.q_mu, cov, "diag",
-    #                            num_samples=num_samples)  # [..., (S), P, N]
-    #     # TODO correct this reshape
-    #     u_samples = tf.reshape(u_samples, [num_data, 1])
-    #     prob_a_0 = self.predict_prob_a_0_sample_u(Xnew, u_samples)
-    #     print('inside predict mixing provs')
-    #     print(prob_a_0)
-    #     prob_a_0 = tf.reshape(prob_a_0, [-1])
-    #     print(prob_a_0)
-    #     prob_a_1 = 1 - prob_a_0
-    #     return [prob_a_0, prob_a_1]
-
     def predict_mixing_probs_sample_inducing(self,
                                              Xnew: InputData,
                                              num_samples_inducing=None):
         print('gating expectation sample inducing')
         u_samples = self.sample_inducing_points(num_samples_inducing)
-        # q_mu = tf.transpose(self.q_mu, [1, 0])
-        # q_sqrt = self.q_sqrt
-        # print(q_mu)
-        # print(q_sqrt)
-        # num_sample = None
-        # # u_samples = sample_mvn(mu, cov, "full",
-        # #                        num_samples=num_samples)  # [..., (S), P, N]
-        # q = tfp.distributions.MultivariateNormalTriL(
-        #     loc=q_mu,
-        #     scale_tril=q_sqrt,
-        #     validate_args=False,
-        #     allow_nan_stats=True,
-        #     name='MultivariateNormalFullCovariance')
-        # print('tf mvn')
-        # print(q)
-        # u_samples = q.sample(num_samples)
-        print('u_samples')
-        print(u_samples)
         u_samples = tf.transpose(u_samples, [0, 2, 1])
-        print(u_samples)
         # TODO correct this reshape
         u_samples = tf.reshape(u_samples, [-1, 1])
-        # u_samples = tf.reshape(u_samples, [1, -1])
-        print('aaaa')
-        print(u_samples)
-
-        print('analytic gating expectation')
         h_mean, h_var = self.predict_f(Xnew, inducing_samples=u_samples)
-        print('h_mean and h_var')
-        print(h_mean)
-        print(h_var)
         expected_prob_a_0 = self.predict_prob_a_0_given_h(h_mean, h_var)
-        print('expected_prob_a_0')
-        print(expected_prob_a_0)
-        # h_samples, h_mean, h_var = sample_conditional(
-        #     Xnew,
-        #     self.inducing_variable,
-        #     self.kernel,
-        #     u_samples,
-        #     full_cov=False,
-        #     full_output_cov=False,
-        #     q_sqrt=None,
-        #     white=self.whiten,
-        #     num_samples=num_samples,
-        # )
-        # print('h_samples')
-        # print(h_samples)
-
         return [expected_prob_a_0, 1 - expected_prob_a_0]
 
     def predict_mixing_probs_tensor(self, Xnew: InputData):
         return tf.stack(self.predict_mixing_probs(Xnew))
-
-    # def predict_f_given_u(self,
-    #                       Xnew: InputData,
-    #                       u_sample,
-    #                       full_cov=False,
-    #                       full_output_cov=False) -> MeanAndVariance:
-    #     print('inside predict f given u')
-    #     print(Xnew)
-    #     print(u_sample)
-    #     mu, var = conditional(
-    #         Xnew,
-    #         self.inducing_variable,
-    #         self.kernel,
-    #         u_sample,
-    #         q_sqrt=None,
-    #         full_cov=full_cov,
-    #         white=self.whiten,
-    #         full_output_cov=full_output_cov,
-    #     )
-    #     return mu + self.mean_function(Xnew), var

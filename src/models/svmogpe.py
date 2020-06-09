@@ -15,9 +15,8 @@ from gpflow.models.model import InputData, MeanAndVariance, RegressionData
 from gpflow.models.util import inducingpoint_wrapper
 from gpflow.utilities import positive, print_summary, triangular
 # from plot_model import plot_and_save
-# from util import init_experts, init_inducing_variables, run_adam
-from util import init_inducing_variables, run_adam
-# from util import init_experts, init_inducing_variables, run_adam
+from utils.training import run_adam
+from utils.model import init_inducing_variables
 
 tfd = tfp.distributions
 

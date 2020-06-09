@@ -5,17 +5,7 @@ from experts import ExpertsSeparate
 from gating_network import GatingNetwork
 from gpflow import default_float
 from svmogpe import SVMoGPE
-
-
-def init_inducing_variables(X, num_inducing):
-    num_data = X.shape[0]
-    input_dim = X.shape[1]
-    idx = np.random.choice(range(num_data), size=num_inducing, replace=False)
-    if type(X) is np.ndarray:
-        inducing_inputs = X[idx, ...].reshape(-1, input_dim)
-    else:
-        inducing_inputs = X.numpy()[idx, ...].reshape(-1, input_dim)
-    return inducing_inputs
+from src.models.utils.model import init_inducing_variables
 
 
 def init_expert_from_config(X, output_dim, config_dict):

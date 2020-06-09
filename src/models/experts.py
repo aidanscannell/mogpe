@@ -11,7 +11,7 @@ from gpflow.config import default_float
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
 # from utils.util import init_variational_parameters
-from util import init_variational_parameters
+from utils.model import init_variational_parameters
 # from utils.util import init_variational_parameters
 
 tfd = tfp.distributions
