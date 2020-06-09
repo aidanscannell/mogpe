@@ -153,13 +153,15 @@ def plot_mcycle_comparison_to_svgp(plotter, svgp_filename):
 
 if __name__ == "__main__":
     from src.models.utils.data import load_mcycle_dataset
-    filename = '../../models/saved_model/svgp_mcycle.npz'  # npz file with result of training svgp
+    # filename = '../../models/saved_model/svgp_mcycle.npz'  # npz file with result of training svgp
+    filename = './models/saved_model/svgp_mcycle.npz'  # npz file with result of training svgp
     # dataset_name = 'mcycle'
-    X, Y = load_mcycle_dataset(filename='../../data/external/mcycle.csv')
+    # X, Y = load_mcycle_dataset(filename='../../data/external/mcycle.csv')
+    X, Y = load_mcycle_dataset(filename='./data/external/mcycle.csv')
     num_test = 200
     x_min = X.numpy().min()
     x_max = X.numpy().max()
-    save_dir = '../../models/saved_model/mcycle'
+    save_dir = './models/saved_model/mcycle'
     input = np.linspace(x_min, x_max, num_test).reshape(-1, 1)
 
     loaded_model = tf.saved_model.load(save_dir)

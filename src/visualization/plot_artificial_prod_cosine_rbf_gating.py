@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from plotter import Plotter
+from src.visualization.plotter import Plotter
 from src.models.utils.data import load_mixture_dataset
 
 # configure plotting
 num_test = 400
-artificial_dataset_filename = '../../data/processed/artificial-data-used-in-paper.npz'
-load_model_dir = '../../models/saved_model/artificial/prod_rbf_cosine_kernel'
+# artificial_dataset_filename = '../../data/processed/artificial-data-used-in-paper.npz'
+# load_model_dir = '../../models/saved_model/artificial/prod_rbf_cosine_kernel'
+artificial_dataset_filename = './data/processed/artificial-data-used-in-paper.npz'
+load_model_dir = './models/saved_model/artificial/prod_rbf_cosine_kernel'
 
 # load artificial dataset
 (X, Y), _, _ = load_mixture_dataset(filename=artificial_dataset_filename,
