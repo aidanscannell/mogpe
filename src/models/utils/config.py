@@ -81,6 +81,9 @@ def init_gating_from_config(X, output_dim, config_dict):
         num_inducing = config_dict['num_inducing']
 
     # TODO - make these configurable in config/example.json
+    # q_mu = np.zeros((num_inducing, 1)) + np.random.randn(num_inducing, 1) * 4
+    # q_sqrt = np.array(
+    #     [20 * np.eye(num_inducing, dtype=default_float()) for _ in range(1)])
     q_mu = np.zeros((num_inducing, 1)) + np.random.randn(num_inducing, 1) * 2
     q_sqrt = np.array(
         [10 * np.eye(num_inducing, dtype=default_float()) for _ in range(1)])
