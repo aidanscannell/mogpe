@@ -14,9 +14,10 @@ We detail how to,
 
 ** Install
 This is a Python package that should be installed into a python virtualenv.
-Create a new virtualenv, for example,
+Create a new virtualenv and activate it, for example,
 #+BEGIN_SRC
 mkvirtualenv --python=python3 mogpe-env
+workon mogpe-env
 #+END_SRC
 cd into the root of this package and install the dependencies,
 #+BEGIN_SRC
@@ -25,7 +26,7 @@ pip install -r requirements.txt
 
 
 ** Figures
-To reproduce the figures in the paper (using the models saved in [[models/save_models]]),
+To reproduce the figures in the paper (using the models saved in [[models/saved_model]]),
 - Figure 3a - Run [[src/visualization/plot_artificial_rbf_gating.py]],
   #+BEGIN_SRC
   python src/visualization/plot_artificial_rbf_gating.py
