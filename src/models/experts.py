@@ -209,13 +209,9 @@ class ExpertsBase(Module):
 
         f_mean, f_var = expert.predict_f(X, inducing_samples=inducing_samples)
         if expert.num_samples is None:
-            print('analytic expert expectation')
             expected_prob_y = tf.exp(
                 expert.likelihood.predict_log_density(f_mean, f_var, Y))
-            print('expected_prob_y')
-            print(expected_prob_y)
         else:
-            print('sampling expert expectation')
             f_samples = expert._sample_mvn(f_mean,
                                            f_var,
                                            num_samples,
@@ -224,11 +220,7 @@ class ExpertsBase(Module):
             #                                      num_samples_f,
             #                                      full_cov=False)
             prob_y = tf.exp(expert.likelihood._log_prob(f_samples, Y))
-            print('prob_y')
-            print(prob_y)
             expected_prob_y = 1. / num_samples_f * tf.reduce_sum(prob_y, 0)
-            print('expected_prob_y')
-            print(expected_prob_y)
         return expected_prob_y
 
     # def _expert_expectation(self, expert, X, Y):
@@ -245,37 +237,23 @@ class ExpertsBase(Module):
                                             X,
                                             Y,
                                             num_samples_inducing=None):
-        print('expert expectation sample inducing')
         num_inducing = expert.q_sqrt.shape[-1]
         u_samples = expert.sample_inducing_points(num_samples_inducing)
         u_samples = tf.transpose(u_samples, [0, 2, 1])
         # TODO correct this reshape
         u_samples = tf.reshape(u_samples, [num_inducing, 1])
 
-        print('u_samples')
-        print(u_samples)
         if self.num_samples_f is None:
-            print('analytic expert expectation')
             f_mean, f_var = expert.predict_f(X, inducing_samples=u_samples)
             expected_prob_y = tf.exp(
                 expert.likelihood.predict_log_density(f_mean, f_var, Y))
-            print('expected_prob_y')
-            print(expected_prob_y)
         else:
-            print('sampling expert expectation')
             f_samples = expert.predict_f_samples(X,
                                                  num_samples_f,
                                                  full_cov=False)
             prob_y = tf.exp(expert.likelihood._log_prob(f_samples, Y))
-            print('prob_y')
-            print(prob_y)
             expected_prob_y = 1. / num_samples_f * tf.reduce_sum(prob_y, 0)
-            print('expected_prob_y')
-            print(expected_prob_y)
 
-        # print('f_samples')
-        # print(f_mean)
-        # print(f_var)
         # expected_prob_y = tf.exp(
         #     expert.likelihood.predict_log_density(f_mean, f_var, Y))
 
@@ -378,10 +356,8 @@ class ExpertsBase(Module):
 
     def _expert_expectation(self, expert, X, Y, num_samples_inducing=None):
         if num_samples_inducing is None:
-            print('not sampling inducing points')
             f_mean, f_var = expert.predict_f(X)
         else:
-            print('sampling inducing points')
             num_inducing = expert.q_sqrt.shape[-1]
             inducing_samples = expert.sample_inducing_points(
                 num_samples_inducing)
@@ -391,13 +367,9 @@ class ExpertsBase(Module):
             f_mean, f_var = expert.predict_f(X,
                                              inducing_samples=inducing_samples)
         if self.num_samples is None:
-            print('analytic expert expectation')
             expected_prob_y = tf.exp(
                 expert.likelihood.predict_log_density(f_mean, f_var, Y))
-            print('expected_prob_y')
-            print(expected_prob_y)
         else:
-            print('sampling expert expectation')
             f_samples = expert._sample_mvn(f_mean,
                                            f_var,
                                            self.num_samples,
@@ -406,11 +378,7 @@ class ExpertsBase(Module):
             #                                      num_samples_f,
             #                                      full_cov=False)
             prob_y = tf.exp(expert.likelihood._log_prob(f_samples, Y))
-            print('prob_y')
-            print(prob_y)
             expected_prob_y = 1. / self.num_samples * tf.reduce_sum(prob_y, 0)
-            print('expected_prob_y')
-            print(expected_prob_y)
         return expected_prob_y
 
         # f_samples = self._sample_expert(expert, X, num_samples_inducing)

@@ -40,14 +40,14 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
         self.experts = experts
         self.gating_network = gating_network
 
-    def build_prior_KL(self, feature, kern, q_mu, q_sqrt):
-        if self.whiten:
-            K = None
-        else:
-            K = Kuu(feature, kern,
-                    jitter=settings.numerics.jitter_level)  # (P x) x M x M
+    # def build_prior_KL(self, feature, kern, q_mu, q_sqrt):
+    #     if self.whiten:
+    #         K = None
+    #     else:
+    #         K = Kuu(feature, kern,
+    #                 jitter=settings.numerics.jitter_level)  # (P x) x M x M
 
-        return gpf.kullback_leiblers.gauss_kl(q_mu, q_sqrt, K)
+    #     return gpf.kullback_leiblers.gauss_kl(q_mu, q_sqrt, K)
 
     def lower_bound_1(self, X, Y, kl_gating, kl_experts):
 
@@ -64,17 +64,11 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
         sum_over_indicator = 0
         for expected_expert, mixing_prob in zip(expected_experts,
                                                 mixing_probs):
-            print('inside loop')
-            print(expected_expert)
-            print(mixing_prob)
             mixing_prob = tf.reshape(mixing_prob, [-1])
-            print(mixing_prob)
             sum_over_indicator += expected_expert * mixing_prob
 
         # TODO divide by num inducing point samples
         var_exp = tf.reduce_sum(tf.math.log(sum_over_indicator))
-        print('var_exp')
-        print(var_exp)
 
         if self.num_data is not None:
             num_data = tf.cast(self.num_data, kl_gating.dtype)
@@ -95,15 +89,10 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
         sum_over_indicator = 0
         for expected_expert, mixing_prob in zip(expected_experts,
                                                 mixing_probs):
-            print('inside loop')
-            print(expected_expert)
-            print(mixing_prob)
             sum_over_indicator += expected_expert * mixing_prob
 
         var_exp = tf.reduce_sum(tf.math.log(sum_over_indicator))
         # var_exp = self._var_expectation(X, Y, num_samples)
-        print('var_exp')
-        print(var_exp)
 
         if self.num_data is not None:
             num_data = tf.cast(self.num_data, kl_gating.dtype)
@@ -123,10 +112,7 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
         # mixing_probs = self.gating_network.predict_mixing_probs(X)
         expected_experts = self.experts.experts_expectations(
             X, Y, num_samples_f)
-        print('expected_experts')
-        print(expected_experts)
         var_exp = tf.reduce_sum(tf.math.log(expected_experts))
-        print(var_exp)
 
         # sum_over_indicator = 0
         # for expected_expert, mixing_prob in zip(expected_experts,
@@ -135,8 +121,6 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
 
         # var_exp = tf.reduce_sum(tf.math.log(sum_over_indicator))
         # var_exp = self._var_expectation(X, Y, num_samples)
-        print('var_exp')
-        print(var_exp)
 
         if self.num_data is not None:
             num_data = tf.cast(self.num_data, kl_gating.dtype)
@@ -154,10 +138,8 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
         kls_experts = self.experts.prior_kls()
         kl_experts = tf.reduce_sum(kls_experts)
         if self.bound == 'tight':
-            print('using tight bound')
             return self.lower_bound_1(X, Y, kl_gating, kl_experts)
         elif self.bound == 'titsias':
-            print('using titsias bound')
             return self.lower_bound_2(X, Y, kl_gating, kl_experts)
         else:
             error_str = "No bound corresponding to " + str(
@@ -219,7 +201,6 @@ class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
             full_output_cov: bool = False) -> MeanAndVariance:
         """
         Compute the moment matched mean and covariance of the held-out data at the input points.
-        TODO is multivariate moment matching implemented correctly. (I used univariate var equation)
         """
         y_means, y_vars = self.predict_experts_ys(
             Xnew, full_cov=full_cov, full_output_cov=full_output_cov)

@@ -99,7 +99,6 @@ class GatingNetwork(Module):
     def predict_mixing_probs_sample_inducing(self,
                                              Xnew: InputData,
                                              num_samples_inducing=None):
-        print('gating expectation sample inducing')
         u_samples = self.sample_inducing_points(num_samples_inducing)
         u_samples = tf.transpose(u_samples, [0, 2, 1])
         # TODO correct this reshape
