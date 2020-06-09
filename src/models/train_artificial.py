@@ -30,9 +30,9 @@ def custom_dir(dataset_name, config_dict):
     return custom_dir, log_dir_date
 
 
-json_file = '../../configs/figure-3a.json'
+# json_file = '../../configs/figure-3a.json'
 json_file = '../../configs/figure-3b.json'
-data_file = '../../data/processed/artificial-1d-mixture-sin-gating-sin-expert-higher-noise.npz'
+data_file = '../../data/processed/artificial-data-used-in-paper.npz'
 
 with open(json_file, 'r') as config_file:
     config_dict = json.load(config_file)
