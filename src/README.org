@@ -1,11 +1,11 @@
 * Source Code
 This directory contains all of the source code.
-The [[models]] directory contains the model (built in GPflow/TensorFlow) and training scripts.
-The [[visualization]] directory contains the =Plotter= class that can be used to plot
+The [[./models]] directory contains the model (built in GPflow/TensorFlow) and training scripts.
+The [[./visualization]] directory contains the =Plotter= class that can be used to plot
 the model. It also contains scripts for plotting a saved model.
 
 ** Training
-The =Trainer= class in [[models/trainer.py]] contains several training methods,
+The =Trainer= class in [[./models/trainer.py]] contains several training methods,
 1. A simple TensorFlow training loop,
 2. A checkpointing training loop,
 3. A monitoring tf training loop - a TensorFlow training loop with monitoring within tf.function().
@@ -33,8 +33,8 @@ refers to how frequently the trainer should log the model parameters
 refers to how frequently the trainer should generate images of the model (in number of iterations).
 
 ** Model
-The [[models/experts.py]] file contains the base experts and two instantiations,
+The [[./models/experts.py]] file contains the base experts and two instantiations,
 1. =ExpertsSeparate= - this class creates separate inducing points for each expert.
 2. =ExpertsShared= - this class creates one set of inducing points shared by all experts.
-The [[models/gating_network.py]] file contains the gating network and the [[models/svmogpe.py]] file
+The [[./models/gating_network.py]] file contains the gating network and the [[./models/svmogpe.py]] file
 contains the main mixture of two GP experts class (svmogpe - Stochastic Variational Mixture of GP Experts).
