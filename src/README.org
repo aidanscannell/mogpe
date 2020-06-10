@@ -5,7 +5,7 @@ The [[visualization]] directory contains the =Plotter= class that can be used to
 the model. It also contains scripts for plotting a saved model.
 
 ** Training
-The =Trainer= class in [[src/models/trainer.py]] contains several training methods
+The =Trainer= class in [[models/trainer.py]] contains several training methods
 1. A simple TensorFlow training loop,
 2. A checkpointing training loop,
 3. A monitoring tf training loop - a TensorFlow training loop with monitoring within tf.function().
@@ -15,9 +15,7 @@ The =Trainer= class in [[src/models/trainer.py]] contains several training metho
 5. A monitor and checkpoint loop - this loop only monitors model parameters and elbo (no images)
    but also saves checkpoints of the model.
 
-The Trainer class defines its own simple plotting methods.
-
-A custom training script
+Note that he =Trainer= class defines its own simple plotting methods.
 
 *** Monitored Training
 The training is monitored with Tensorboard and logged in [[../models/logs]].
