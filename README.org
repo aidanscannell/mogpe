@@ -1,4 +1,4 @@
-* mixtures-of-two-gp-experts
+* mixture-of-two-gp-experts
 
 This repository contains the code accompanying NeurIPS 2020 submission
 /Mixture of Two Gaussian Process Experts using Stochastic Variational Inference/.
@@ -24,7 +24,7 @@ cd into the root of this package and install it and its dependencies with,
 pip install -r requirements.txt
 #+END_SRC
 
-** Figures
+** Reproducing Figures
 To reproduce the figures in the paper (using the models saved in [[models/saved_model]]),
 - Figure 3a - Run [[src/visualization/plot_artificial_rbf_gating.py]] with,
   #+BEGIN_SRC
