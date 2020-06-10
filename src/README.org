@@ -1,6 +1,6 @@
 * Source Code
 This directory contains all of the source code.
-The [[./models]] directory contains the model (built in GPflow/TensorFlow) and training scripts.
+The [[./models][models]] directory contains the model (built in GPflow/TensorFlow) and training scripts.
 The [[./visualization]] directory contains the =Plotter= class that can be used to plot
 the model. It also contains scripts for plotting a saved model.
 

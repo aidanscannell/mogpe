@@ -1,23 +1,23 @@
 
 # Table of Contents
 
-1.  [Source Code](#org8551708)
-    1.  [Training](#org18f6dd3)
-        1.  [Monitored Training](#orgc3f8a04)
-    2.  [Model](#org9c5a95b)
+1.  [Source Code](#orgba3d2eb)
+    1.  [Training](#orge78eb28)
+        1.  [Monitored Training](#orgdce23ba)
+    2.  [Model](#orge19b57b)
 
 
-<a id="org8551708"></a>
+<a id="orgba3d2eb"></a>
 
 # Source Code
 
 This directory contains all of the source code.
-The <./models> directory contains the model (built in GPflow/TensorFlow) and training scripts.
+The [models](./models) directory contains the model (built in GPflow/TensorFlow) and training scripts.
 The <./visualization> directory contains the `Plotter` class that can be used to plot
 the model. It also contains scripts for plotting a saved model.
 
 
-<a id="org18f6dd3"></a>
+<a id="orge78eb28"></a>
 
 ## Training
 
@@ -35,7 +35,7 @@ The `Trainer` class in <./models/trainer.py> contains several training methods,
 Note that he `Trainer` class defines its own simple plotting methods.
 
 
-<a id="orgc3f8a04"></a>
+<a id="orgdce23ba"></a>
 
 ### Monitored Training
 
@@ -55,7 +55,7 @@ Tensorboard can then be found by visiting <http://localhost:6006/> in your brows
     refers to how frequently the trainer should generate images of the model (in number of iterations).
 
 
-<a id="org9c5a95b"></a>
+<a id="orge19b57b"></a>
 
 ## Model
 
