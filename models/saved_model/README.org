@@ -12,6 +12,7 @@ Expert one has a cosine kernel and expert two has a squared exponential kernel.
 
 ** Motorcycle Data
 - [[./mcycle][./mcycle]] is our model trained on the motorcycle data set using
-  squared exponential kernels for all GPs (Figure 4). This is trained with the config in ([[../../configs/figure-4-mcycle.json]]).
+  squared exponential kernels for all GPs (Figure 4).
+  This is trained with the config in ([[../../configs/figure-4-mcycle.json][../../configs/figure-4-mcycle.json]]).
 - =svgp_cycle.npz= is the result of training a sparse variational GP (SVGP) on the motorcycle data set.
   It is used in [[../../src/visualization][../../src/visualization]] for generating plots comparing our method to a SVGP.
