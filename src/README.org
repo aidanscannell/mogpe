@@ -19,7 +19,7 @@ Note that he =Trainer= class defines its own simple plotting methods.
 
 *** Monitored Training
 The monitored training uses Tensorboard and is logged in [[../models/logs]].
-To monitor the training cd to the logs directory and start Tensorboard,
+To use Tensorboard cd to the logs directory and start Tensorboard,
 #+BEGIN_SRC
 cd /path-to-this-repo/models/logs
 tensorboard --logdir . --reload_multifile=true
@@ -27,13 +27,13 @@ tensorboard --logdir . --reload_multifile=true
 Tensorboard can then be found by visiting [[http://localhost:6006/]] in your browser.
 
 **** Configure Monitoring
-In the config files (e.g. [[configs/example.json]]) the fast period variable ="fast_period": 10=
+In the config files (e.g. [[../configs/figure-3a.json]]) the =fast_period= variable
 refers to how frequently the trainer should log the model parameters
-(kernel parameters, noise variances, elbo) and the slow period ="slow_period": 1000=
+(kernel parameters, noise variances, elbo) and the =slow_period= variable
 refers to how frequently the trainer should generate images of the model (in number of iterations).
 
 ** Model
-The [[src/models/experts.py][models/experts.py]] file contains the base experts and two instantiations,
+The [[models/experts.py]] file contains the base experts and two instantiations,
 1. =ExpertsSeparate= - this class creates separate inducing points for each expert.
 2. =ExpertsShared= - this class creates one set of inducing points shared by all experts.
 The [[models/gating_network.py]] file contains the gating network and the [[models/svmogpe.py]] file
