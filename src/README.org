@@ -36,5 +36,5 @@ refers to how frequently the trainer should generate images of the model (in num
 The [[./models/experts.py][models/experts.py]] file contains the base experts and two instantiations,
 1. =ExpertsSeparate= - this class creates separate inducing points for each expert.
 2. =ExpertsShared= - this class creates one set of inducing points shared by all experts.
-The [[./models/gating_network.py][models/gating\_network.py]] file contains the gating network and the [[./models/svmogpe.py][models/svmogpe.py]] file
+The [[./models/gating_network.py][models/gating_network.py]] file contains the gating network and the [[./models/svmogpe.py][models/svmogpe.py]] file
 contains the main mixture of two GP experts class (svmogpe - Stochastic Variational Mixture of GP Experts).

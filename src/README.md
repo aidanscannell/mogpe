@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Source Code](#orge5bcadf)
-    1.  [Training](#org94543ca)
-        1.  [Monitored Training](#orgc28bafb)
-    2.  [Model](#orgd1824a6)
+1.  [Source Code](#org4db3b4d)
+    1.  [Training](#org510d3c4)
+        1.  [Monitored Training](#orgd115144)
+    2.  [Model](#org005ba74)
 
 
-<a id="orge5bcadf"></a>
+<a id="org4db3b4d"></a>
 
 # Source Code
 
@@ -17,7 +17,7 @@ The [visualization](./visualization) directory contains the `Plotter` class that
 the model. It also contains scripts for plotting a saved model.
 
 
-<a id="org94543ca"></a>
+<a id="org510d3c4"></a>
 
 ## Training
 
@@ -35,7 +35,7 @@ The `Trainer` class in [models/trainer.py](./models/trainer.py) contains several
 Note that he `Trainer` class defines its own simple plotting methods.
 
 
-<a id="orgc28bafb"></a>
+<a id="orgd115144"></a>
 
 ### Monitored Training
 
@@ -55,7 +55,7 @@ Tensorboard can then be found by visiting <http://localhost:6006/> in your brows
     refers to how frequently the trainer should generate images of the model (in number of iterations).
 
 
-<a id="orgd1824a6"></a>
+<a id="org005ba74"></a>
 
 ## Model
 
@@ -64,5 +64,5 @@ The [models/experts.py](./models/experts.py) file contains the base experts and 
 1.  `ExpertsSeparate` - this class creates separate inducing points for each expert.
 2.  `ExpertsShared` - this class creates one set of inducing points shared by all experts.
 
-The [models/gating\\<sub>network.py</sub>](./models/gating_network.py) file contains the gating network and the [models/svmogpe.py](./models/svmogpe.py) file
+The [models/gating\\\\<sub>network.py</sub>](./models/gating_network.py) file contains the gating network and the [models/svmogpe.py](./models/svmogpe.py) file
 contains the main mixture of two GP experts class (svmogpe - Stochastic Variational Mixture of GP Experts).
