@@ -20,9 +20,16 @@ from utils.model import init_inducing_variables
 
 tfd = tfp.distributions
 
+from abc import ABC, abstractmethod
 
-class SVMoGPE(BayesianModel, ExternalDataTrainingLossMixin):
-    """ Stochastic Variational Mixtures of 2 Gaussian Process Experts Class. """
+
+class GPMixture(ABC):
+    @abstractmethod
+    def experts(self):
+        raise NotImplementedError
+
+
+class GPMixture(BayesianModel, ExternalDataTrainingLossMixin):
     def __init__(self,
                  input_dim,
                  output_dim,
