@@ -309,6 +309,18 @@ class SVGPModel(GPModel):
         # tf.debugging.assert_positive(var)  # We really should make the tests pass with this here
         return mu + self.mean_function(Xnew), var
 
+    def predict_y(self,
+                  Xnew: InputData,
+                  num_inducing_samples: int = None,
+                  full_cov: bool = False,
+                  full_output_cov: bool = False) -> MeanAndVariance:
+        """ Compute the mean and variance of the held-out data at the input points. """
+        f_mean, f_var = self.predict_f(Xnew,
+                                       num_inducing_samples,
+                                       full_cov=full_cov,
+                                       full_output_cov=full_output_cov)
+        return self.likelihood.predict_mean_and_var(f_mean, f_var)
+
 
 def init_fake_svgp(X, Y):
     from src.models.utils.model import init_inducing_variables
