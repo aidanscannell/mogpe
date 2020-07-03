@@ -90,7 +90,7 @@ class GPModel(Module, ABC):
         self,
         Xnew: InputData,
         num_samples: Optional[int] = 1,
-        full_cov: bool = True,
+        full_cov: bool = False,
         full_output_cov: bool = False,
     ) -> tf.Tensor:
         """
