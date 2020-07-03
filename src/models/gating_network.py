@@ -2,12 +2,16 @@ import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+
 from gpflow import Module
 from gpflow.conditionals import conditional, sample_conditional
 from gpflow.conditionals.util import sample_mvn
+from gpflow.config import default_float
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
-from utils.model import init_variational_parameters
+from gpflow.models.model import InputData, MeanAndVariance
+
+from src.models.gp import SVGPModel
 
 
 def inv_probit(x):
@@ -16,9 +20,11 @@ def inv_probit(x):
                                                           2 * jitter) + jitter
 
 
-class GatingNetwork(Module):
+class GatingNetwork(SVGPModel):
+    # TODO either remove likelihood or use Bernoulli/Softmax
     def __init__(self,
                  kernel,
+                 likelihood,
                  inducing_variable,
                  mean_function,
                  num_latent_gps=1,
@@ -27,85 +33,84 @@ class GatingNetwork(Module):
                  q_sqrt=None,
                  whiten=True,
                  num_data=None):
-        self.kernel = kernel
-        self.inducing_variable = inducingpoint_wrapper(inducing_variable)
-        gpf.set_trainable(self.inducing_variable, False)
-        self.mean_function = mean_function
-        self.num_latent_gps = num_latent_gps
-        self.q_diag = q_diag
-        self.whiten = whiten
-        self.num_data = num_data
+        super().__init__(kernel,
+                         likelihood,
+                         inducing_variable,
+                         mean_function,
+                         num_latent_gps=num_latent_gps,
+                         q_diag=q_diag,
+                         q_mu=q_mu,
+                         q_sqrt=q_sqrt,
+                         whiten=whiten,
+                         num_data=num_data)
 
-        # init variational parameters
-        num_inducing = len(self.inducing_variable)
-        self.q_mu, self.q_sqrt = init_variational_parameters(
-            num_inducing, q_mu, q_sqrt, q_diag, self.num_latent_gps)
-
-    def prior_kl(self):
-        return gpf.kullback_leiblers.prior_kl(self.inducing_variable,
-                                              self.kernel,
-                                              self.q_mu,
-                                              self.q_sqrt,
-                                              whiten=self.whiten)
-
-    def sample_inducing_points(self, num_samples=None):
-        mu = tf.transpose(self.q_mu, [1, 0])
-        q_dist = tfp.distributions.MultivariateNormalTriL(
-            loc=mu,
-            # loc=self.q_mu,
-            scale_tril=self.q_sqrt,
-            validate_args=False,
-            allow_nan_stats=True,
-            name='MultivariateNormalQ')
-        return q_dist.sample(num_samples)
-
-    def predict_f(self,
-                  Xnew: InputData,
-                  inducing_samples=None,
-                  full_cov=False,
-                  full_output_cov=False) -> MeanAndVariance:
-        if inducing_samples is None:
-            q_mu = self.q_mu
-            q_sqrt = self.q_sqrt
-        else:
-            q_mu = inducing_samples
-            q_sqrt = None
-        mu, var = conditional(
-            Xnew,
-            self.inducing_variable,
-            self.kernel,
-            q_mu,
-            q_sqrt=q_sqrt,
-            full_cov=full_cov,
-            white=self.whiten,
-            full_output_cov=full_output_cov,
-        )
-        # tf.debugging.assert_positive(var)  # We really should make the tests pass with this here
-        return mu + self.mean_function(Xnew), var
-
-    def predict_prob_a_0_given_h(self, h_mean, h_var):
+    def _predict_prob_a_0_given_h(self, h_mean, h_var):
         return 1 - inv_probit(h_mean / (tf.sqrt(1 + h_var)))
 
-    def predict_prob_a_0(self, Xnew: InputData):
-        h_mean, h_var = self.predict_f(Xnew)
-        return self.predict_prob_a_0_given_h(h_mean, h_var)
+    def predict_prob_a_0(self,
+                         Xnew: InputData,
+                         num_samples_inducing: int = None):
+        h_mean, h_var = self.predict_f(Xnew,
+                                       num_samples_inducing,
+                                       full_cov=False)
+        return self._predict_prob_a_0_given_h(h_mean, h_var)
 
-    def predict_mixing_probs(self, Xnew: InputData):
-        prob_a_0 = self.predict_prob_a_0(Xnew)
-        prob_a_0 = tf.reshape(prob_a_0, [-1])
+    def predict_mixing_probs(self,
+                             Xnew: InputData,
+                             num_samples_inducing: int = None):
+        """Compute mixing probabilities.
+
+        Returns a tensor with dims
+        [num_experts, num_samples_inducing, num_data, output_dim]
+        if num_samples_inducing=None otherwise a tensor with dims
+        [num_experts, num_data, output_dim]
+
+        :param Xnew: test input(s) [num_data, input_dim]
+        :param num_samples_inducing: how many samples to draw from inducing points
+        """
+        prob_a_0 = self.predict_prob_a_0(Xnew, num_samples_inducing)
         prob_a_1 = 1 - prob_a_0
-        return [prob_a_0, prob_a_1]
+        return tf.stack([prob_a_0, prob_a_1])
 
-    def predict_mixing_probs_sample_inducing(self,
-                                             Xnew: InputData,
-                                             num_samples_inducing=None):
-        u_samples = self.sample_inducing_points(num_samples_inducing)
-        u_samples = tf.transpose(u_samples, [0, 2, 1])
-        # TODO correct this reshape
-        u_samples = tf.reshape(u_samples, [-1, 1])
-        h_mean, h_var = self.predict_f(Xnew, inducing_samples=u_samples)
-        expected_prob_a_0 = self.predict_prob_a_0_given_h(h_mean, h_var)
-        return [expected_prob_a_0, 1 - expected_prob_a_0]
 
-    def predict_mixing_probs_tensor(self, Xnew: InputData):
-        return tf.stack(self.predict_mixing_probs(Xnew))
+def init_fake_gating_network(X, Y):
+    from src.models.utils.model import init_inducing_variables
+    output_dim = Y.shape[1]
+    input_dim = X.shape[1]
+
+    num_inducing = 30
+    inducing_variable = init_inducing_variables(X, num_inducing)
+
+    inducing_variable = gpf.inducing_variables.SharedIndependentInducingVariables(
+        gpf.inducing_variables.InducingPoints(inducing_variable))
+
+    noise_var = 0.1
+    lengthscale = 1.
+    mean_function = gpf.mean_functions.Zero()
+    likelihood = gpf.likelihoods.Gaussian(noise_var)
+    likelihood = None
+
+    kern_list = []
+    for _ in range(output_dim):
+        # Create multioutput kernel from kernel list
+        lengthscale = tf.convert_to_tensor([lengthscale] * input_dim,
+                                           dtype=default_float())
+        kern_list.append(gpf.kernels.RBF(lengthscales=lengthscale))
+    kernel = gpf.kernels.SeparateIndependent(kern_list)
+
+    return GatingNetwork(kernel, likelihood, inducing_variable, mean_function)
+
+
+if __name__ == "__main__":
+    # Load data set
+    from src.models.utils.data import load_mixture_dataset
+    data_file = '../../data/processed/artificial-data-used-in-paper.npz'
+    data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
+                                             standardise=False)
+    X, Y = data
+
+    gating_network = init_fake_gating_network(X, Y)
+    # mixing_probs = gating_network.predict_mixing_probs(X, 10)
+    mixing_probs = gating_network.predict_mixing_probs(X)
+    print(mixing_probs.shape)
+    # print(mixing_probs[0].shape)
