@@ -4,7 +4,7 @@ import tensorflow as tf
 from experts import ExpertsSeparate
 from gating_network import GatingNetwork
 from gpflow import default_float
-from svmogpe import SVMoGPE
+# from svmogpe import SVMoGPE
 from src.models.utils.model import init_inducing_variables
 
 
@@ -125,13 +125,13 @@ def init_gating_from_config(X, output_dim, config_dict):
                          num_data=num_data)
 
 
-def init_model_from_config(X, output_dim, config_dict):
-    num_data = X.shape[0]
-    input_dim = X.shape[1]
-    experts = init_experts_from_config(X, output_dim, config_dict)
-    gating_network = init_gating_from_config(X, output_dim,
-                                             config_dict['gating'])
-    return SVMoGPE(input_dim,
-                   output_dim,
-                   experts=experts,
-                   gating_network=gating_network)
+# def init_model_from_config(X, output_dim, config_dict):
+#     num_data = X.shape[0]
+#     input_dim = X.shape[1]
+#     experts = init_experts_from_config(X, output_dim, config_dict)
+#     gating_network = init_gating_from_config(X, output_dim,
+#                                              config_dict['gating'])
+#     return SVMoGPE(input_dim,
+#                    output_dim,
+#                    experts=experts,
+#                    gating_network=gating_network)
