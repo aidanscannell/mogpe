@@ -12,7 +12,6 @@ from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.training_mixins import InputData, RegressionData
 
 tfd = tfp.distributions
-kl = tfd.kullback_leibler
 
 
 class Experts(Module):
@@ -26,6 +25,7 @@ class Experts(Module):
         self.num_experts = len(experts_list)
         self.experts_list = experts_list
         kls, dists = [], []
+        # TODO this list is OK because it will be created before graph construction
         for expert in experts_list:
             kls.append(expert.prior_kl())
             # dists.append(expert.predict_y)
@@ -35,12 +35,25 @@ class Experts(Module):
     def prior_kls(self) -> tf.Tensor:
         return self.prior_kls
 
-    def predict_dists(self, Xnew):
+    # def predict_expert_y(expert, Xnew):
+    #     return expert.predict_y(Xnew)
+
+    def predict_dists(self, Xnew: InputData, kwargs):
+        """Returns batched tensor of predicted dists"""
+        # TODO this method only works for Normal dists, needs correcting
         mus, vars = [], []
         for expert in self.experts_list:
-            mu, var = expert.predict_y(Xnew)
+            mu, var = expert.predict_y(Xnew, **kwargs)
             mus.append(mu)
             vars.append(var)
+        mus = tf.stack(mus)
+        vars = tf.stack(vars)
+
+        # move mixture dimension to last dimension
+        trailing_dims_mu = tf.range(1, tf.rank(mus))
+        trailing_dims_var = tf.range(1, tf.rank(vars))
+        mus = tf.transpose(mus, [*trailing_dims_mu, 0])
+        vars = tf.transpose(vars, [*trailing_dims_var, 0])
         return tfd.Normal(mus, vars)
 
 
@@ -63,10 +76,10 @@ if __name__ == "__main__":
 
     print(experts.prior_kls)
 
-    var_exp = experts.experts_list[0].variational_expectation(
-        data, num_samples_inducing=10)
-    print(var_exp.shape)
-    dists = experts.predict_dists(X)
+    # var_exp = experts.experts_list[0].variational_expectation(
+    #     data, num_samples_inducing=10)
+    # print(var_exp.shape)
+    dists = experts.predict_dists(X, {})
     print(dists)
     print(dists.mean().shape)
     print(dists.variance().shape)
