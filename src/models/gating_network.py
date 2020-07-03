@@ -49,28 +49,35 @@ class GatingNetwork(SVGPModel):
 
     def predict_prob_a_0(self,
                          Xnew: InputData,
-                         num_samples_inducing: int = None):
+                         num_inducing_samples: int = None):
         h_mean, h_var = self.predict_f(Xnew,
-                                       num_samples_inducing,
+                                       num_inducing_samples,
                                        full_cov=False)
         return self._predict_prob_a_0_given_h(h_mean, h_var)
 
     def predict_mixing_probs(self,
                              Xnew: InputData,
-                             num_samples_inducing: int = None):
+                             num_inducing_samples: int = None):
         """Compute mixing probabilities.
 
         Returns a tensor with dims
-        [num_experts, num_samples_inducing, num_data, output_dim]
-        if num_samples_inducing=None otherwise a tensor with dims
+        [num_experts, num_inducing_samples, num_data, output_dim]
+        if num_inducing_samples=None otherwise a tensor with dims
         [num_experts, num_data, output_dim]
 
         :param Xnew: test input(s) [num_data, input_dim]
-        :param num_samples_inducing: how many samples to draw from inducing points
+        :param num_inducing_samples: how many samples to draw from inducing points
         """
-        prob_a_0 = self.predict_prob_a_0(Xnew, num_samples_inducing)
+        prob_a_0 = self.predict_prob_a_0(Xnew, num_inducing_samples)
         prob_a_1 = 1 - prob_a_0
-        return tf.stack([prob_a_0, prob_a_1])
+        print('mixing_probs')
+        mixing_probs = tf.stack([prob_a_0, prob_a_1])
+        # mixing_probs = tf.expand_dims(mixing_probs, -1)
+        # move mixture dimension to last dimension
+        trailing_dims = tf.range(1, tf.rank(mixing_probs))
+        mixing_probs = tf.transpose(mixing_probs, [*trailing_dims, 0])
+        print(mixing_probs.shape)
+        return mixing_probs
 
 
 def init_fake_gating_network(X, Y):
