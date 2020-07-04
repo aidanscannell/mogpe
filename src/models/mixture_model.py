@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import gpflow as gpf
 import tensorflow as tf
 import tensorflow_probability as tfp
-from gpflow.models import BayesianModel
+from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
 
 tfd = tfp.distributions
@@ -48,7 +48,7 @@ class MixtureOfExperts(MixtureModel, ABC):
         # return self.experts.predict_dists(Xnew, kwargs)
 
 
-class GPMixtureOfExperts(MixtureOfExperts):
+class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     def __init__(self,
                  gating_network,
                  experts,
