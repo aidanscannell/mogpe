@@ -3,21 +3,20 @@ import pandas as pd
 import tensorflow as tf
 from gpflow.config import default_float
 
-
-def custom_dir(dataset_name, config_dict):
-    # setup custom logging location based on config
-    if config_dict['num_samples_expert_expectation'] == "None":
-        expert_expectation = 'analytic'
-    else:
-        expert_expectation = 'sample'
-    if config_dict['add_date_to_logging_dir'] == "True":
-        log_dir_date = True
-    else:
-        log_dir_date = False
-    custom_dir = dataset_name + "/" + expert_expectation + "-f/batch_size-" + str(
-        config_dict['batch_size']) + "/num_inducing-" + str(
-            config_dict['gating']['num_inducing'])
-    return custom_dir, log_dir_date
+# def custom_dir(dataset_name, config_dict):
+#     # setup custom logging location based on config
+#     if config_dict['num_samples_expert_expectation'] == "None":
+#         expert_expectation = 'analytic'
+#     else:
+#         expert_expectation = 'sample'
+#     if config_dict['add_date_to_logging_dir'] == "True":
+#         log_dir_date = True
+#     else:
+#         log_dir_date = False
+#     custom_dir = dataset_name + "/" + expert_expectation + "-f/batch_size-" + str(
+#         config_dict['batch_size']) + "/num_inducing-" + str(
+#             config_dict['gating']['num_inducing'])
+#     return custom_dir, log_dir_date
 
 
 def standardise_data(X, Y):

@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -10,7 +12,156 @@ color_3 = 'lime'
 color_obs = 'red'
 
 
-class Plotter:
+class Plotter(ABC):
+    def __init__(self, num_samples=100, params=None):
+        self.num_samples = num_samples
+        if params is None:
+            params = {
+                # 'axes.labelsize': 30,
+                # 'font.size': 30,
+                # 'legend.fontsize': 20,
+                # 'xtick.labelsize': 30,
+                # 'ytick.labelsize': 30,
+                # 'text.usetex': True,
+            }
+        plt.rcParams.update(params)
+
+    @abstractmethod
+    def plot_gp(self, fig, ax, mean, var):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_experts_f(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_experts_y(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_gating_network(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_y(self, fig, ax):
+        raise NotImplementedError
+
+
+class Plotter1D(Plotter):
+    def __init__(self,
+                 model,
+                 X,
+                 Y,
+                 test_inputs=None,
+                 num_samples=100,
+                 params=None):
+        super().__init__(num_samples, params)
+        self.model = model
+        self.X = X
+        self.Y = Y
+        if test_inputs is None:
+            num_test = 100
+            factor = 1.2
+            self.test_inputs = tf.reshape(
+                np.linspace(
+                    tf.reduce_min(self.X) * factor,
+                    tf.reduce_max(self.X) * factor, num_test),
+                [num_test, tf.shape(X)[1]])
+        else:
+            self.test_inputs = test_inputs
+
+    def plot_gp(self, fig, ax, mean, var):
+        alpha = 0.4
+        ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
+        ax.plot(self.test_inputs, mean, "C0", lw=2)
+        ax.fill_between(
+            self.test_inputs[:, 0],
+            mean[:, 0] - 1.96 * np.sqrt(var[:, 0]),
+            mean[:, 0] + 1.96 * np.sqrt(var[:, 0]),
+            color="C0",
+            alpha=0.2,
+        )
+
+    def plot_experts_f(self, fig, axs):
+        tf.print("Plotting experts f...")
+        for k, expert in enumerate(self.model.experts.experts_list):
+            mean, var = expert.predict_f(self.test_inputs)
+            self.plot_gp(fig, axs[k], mean, var)
+
+    def plot_experts_y(self, fig, axs):
+        tf.print("Plotting experts y...")
+        dists = self.model.predict_component_dists(self.test_inputs, kwargs={})
+        mean = dists.mean()
+        var = dists.variance()
+        num_experts = tf.shape(mean)[-1]
+        for k in tf.range(num_experts):
+            self.plot_gp(fig, axs[k], mean[:, :, k], var[:, :, k])
+
+    def plot_gating_network(self, fig, ax):
+        tf.print("Plotting gating network...")
+        mixing_probs = self.model.predict_mixing_probs(self.test_inputs,
+                                                       kwargs={})
+        num_experts = tf.shape(mixing_probs)[-1]
+        for k in tf.range(num_experts):
+            ax.plot(self.test_inputs, mixing_probs[:, :, k])
+
+    def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
+        ax.scatter(input_broadcast,
+                   y_samples,
+                   marker='.',
+                   s=4.9,
+                   color=color,
+                   lw=0.4,
+                   rasterized=True,
+                   alpha=0.2)
+
+    def plot_y(self, fig, ax):
+        tf.print("Plotting y...")
+        y_dist = self.model.predict_y(self.test_inputs,
+                                      kwargs={'num_inducing_samples': None})
+        y_samples = y_dist.sample(self.num_samples)
+        ax.plot(self.test_inputs, y_dist.mean(), color='k')
+
+        self.test_inputs_broadcast = np.expand_dims(self.test_inputs, 0)
+
+        for i in range(self.num_samples):
+            self.plot_samples(fig, ax, self.test_inputs_broadcast,
+                              y_samples[i, :, :])
+
+    def plot_model(self):
+        fig, ax = plt.subplots(1, 1)
+        self.plot_gating_network(fig, ax)
+        fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+        self.plot_experts_y(fig, axs)
+        fig, ax = plt.subplots(1, 1)
+        self.plot_y(fig, ax)
+
+
+if __name__ == "__main__":
+    from mogpe.models.utils.data import load_mixture_dataset
+    from mogpe.models.mixture_model import init_fake_mixture
+
+    # Load data set
+    data_file = '../../data/processed/artificial-data-used-in-paper.npz'
+    data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
+                                             standardise=False)
+    X, Y = data
+
+    gp_mixture_model = init_fake_mixture(X,
+                                         Y,
+                                         num_experts=2,
+                                         num_inducing_samples=4)
+
+    num_test = 100
+    test_inputs = np.linspace(-1, 5, num_test).reshape(num_test, 1)
+    plotter = Plotter1D(gp_mixture_model, X=X, Y=Y)
+    plotter.plot_model()
+    # plotter.plot_experts()
+    # plotter.plot_gating_netowrk()
+    plt.show()
+
+
+class PlotterOld:
     def __init__(self, model, X, Y, test_input, colors=None):
         self.model = model
         self.X = X

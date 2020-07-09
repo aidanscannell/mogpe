@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from gpflow import Module, Parameter
 # from gpflow.conditionals import conditional, sample_conditional
-from conditionals import separate_independent_conditional
+from .conditionals import separate_independent_conditional
 
 from gpflow.conditionals.util import sample_mvn
 from gpflow.config import default_float
@@ -151,18 +151,19 @@ class GPModel(Module, ABC):
 
 
 class SVGPModel(GPModel):
-    def __init__(self,
-                 kernel: Kernel,
-                 likelihood: Likelihood,
-                 inducing_variable,
-                 mean_function: MeanFunction = None,
-                 num_latent_gps: int = 1,
-                 num_inducing_samples: Optional[int] = None,
-                 q_diag: bool = False,
-                 q_mu=None,
-                 q_sqrt=None,
-                 whiten: bool = True,
-                 num_data=None):
+    def __init__(
+            self,
+            kernel: Kernel,
+            likelihood: Likelihood,
+            inducing_variable,
+            mean_function: MeanFunction = None,
+            num_latent_gps: int = 1,
+            # num_inducing_samples: Optional[int] = None,
+            q_diag: bool = False,
+            q_mu=None,
+            q_sqrt=None,
+            whiten: bool = True,
+            num_data=None):
         super().__init__(kernel, likelihood, mean_function, num_latent_gps)
         self.num_data = num_data
         self.q_diag = q_diag
@@ -227,7 +228,7 @@ class SVGPModel(GPModel):
                 self.q_sqrt = Parameter(q_sqrt,
                                         transform=triangular())  # [P, M, M]
         else:
-            if q_diag:
+            if q_diag is True:
                 assert q_sqrt.ndim == 2
                 self.num_latent_gps = q_sqrt.shape[1]
                 self.q_sqrt = Parameter(q_sqrt,
@@ -240,11 +241,12 @@ class SVGPModel(GPModel):
                                         transform=triangular())  # [L|P, M, M]
 
     def prior_kl(self) -> tf.Tensor:
-        return kullback_leiblers.prior_kl(self.inducing_variable,
-                                          self.kernel,
-                                          self.q_mu,
-                                          self.q_sqrt,
-                                          whiten=self.whiten)
+        with tf.name_scope('KL_divergence') as scope:
+            return kullback_leiblers.prior_kl(self.inducing_variable,
+                                              self.kernel,
+                                              self.q_mu,
+                                              self.q_sqrt,
+                                              whiten=self.whiten)
 
     def sample_inducing_points(self, num_samples=None):
         # TODO put dist as class attribute
@@ -272,27 +274,12 @@ class SVGPModel(GPModel):
         If num_inducing_samples is not None then sample inducing points instead
         of analytically integrating them. This is required in the mixture of
         experts lower bound."""
-        if num_inducing_samples is None:
-            q_mu = self.q_mu
-            q_sqrt = self.q_sqrt
-            # TODO put back to conditional when gpflow fix this issue
-            mu, var = separate_independent_conditional(
-                Xnew,
-                self.inducing_variable,
-                self.kernel,
-                q_mu,
-                full_cov=full_cov,
-                full_output_cov=full_output_cov,
-                q_sqrt=q_sqrt,
-                white=self.whiten)
-        else:
-            q_mu = self.sample_inducing_points(num_inducing_samples)
-            q_sqrt = None
-
-            @tf.function
-            def single_sample_conditional(q_mu):
+        with tf.name_scope('predict_f') as scope:
+            if num_inducing_samples is None:
+                q_mu = self.q_mu
+                q_sqrt = self.q_sqrt
                 # TODO put back to conditional when gpflow fix this issue
-                return separate_independent_conditional(
+                mu, var = separate_independent_conditional(
                     Xnew,
                     self.inducing_variable,
                     self.kernel,
@@ -301,13 +288,29 @@ class SVGPModel(GPModel):
                     full_output_cov=full_output_cov,
                     q_sqrt=q_sqrt,
                     white=self.whiten)
+            else:
+                q_mu = self.sample_inducing_points(num_inducing_samples)
+                q_sqrt = None
 
-            mu, var = tf.map_fn(single_sample_conditional,
-                                q_mu,
-                                dtype=(default_float(), default_float()))
+                @tf.function
+                def single_sample_conditional(q_mu):
+                    # TODO put back to conditional when gpflow fix this issue
+                    return separate_independent_conditional(
+                        Xnew,
+                        self.inducing_variable,
+                        self.kernel,
+                        q_mu,
+                        full_cov=full_cov,
+                        full_output_cov=full_output_cov,
+                        q_sqrt=q_sqrt,
+                        white=self.whiten)
 
-        # tf.debugging.assert_positive(var)  # We really should make the tests pass with this here
-        return mu + self.mean_function(Xnew), var
+                mu, var = tf.map_fn(single_sample_conditional,
+                                    q_mu,
+                                    dtype=(default_float(), default_float()))
+
+            # tf.debugging.assert_positive(var)  # We really should make the tests pass with this here
+            return mu + self.mean_function(Xnew), var
 
     def predict_y(self,
                   Xnew: InputData,
@@ -323,7 +326,7 @@ class SVGPModel(GPModel):
 
 
 def init_fake_svgp(X, Y):
-    from src.models.utils.model import init_inducing_variables
+    from mogpe.models.utils.model import init_inducing_variables
     output_dim = Y.shape[1]
     input_dim = X.shape[1]
 
@@ -354,7 +357,7 @@ def init_fake_svgp(X, Y):
 
 if __name__ == "__main__":
     # Load data set
-    from src.models.utils.data import load_mixture_dataset
+    from mogpe.models.utils.data import load_mixture_dataset
     data_file = '../../data/processed/artificial-data-used-in-paper.npz'
     data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
                                              standardise=False)

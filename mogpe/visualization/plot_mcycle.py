@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from src.visualization.plotter import Plotter
+from mogpe.visualization.plotter import Plotter
 
 
 def plot_mcycle_svgp_comparison_and_gating(plotter, svgp_filename):
@@ -152,7 +152,7 @@ def plot_mcycle_comparison_to_svgp(plotter, svgp_filename):
 
 
 if __name__ == "__main__":
-    from src.models.utils.data import load_mcycle_dataset
+    from mogpe.models.utils.data import load_mcycle_dataset
     # filename = '../../models/saved_model/svgp_mcycle.npz'  # npz file with result of training svgp
     filename = './models/saved_model/svgp_mcycle.npz'  # npz file with result of training svgp
     # dataset_name = 'mcycle'

@@ -20,7 +20,7 @@ from gpflow.kernels import Kernel, MultioutputKernel
 from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction, Zero
 
-from gp import GPModel, SVGPModel
+from .gp import GPModel, SVGPModel
 
 tfd = tfp.distributions
 kl = tfd.kullback_leibler
@@ -34,7 +34,7 @@ class ExpertBase(Module, ABC):
     @abstractmethod
     def variational_expectation(self,
                                 data: InputData,
-                                num_samples_inducing: int = None):
+                                num_inducing_samples: int = None):
         raise NotImplementedError
 
 
@@ -45,21 +45,20 @@ class SVGPExpert(SVGPModel, ExpertBase):
                  inducing_variable,
                  mean_function: MeanFunction = None,
                  num_latent_gps: int = 1,
-                 num_inducing_samples: Optional[int] = None,
                  q_diag: bool = False,
                  q_mu=None,
                  q_sqrt=None,
                  whiten: bool = True,
                  num_data=None):
         super().__init__(kernel, likelihood, inducing_variable, mean_function,
-                         num_latent_gps, num_inducing_samples, q_diag, q_mu,
-                         q_sqrt, whiten, num_data)
+                         num_latent_gps, q_diag, q_mu, q_sqrt, whiten,
+                         num_data)
 
     def variational_expectation(self,
                                 data: InputData,
-                                num_samples_inducing: int = None):
+                                num_inducing_samples: int = None):
         X, Y = data
-        f_mean, f_var = self.predict_f(X, num_samples_inducing, full_cov=False)
+        f_mean, f_var = self.predict_f(X, num_inducing_samples, full_cov=False)
         # if self.num_samples is None:
         #     expected_prob_y = tf.exp(
         # self.likelihood.predict_log_density(f_mean, f_var, Y))
@@ -73,17 +72,21 @@ class SVGPExpert(SVGPModel, ExpertBase):
         #     #                                      full_cov=False)
         #     prob_y = tf.exp(expert.likelihood._log_prob(f_samples, Y))
         #     expected_prob_y = 1. / self.num_samples * tf.reduce_sum(prob_y, 0)
+        print('f_mean')
+        print(f_mean.shape)
+        print(f_var.shape)
+        print(Y.shape)
         expected_prob_y = tf.exp(
             self.likelihood.predict_log_density(f_mean, f_var, Y))
         return expected_prob_y
 
 
 def init_fake_expert(X, Y):
-    from src.models.utils.model import init_inducing_variables
+    from mogpe.models.utils.model import init_inducing_variables
     output_dim = Y.shape[1]
     input_dim = X.shape[1]
 
-    num_inducing = 30
+    num_inducing = 7
     inducing_variable = init_inducing_variables(X, num_inducing)
     inducing_variable = gpf.inducing_variables.SharedIndependentInducingVariables(
         gpf.inducing_variables.InducingPoints(inducing_variable))
@@ -111,7 +114,7 @@ def init_fake_expert(X, Y):
 
 
 if __name__ == "__main__":
-    from src.models.utils.data import load_mixture_dataset
+    from mogpe.models.utils.data import load_mixture_dataset
 
     # Load data set
     data_file = '../../data/processed/artificial-data-used-in-paper.npz'
@@ -120,5 +123,5 @@ if __name__ == "__main__":
     X, Y = data
 
     expert = init_fake_expert(X, Y)
-    var = expert.variational_expectation(data, num_samples_inducing=10)
+    var = expert.variational_expectation(data, num_inducing_samples=10)
     print(var.shape)

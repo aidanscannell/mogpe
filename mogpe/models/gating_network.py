@@ -11,7 +11,7 @@ from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
 from gpflow.models.model import InputData, MeanAndVariance
 
-from src.models.gp import SVGPModel
+from mogpe.models.gp import SVGPModel
 
 
 def inv_probit(x):
@@ -65,27 +65,32 @@ class GatingNetwork(SVGPModel):
         if num_inducing_samples=None otherwise a tensor with dims
         [num_experts, num_data, output_dim]
 
+        .. math::
+            \\mathbf{u}_h \sim \mathcal{N}(q\_mu, q\_sqrt \cdot q\_sqrt^T) \\\\
+            \\Pr(\\alpha=k | \\mathbf{Xnew}, \\mathbf{u}_h)
+
         :param Xnew: test input(s) [num_data, input_dim]
         :param num_inducing_samples: how many samples to draw from inducing points
         """
         prob_a_0 = self.predict_prob_a_0(Xnew, num_inducing_samples)
         prob_a_1 = 1 - prob_a_0
-        print('mixing_probs')
+        # mixing_probs = tf.stack([prob_a_1, prob_a_0])
         mixing_probs = tf.stack([prob_a_0, prob_a_1])
         # mixing_probs = tf.expand_dims(mixing_probs, -1)
         # move mixture dimension to last dimension
         trailing_dims = tf.range(1, tf.rank(mixing_probs))
-        mixing_probs = tf.transpose(mixing_probs, [*trailing_dims, 0])
-        print(mixing_probs.shape)
+        transpose_shape = tf.concat([trailing_dims, [0]], 0)
+        mixing_probs = tf.transpose(mixing_probs, transpose_shape)
+        # mixing_probs = tf.transpose(mixing_probs, [*trailing_dims, 0])
         return mixing_probs
 
 
 def init_fake_gating_network(X, Y):
-    from src.models.utils.model import init_inducing_variables
+    from mogpe.models.utils.model import init_inducing_variables
     output_dim = Y.shape[1]
     input_dim = X.shape[1]
 
-    num_inducing = 30
+    num_inducing = 7
     inducing_variable = init_inducing_variables(X, num_inducing)
 
     inducing_variable = gpf.inducing_variables.SharedIndependentInducingVariables(
@@ -94,8 +99,14 @@ def init_fake_gating_network(X, Y):
     noise_var = 0.1
     lengthscale = 1.
     mean_function = gpf.mean_functions.Zero()
-    likelihood = gpf.likelihoods.Gaussian(noise_var)
     likelihood = None
+
+    q_mu = np.zeros(
+        (num_inducing, output_dim)) + np.random.randn(num_inducing, 1) * 2
+    q_sqrt = np.array([
+        10 * np.eye(num_inducing, dtype=default_float())
+        for _ in range(output_dim)
+    ])
 
     kern_list = []
     for _ in range(output_dim):
@@ -105,12 +116,17 @@ def init_fake_gating_network(X, Y):
         kern_list.append(gpf.kernels.RBF(lengthscales=lengthscale))
     kernel = gpf.kernels.SeparateIndependent(kern_list)
 
-    return GatingNetwork(kernel, likelihood, inducing_variable, mean_function)
+    return GatingNetwork(kernel,
+                         likelihood,
+                         inducing_variable,
+                         mean_function,
+                         q_mu=q_mu,
+                         q_sqrt=q_sqrt)
 
 
 if __name__ == "__main__":
     # Load data set
-    from src.models.utils.data import load_mixture_dataset
+    from mogpe.models.utils.data import load_mixture_dataset
     data_file = '../../data/processed/artificial-data-used-in-paper.npz'
     data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
                                              standardise=False)

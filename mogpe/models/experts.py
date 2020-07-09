@@ -33,10 +33,56 @@ class Experts(Module):
         # self.dists = tf.convert_to_tensor(dists)
 
     def prior_kls(self) -> tf.Tensor:
-        return self.prior_kls
+        kl = self.prior_kls
+        # tf.print('kl')
+        # tf.print(kl)
+        return kl
+
+    # def prior_kls(self) -> tf.Tensor:
+    #     kls = []
+    #     for expert in self.experts_list:
+    #         kls.append(expert.prior_kl())
+    #     return kls
 
     # def predict_expert_y(expert, Xnew):
     #     return expert.predict_y(Xnew)
+
+    def predict_prob_y(self, data: Tuple[tf.Tensor, tf.Tensor], kwargs={}):
+        """Returns batched tensor of predicted dists"""
+        # TODO this method only works for Normal dists, needs correcting
+        # mus, vars = [], []
+        prob_y_list = []
+        X, Y = data
+        for expert in self.experts_list:
+            expected_prob_y = expert.variational_expectation(data, **kwargs)
+            prob_y_list.append(expected_prob_y)
+        prob_ys = tf.convert_to_tensor(prob_y_list)
+        trailing_dims = tf.range(1, tf.rank(prob_ys))
+        transpose_shape = tf.concat([trailing_dims, [0]], 0)
+        return tf.transpose(prob_ys, transpose_shape)
+        # return prob_y_list
+        # return mus, vars
+
+    # def predict_prob_y(self, data: Tuple[tf.Tensor, tf.Tensor], kwargs={}):
+    #     """Returns batched tensor of predicted dists"""
+    #     # TODO this method only works for Normal dists, needs correcting
+    #     # mus, vars = [], []
+    #     prob_y_list = []
+    #     X, Y = data
+    #     for expert in self.experts_list:
+    #         f_mean, f_var = expert.predict_y(X, **kwargs)
+    #         # mus.append(mu)
+    #         # vars.append(var)
+
+    #         expected_prob_y = tf.exp(
+    #             expert.likelihood.predict_log_density(f_mean, f_var, Y))
+    #         prob_y_list.append(expected_prob_y)
+    #     prob_ys = tf.convert_to_tensor(prob_y_list)
+    #     trailing_dims = tf.range(1, tf.rank(prob_ys))
+    #     transpose_shape = tf.concat([trailing_dims, [0]], 0)
+    #     return tf.transpose(prob_ys, transpose_shape)
+    #     # return prob_y_list
+    #     # return mus, vars
 
     def predict_dists(self, Xnew: InputData, kwargs):
         """Returns batched tensor of predicted dists"""
@@ -51,21 +97,26 @@ class Experts(Module):
 
         # move mixture dimension to last dimension
         trailing_dims_mu = tf.range(1, tf.rank(mus))
+        transpose_shape_mu = tf.concat([trailing_dims_mu, [0]], 0)
         trailing_dims_var = tf.range(1, tf.rank(vars))
-        mus = tf.transpose(mus, [*trailing_dims_mu, 0])
-        vars = tf.transpose(vars, [*trailing_dims_var, 0])
+        transpose_shape_var = tf.concat([trailing_dims_var, [0]], 0)
+        mus = tf.transpose(mus, transpose_shape_mu)
+        vars = tf.transpose(vars, transpose_shape_var)
         return tfd.Normal(mus, vars)
 
 
 def init_fake_experts(X, Y, num_experts=2):
-    from expert import init_fake_expert
-    expert = init_fake_expert(X, Y)
-    expert_list = [expert for _ in range(num_experts)]
-    return Experts(expert_list)
+    from .expert import init_fake_expert
+    experts_list = []
+    for _ in range(num_experts):
+        expert = init_fake_expert(X, Y)
+        experts_list.append(expert)
+    # expert_list = [expert for _ in range(num_experts)]
+    return Experts(experts_list)
 
 
 if __name__ == "__main__":
-    from src.models.utils.data import load_mixture_dataset
+    from mogpe.models.utils.data import load_mixture_dataset
 
     # Load data set
     data_file = '../../data/processed/artificial-data-used-in-paper.npz'
