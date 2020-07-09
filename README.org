@@ -6,7 +6,7 @@ This repository contains code implementing a mixture of Gaussian process (GPs)
 experts method where the gating network is also implemented using GPs.
 The model leverages code from GPflow/TensorFlow and trains the model
 with stochastic variational inference by exploiting the factorization achieved
-by sparse GPs. More details on the source code can be found in [[./src/README.org][README.org]]).
+by sparse GPs. More details on the source code can be found in [[./src/README.org][README.org]].
 
 
 ** Install
