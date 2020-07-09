@@ -1,21 +1,24 @@
-.. mixtures-of-two-gp-experts documentation master file, created by
-   sphinx-quickstart.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-mixtures-of-two-gp-experts documentation!
-==============================================
+Mixture of Gaussian Process Experts using SVI documentation!
+============================================================
+This package implements a mixture of Gaussian process (GPs)
+experts method where both the experts and the gating network are implemented using GPs.
+The model leverages `GPflow <https://www.gpflow.org/>`_/`TensorFlow <https://www.tensorflow.org/>`_
+and exploits the factorization achieved
+with sparse GPs to train the model with stochastic variational inference.
+More detail about the model and inference can be found in the associated paper.
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 10
 
    getting-started
-   commands
+   examples
+   ..
+      commands
 
-.. automodule:: svmogpe.SVMoGPE
-   :members:
+   api
+
 
 
 
