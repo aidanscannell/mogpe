@@ -3,8 +3,8 @@
     "input_dim": 1,
     "output_dim": 1,
     "num_data": 1000,
-    "epochs": 2000,
-    "batch_size": 100,
+    "epochs": 10000,
+    "batch_size": 200,
     "num_inducing_samples": 1,
     "num_experts": 2,
     "slow_tasks_period": 300,
@@ -76,7 +76,7 @@
                 {
                     "name": "cosine",
                     "params": {
-                        "lengthscale": 3.0,
+                        "lengthscale": 1.0,
                         "variance": 1.0
                     }
                 }
