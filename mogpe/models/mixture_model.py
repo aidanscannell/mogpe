@@ -116,8 +116,10 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 shape_constraints,
                 message="Gating network and experts dimensions do not match")
             with tf.name_scope('marginalise_indicator_variable') as scope:
-                weighted_sum_over_indicator = tf.matmul(
-                    mixing_probs, expected_experts)
+                weighted_sum_over_indicator = tf.matmul(mixing_probs,
+                                                        expected_experts,
+                                                        transpose_b=True)
+            print('marginalised indicator variable')
             print(weighted_sum_over_indicator.shape)
 
             # tf.print(weighted_sum_over_indicator)
