@@ -9,7 +9,7 @@ from gpflow import default_float
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
                             ScalarToTensorBoard)
 
-from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset
+from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset, load_quadcopter_dataset
 from mogpe.models.expert import SVGPExpert
 from mogpe.models.experts import Experts
 from mogpe.models.gating_network import GatingNetwork
@@ -46,6 +46,10 @@ def parse_dataset(dataset_name):
     elif dataset_name == 'artificial':
         data_file = '../../data/processed/artificial-data-used-in-paper.npz'
         dataset, _, _ = load_mixture_dataset(filename=data_file)
+
+    elif dataset_name == 'quadcopter':
+        data_file = '../../data/processed/quadcopter_turbulence.npz'
+        dataset = load_quadcopter_dataset(filename=data_file)
     else:
         raise NotImplementedError('No dataset by this name.')
     return dataset
