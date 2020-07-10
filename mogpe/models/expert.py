@@ -6,7 +6,7 @@ import tensorflow_probability as tfp
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
-from gpflow import Module, Parameter
+from gpflow import Module, Parameter, logdensities
 # from gpflow.conditionals import conditional, sample_conditional
 from gpflow.conditionals.util import sample_mvn
 from gpflow.config import default_float
@@ -75,9 +75,31 @@ class SVGPExpert(SVGPModel, ExpertBase):
         print('f_mean')
         print(f_mean.shape)
         print(f_var.shape)
+        print('Y')
         print(Y.shape)
-        expected_prob_y = tf.exp(
-            self.likelihood.predict_log_density(f_mean, f_var, Y))
+        log_density = logdensities.gaussian(Y, f_mean,
+                                            f_var + self.likelihood.variance)
+        print(log_density.shape)
+        expected_prob_y = tf.exp(log_density)
+        # expected_prob_y = tf.exp(
+        #     self.likelihood.predict_log_density(f_mean, f_var, Y))
+        print('expected_prob_y')
+        print(expected_prob_y.shape)
+
+        # sample = True
+        # num_samples = 1
+        # if sample is True:
+        #     f_samples = sample_mvn(f_mean,
+        #                            f_var,
+        #                            num_samples=num_samples,
+        #                            full_cov=False)
+        #     print('f_samples shape')
+        #     print(f_samples.shape)
+        #     prob_y = tf.exp(self.likelihood._log_prob(f_samples, Y))
+        #     expected_prob_y = 1. / num_samples * tf.reduce_sum(prob_y, 0)
+        # print('samples prob y shape')
+        # print(expected_prob_y.shape)
+
         return expected_prob_y
 
 
