@@ -57,6 +57,7 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         super().__init__(gating_network, experts)
         self.num_inducing_samples = num_inducing_samples
         self.num_data = num_data
+        self.num_experts = experts.num_experts
 
     # @tf.function
     def maximum_log_likelihood_objective(
@@ -88,18 +89,24 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 # expected_experts = self.experts.predict_prob_y(data)
                 expected_experts = self.experts.predict_prob_y(
                     data, {'num_inducing_samples': self.num_inducing_samples})
-                expected_experts = tf.expand_dims(expected_experts, -1)
-                print('new')
+                print('expected experts')
                 print(expected_experts.shape)
+                # expected_experts = tf.expand_dims(expected_experts, -1)
+                # print(expected_experts.shape)
 
-            print('expected experts')
-            print(expected_experts.shape)
+            print('mixing probs')
             print(mixing_probs.shape)
             shape_constraints = [
-                (expected_experts, [
-                    "num_inducing_samples", "num_data", "num_experts",
-                    "output_dim"
-                ]),
+                (
+                    expected_experts,
+                    [
+                        # "num_inducing_samples", "num_data", "num_experts",
+                        # "output_dim"
+                        "num_inducing_samples",
+                        "num_data",
+                        "output_dim",
+                        "num_experts"
+                    ]),
                 (mixing_probs, [
                     "num_inducing_samples", "num_data", "output_dim",
                     "num_experts"
