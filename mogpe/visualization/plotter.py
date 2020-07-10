@@ -102,8 +102,10 @@ class Plotter1D(Plotter):
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs,
                                                        kwargs={})
         num_experts = tf.shape(mixing_probs)[-1]
-        for k in tf.range(num_experts):
-            ax.plot(self.test_inputs, mixing_probs[:, :, k])
+        # for k in tf.range(num_experts):
+        for k in range(num_experts):
+            ax.plot(self.test_inputs, mixing_probs[:, :, k], label=str(k + 1))
+        ax.legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
         ax.scatter(input_broadcast,
