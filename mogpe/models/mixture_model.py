@@ -125,8 +125,9 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # tf.print(weighted_sum_over_indicator)
             # log = tf.math.log(weighted_sum_over_indicator)
             # tf.print(log)
-            # TODO divide by num inducing point samples
-            var_exp = 1 / self.num_inducing_samples * tf.reduce_sum(
+            # TODO correct num samples for K experts. This assumes 2 experts
+            num_samples = self.num_inducing_samples**(self.num_experts + 1)
+            var_exp = 1 / num_samples * tf.reduce_sum(
                 tf.math.log(weighted_sum_over_indicator), axis=0)
             # tf.print(var_exp)
             print('var_exp')
