@@ -130,11 +130,13 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             var_exp = 1 / num_samples * tf.reduce_sum(
                 tf.math.log(weighted_sum_over_indicator), axis=0)
             # tf.print(var_exp)
-            print('var_exp')
+            print('averaged samples')
             print(var_exp.shape)
-            # TODO is output dimension being dealt with correctly here?
+            # TODO where should output dimension be reduced?
             var_exp = tf.linalg.diag_part(var_exp)
+            print('Ignore covariance in output dimension')
             print(var_exp.shape)
+            print('Reduce sum to get loss')
             print(tf.reduce_sum(var_exp).shape)
 
             if self.num_data is not None:
@@ -144,10 +146,7 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             else:
                 scale = tf.cast(1.0, default_float())
 
-            # return tf.reduce_sum(var_exp) * scale
             return tf.reduce_sum(var_exp) * scale - kl_gating - kl_experts
-            # return tf.reduce_sum(mixing_probs) - kl_gating - kl_experts
-            # return tf.reduce_sum(expected_experts) - kl_gating - kl_experts
 
     def elbo(self, data: RegressionData) -> tf.Tensor:
         """
