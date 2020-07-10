@@ -73,14 +73,19 @@ class GatingNetwork(SVGPModel):
         :param num_inducing_samples: how many samples to draw from inducing points
         """
         prob_a_0 = self.predict_prob_a_0(Xnew, num_inducing_samples)
+        print('prob_a_0')
+        print(prob_a_0.shape)
         prob_a_1 = 1 - prob_a_0
         # mixing_probs = tf.stack([prob_a_1, prob_a_0])
         mixing_probs = tf.stack([prob_a_0, prob_a_1])
+        print("mixing_probs")
+        print(mixing_probs.shape)
         # mixing_probs = tf.expand_dims(mixing_probs, -1)
         # move mixture dimension to last dimension
         trailing_dims = tf.range(1, tf.rank(mixing_probs))
         transpose_shape = tf.concat([trailing_dims, [0]], 0)
         mixing_probs = tf.transpose(mixing_probs, transpose_shape)
+        print(mixing_probs.shape)
         # mixing_probs = tf.transpose(mixing_probs, [*trailing_dims, 0])
         return mixing_probs
 
@@ -102,7 +107,8 @@ def init_fake_gating_network(X, Y):
     likelihood = None
 
     q_mu = np.zeros(
-        (num_inducing, output_dim)) + np.random.randn(num_inducing, 1) * 2
+        (num_inducing,
+         output_dim)) + np.random.randn(num_inducing, output_dim) * 2
     q_sqrt = np.array([
         10 * np.eye(num_inducing, dtype=default_float())
         for _ in range(output_dim)

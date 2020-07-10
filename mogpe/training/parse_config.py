@@ -77,7 +77,13 @@ def parse_config(config):
         dataset, num_data, config.batch_size)
 
     model = parse_model(config, X)
+    # gpf.set_trainable(model.experts.experts_list[0].likelihood.variance, False)
+    # gpf.set_trainable(model.experts.experts_list[0].inducing_variable, False)
+    # gpf.set_trainable(model.experts.experts_list[1].inducing_variable, False)
+    # gpf.set_trainable(model.gating_network.inducing_variable, False)
     gpf.utilities.print_summary(model)
+    print('num latent gps gating')
+    print(model.gating_network.num_latent_gps)
 
     log_dir = '../../models/logs/' + config.dataset_name + '/' + datetime.now(
     ).strftime("%m-%d-%H%M%S")
@@ -148,6 +154,7 @@ def run_config(config_file):
 if __name__ == "__main__":
     config_file = '../../configs/mcycle.json'
     config_file = '../../configs/artificial_2b.json'
+    config_file = '../../configs/quadcopter.json'
 
     # model = parse_config_json(config_file)
     model = run_config(config_file)
