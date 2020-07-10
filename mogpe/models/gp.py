@@ -11,6 +11,7 @@ from gpflow import Module, Parameter
 from .conditionals import separate_independent_conditional
 
 from gpflow.conditionals.util import sample_mvn
+from gpflow.conditionals import conditional
 from gpflow.config import default_float
 from gpflow.models.training_mixins import InputData, RegressionData
 from gpflow.models.model import InputData, MeanAndVariance
@@ -175,15 +176,6 @@ class SVGPModel(GPModel):
         self._init_variational_parameters(self.num_inducing, q_mu, q_sqrt,
                                           q_diag)
 
-        mu = tf.transpose(self.q_mu, [1, 0])
-        self.q_dist = tfp.distributions.MultivariateNormalTriL(
-            loc=mu,
-            # loc=self.q_mu,
-            scale_tril=self.q_sqrt,
-            validate_args=False,
-            allow_nan_stats=True,
-            name='MultivariateNormalQ')
-
     def _init_variational_parameters(self, num_inducing, q_mu, q_sqrt, q_diag):
         """
             Constructs the mean and cholesky of the covariance of the variational Gaussian posterior.
@@ -251,14 +243,15 @@ class SVGPModel(GPModel):
     def sample_inducing_points(self, num_samples=None):
         # TODO put dist as class attribute
         mu = tf.transpose(self.q_mu, [1, 0])
-        # q_dist = tfp.distributions.MultivariateNormalTriL(
-        #     loc=mu,
-        #     # loc=self.q_mu,
-        #     scale_tril=self.q_sqrt,
-        #     validate_args=False,
-        #     allow_nan_stats=True,
-        #     name='MultivariateNormalQ')
-        inducing_samples = self.q_dist.sample(num_samples)
+        q_dist = tfp.distributions.MultivariateNormalTriL(
+            loc=mu,
+            # loc=self.q_mu,
+            scale_tril=self.q_sqrt,
+            validate_args=False,
+            allow_nan_stats=True,
+            name='MultivariateNormalQ')
+        inducing_samples = q_dist.sample(num_samples)
+        # inducing_samples = self.q_dist.sample(num_samples)
         # print(inducing_samples.shape)
         return tf.transpose(inducing_samples, [0, 2, 1])
         # TODO correct this reshape (this only works for 1 output and 1 samples)
