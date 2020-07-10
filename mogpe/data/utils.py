@@ -61,3 +61,21 @@ def load_mcycle_dataset(filename='../../../data/external/mcycle.csv'):
     X, Y = standardise_data(X, Y)
     data = (X, Y)
     return data
+
+
+def load_quadcopter_dataset(
+        filename='../../../data/processed/quadcopter_turbulence.npz',
+        standardise=False):
+    data = np.load(filename)
+    X = data['x']
+    Y = data['y'][:, 0:3]
+
+    X = tf.convert_to_tensor(X, dtype=default_float())
+    Y = tf.convert_to_tensor(Y, dtype=default_float())
+    print("Input data shape: ", X.shape)
+    print("Output data shape: ", Y.shape)
+    # standardise input
+    if standardise:
+        X, Y = standardise_data(X, Y)
+    data = (X, Y)
+    return data
