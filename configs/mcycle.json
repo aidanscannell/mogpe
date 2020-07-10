@@ -3,8 +3,8 @@
     "input_dim": 1,
     "output_dim": 1,
     "num_data": 133,
-    "epochs": 5000,
-    "batch_size": 40,
+    "epochs": 20000,
+    "batch_size": 80,
     "num_inducing_samples": 1,
     "num_experts": 2,
     "slow_tasks_period": 500,
@@ -76,7 +76,7 @@
             "num_inducing": 30,
             "q_mu": {
                 "mean": 0.0,
-                "var": 2
+                "var": 10
             },
             "q_sqrt": 10.0,
             "q_diag": "False"
