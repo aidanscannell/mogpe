@@ -82,10 +82,13 @@ def parse_config(config):
     log_dir = '../../models/logs/' + config.dataset_name + '/' + datetime.now(
     ).strftime("%m-%d-%H%M%S")
 
-    plotter = Plotter1D(model, X, Y)
+    if config.slow_tasks_period > 0:
+        plotter = Plotter1D(model, X, Y)
+        slow_tasks = parse_slow_tasks(config.slow_tasks_period, plotter,
+                                      config.num_experts, log_dir)
+    else:
+        slow_tasks = None
     training_loss = model.training_loss_closure(iter(train_dataset))
-    slow_tasks = parse_slow_tasks(config.slow_tasks_period, plotter,
-                                  config.num_experts, log_dir)
     fast_tasks = parse_fast_tasks(config.fast_tasks_period, training_loss,
                                   model, log_dir)
 
