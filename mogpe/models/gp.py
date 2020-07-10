@@ -272,31 +272,61 @@ class SVGPModel(GPModel):
                 q_mu = self.q_mu
                 q_sqrt = self.q_sqrt
                 # TODO put back to conditional when gpflow fix this issue
-                mu, var = separate_independent_conditional(
-                    Xnew,
-                    self.inducing_variable,
-                    self.kernel,
-                    q_mu,
-                    full_cov=full_cov,
-                    full_output_cov=full_output_cov,
-                    q_sqrt=q_sqrt,
-                    white=self.whiten)
+                # mu, var = separate_independent_conditional(
+                #     Xnew,
+                #     self.inducing_variable,
+                #     self.kernel,
+                #     q_mu,
+                #     full_cov=full_cov,
+                #     full_output_cov=full_output_cov,
+                #     q_sqrt=q_sqrt,
+                #     white=self.whiten)
+                mu, var = conditional(Xnew,
+                                      self.inducing_variable,
+                                      self.kernel,
+                                      q_mu,
+                                      q_sqrt=q_sqrt,
+                                      full_cov=full_cov,
+                                      white=self.whiten,
+                                      full_output_cov=full_output_cov)
             else:
                 q_mu = self.sample_inducing_points(num_inducing_samples)
                 q_sqrt = None
+                print('inside predict_f')
+                print(q_mu.shape)
 
+                # @tf.function
+                # def single_sample_conditional(q_mu):
+                #     # TODO put back to conditional when gpflow fix this issue
+                #     return separate_independent_conditional(
+                #         Xnew,
+                #         self.inducing_variable,
+                #         self.kernel,
+                #         q_mu,
+                #         full_cov=full_cov,
+                #         full_output_cov=full_output_cov,
+                #         q_sqrt=q_sqrt,
+                #         white=self.whiten)
                 @tf.function
                 def single_sample_conditional(q_mu):
                     # TODO put back to conditional when gpflow fix this issue
-                    return separate_independent_conditional(
-                        Xnew,
-                        self.inducing_variable,
-                        self.kernel,
-                        q_mu,
-                        full_cov=full_cov,
-                        full_output_cov=full_output_cov,
-                        q_sqrt=q_sqrt,
-                        white=self.whiten)
+                    return conditional(Xnew,
+                                       self.inducing_variable,
+                                       self.kernel,
+                                       q_mu,
+                                       q_sqrt=q_sqrt,
+                                       full_cov=full_cov,
+                                       white=self.whiten,
+                                       full_output_cov=full_output_cov)
+                    # return separate_independent_conditional(
+                    #     Xnew,
+                    #     self.inducing_variable,
+                    #     self.kernel,
+                    #     q_mu,
+                    #     full_cov=full_cov,
+                    #     full_output_cov=full_output_cov,
+                    #     q_sqrt=q_sqrt,
+                    #     white=self.whiten)
 
                 mu, var = tf.map_fn(single_sample_conditional,
                                     q_mu,
