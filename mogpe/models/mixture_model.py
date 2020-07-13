@@ -10,19 +10,83 @@ from gpflow import default_float
 
 tfd = tfp.distributions
 
+# class MixtureModel(BayesianModel, ABC):
+#     """Abstract base class for mixture models.
 
-class MixtureModel(BayesianModel, ABC):
-    @abstractmethod
-    def predict_mixing_probs(self, Xnew, kwargs={}):
-        raise NotImplementedError
+#     Given an input :math:`x` and an output :math:`y` a mixture model is defined by the
+#     following marginal likelihood,
 
-    @abstractmethod
-    def predict_component_dists(self, Xnew, kwargs={}):
-        raise NotImplementedError
+#     .. math::
+#         p(y|x) = \sum_{k=1}^K \Pr(\\alpha=k) p(y | \\alpha=k, x)
 
-    def predict_y(self, Xnew: InputData, kwargs={}) -> tf.Tensor:
+#     Assuming the mixture indicator variable :math:`\\alpha \in \{1, ... K\}`
+#     the mixing probabilities are given by :math:`\Pr(\\alpha=k)` and
+#     the component distributions are given by :math:`p(y | \\alpha=k, x)`.
+
+#     A subclass should implement methods for calculating the mixing
+#     probabilities and the component distributions for each of the K components.
+#     This class inherits GPflow's BayesianModel so the maximum_log_likelihood_objective
+#     method must be instantiated.
+#     """
+#     @abstractmethod
+#     def predict_mixing_probs(self, *args, **kwargs):
+#         """Calculates the mixing probabilities."""
+#         raise NotImplementedError
+
+#     @abstractmethod
+#     def predict_component_dists(self, Xnew, kwargs={}):
+#         """Calculates each components prediction at Xnew.
+
+#         :param Xnew: inputs with shape [num_test, input_dim]
+#         :returns: a batched Tensor of [num_test, num_experts]
+#         """
+#         raise NotImplementedError
+
+
+class MixtureOfExperts(BayesianModel, ABC):
+    """Abstract base class for mixture of experts models.
+
+    Given an input :math:`x` and an output :math:`y` the mixture of experts model
+    is defined by the following marginal likelihood,
+
+    .. math::
+        p(y|x) = \sum_{k=1}^K \Pr(\\alpha=k | x) p(y | \\alpha=k, x)
+
+    Assuming the mixture indicator variable :math:`\\alpha \in \{1, ...,K\}`
+    the mixing probabilities are given by :math:`\Pr(\\alpha=k | x)` and are
+    collectively referred to as the gating network.
+    The experts are given by :math:`p(y | \\alpha=k, x)` and are responsible for
+    predicting in different regions of the input space.
+
+    Each subclass should implement methods for calculating the mixing
+    probabilities and the component distributions for each of the K components.
+
+    :param gating_network: an instance of the GatingNetworkBase class with
+                            the predict_mixing_probs(Xnew) method implemented.
+    :param experts: an instance of the ExpertsBase class with the
+                    predict_dists(Xnew) method implemented.
+    """
+    def __init__(self, gating_network, experts):
+        self.gating_network = gating_network
+        self.experts = experts
+
+    def predict_mixing_probs(self, Xnew, kwargs):
+        return self.gating_network.predict_mixing_probs(Xnew, **kwargs)
+
+    def predict_experts_dists(self, Xnew: InputData, kwargs) -> tf.Tensor:
+        dists = self.experts.predict_dists(Xnew, kwargs)
+        return dists
+
+    def predict_y(self, Xnew: InputData, kwargs={}) -> tfd.Distribution:
+        """ Predicts the mixture distribution at Xnew.
+
+        :param Xnew: an input with shape [num_test, input_dim]
+        :param kwargs: kwargs to be passed to predict_mixing_probs and
+                        predict_experts_dists
+        :returns: The prediction as a TensorFlow MixtureSameFamily distribution
+        """
         mixing_probs = self.predict_mixing_probs(Xnew, kwargs)
-        dists = self.predict_component_dists(Xnew, kwargs)
+        dists = self.predict_experts_dists(Xnew, kwargs)
         return tfd.MixtureSameFamily(
             mixture_distribution=tfd.Categorical(probs=mixing_probs),
             components_distribution=dists)
@@ -31,24 +95,32 @@ class MixtureModel(BayesianModel, ABC):
                           Xnew: InputData,
                           num_samples: int = 1,
                           kwargs={}) -> tf.Tensor:
+        """Returns samples from the predictive mixture distribution at Xnew.
+
+        :param Xnew: an input with shape [num_test, input_dim]
+        :param num_samples: number of samples to draw
+        :param kwargs: kwargs to be passed to predict_mixing_probs and
+                        predict_experts_dists
+        :returns: a Tensor with shape [num_samples, num_test, output_dim]
+        """
         return self.predict_y(Xnew, kwargs).sample(num_samples)
 
 
-class MixtureOfExperts(MixtureModel, ABC):
-    def __init__(self, gating_network, experts):
-        self.gating_network = gating_network
-        self.experts = experts
+class MixtureOfGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
+    """Mixture of GP experts using stochastic variational inference.
 
-    def predict_mixing_probs(self, Xnew, kwargs):
-        return self.gating_network.predict_mixing_probs(Xnew, **kwargs)
+    Implemention of a mixture of Gaussian process (GPs) experts method where
+    the gating network is also implemented using GPs.
+    The model is trained with stochastic variational inference by exploiting
+    the factorization achieved by sparse GPs.
 
-    def predict_component_dists(self, Xnew: InputData, kwargs) -> tf.Tensor:
-        dists = self.experts.predict_dists(Xnew, kwargs)
-        return dists
-        # return self.experts.predict_dists(Xnew, kwargs)
-
-
-class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
+    :param gating_network: an instance of the GatingNetworkBase class with
+                            the predict_mixing_probs(Xnew) method implemented.
+    :param experts: an instance of the ExpertsBase class with the
+                    predict_dists(Xnew) method implemented.
+    :param num_inducing_samples:
+    :param num_data:
+    """
     def __init__(self,
                  gating_network,
                  experts,
@@ -59,43 +131,48 @@ class GPMixtureOfExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self.num_data = num_data
         self.num_experts = experts.num_experts
 
-    # @tf.function
     def maximum_log_likelihood_objective(
             self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Objective for maximum likelihood estimation.
 
         Lower bound to the log-marginal likelihood (ELBO).
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: a Tensor with shape ()
         """
         with tf.name_scope('ELBO') as scope:
             X, Y = data
 
             kl_gating = self.gating_network.prior_kl()
-            kls_experts = self.experts.prior_kls
+            kls_experts = self.experts.prior_kls()
             kl_experts = tf.reduce_sum(kls_experts)
 
             with tf.name_scope('predict_mixing_probs') as scope:
                 mixing_probs = self.predict_mixing_probs(
                     X, {'num_inducing_samples': self.num_inducing_samples})
-            # tf.print(mixing_probs)
-            # print(mixing_probs.shape)
+            print("mixing_probs")
+            print(mixing_probs.shape)
 
-            # dists = self.predict_component_dists(
-            #     X, {'num_inducing_samples': self.num_inducing_samples})
-            # # tf.print(dists)
-            # Y = tf.reshape(Y, tf.concat([tf.shape(Y), [1]], 0))
-            # # expected_experts = dists.log_prob(Y)
-            # expected_experts = dists.prob(Y)
             with tf.name_scope('predict_experts_prob') as scope:
-                # expected_experts = self.experts.predict_prob_y(data)
-                expected_experts = self.experts.predict_prob_y(
-                    data, {'num_inducing_samples': self.num_inducing_samples})
+                batched_dists = self.predict_component_dists(
+                    X, {'num_inducing_samples': self.num_inducing_samples})
+
+                Y = tf.expand_dims(Y, 0)
+                Y = tf.expand_dims(Y, -1)
+                expected_experts = batched_dists.prob(Y)
                 print('expected experts')
                 print(expected_experts.shape)
-                # expected_experts = tf.expand_dims(expected_experts, -1)
-                # print(expected_experts.shape)
 
-            print('mixing probs')
-            print(mixing_probs.shape)
+            # with tf.name_scope('predict_experts_prob') as scope:
+            #     # expected_experts = self.experts.predict_prob_y(data)
+            #     expected_experts = self.experts.predict_prob_y(
+            #         data, {'num_inducing_samples': self.num_inducing_samples})
+            #     print('expected experts')
+            #     print(expected_experts.shape)
+            #     # expected_experts = tf.expand_dims(expected_experts, -1)
+            #     # print(expected_experts.shape)
+
             shape_constraints = [
                 (
                     expected_experts,
@@ -160,7 +237,7 @@ def init_fake_mixture(X, Y, num_experts=2, num_inducing_samples=1):
     from mogpe.models.gating_network import init_fake_gating_network
     experts = init_fake_experts(X, Y, num_experts=2)
     gating_network = init_fake_gating_network(X, Y)
-    return GPMixtureOfExperts(gating_network,
+    return MixtureOfGPExperts(gating_network,
                               experts,
                               num_inducing_samples=num_inducing_samples)
 
