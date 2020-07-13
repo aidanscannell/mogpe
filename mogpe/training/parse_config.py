@@ -1,19 +1,13 @@
 import json
 import gpflow as gpf
-import numpy as np
 import tensorflow as tf
 
 from bunch import Bunch
 from datetime import datetime
-from gpflow import default_float
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
                             ScalarToTensorBoard)
 
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset, load_quadcopter_dataset
-from mogpe.models.expert import SVGPExpert
-from mogpe.models.experts import Experts
-from mogpe.models.gating_network import GatingNetwork
-from mogpe.models.mixture_model import GPMixtureOfExperts
 from mogpe.models.utils.model_parser import parse_model
 from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
 from mogpe.visualization.plotter import Plotter1D
@@ -154,10 +148,10 @@ def run_config(config_file):
 if __name__ == "__main__":
     config_file = '../../configs/mcycle.json'
     config_file = '../../configs/artificial_2b.json'
-    config_file = '../../configs/quadcopter.json'
+    # config_file = '../../configs/quadcopter.json'
 
     # model = parse_config_json(config_file)
-    model = run_config(config_file)
+    run_config(config_file)
     # gpf.utilities.print_summary(model)
     # TODO make gating_netowrk accept different likelihoods
     # TODO make size of input_dim
