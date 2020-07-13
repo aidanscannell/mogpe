@@ -1,27 +1,27 @@
+'''
+This file implements Gaussian processes and is based on
+GPflow https://github.com/GPflow/GPflow.
+'''
+from abc import ABC, abstractmethod
+from typing import Optional, Tuple
+
 import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-from abc import ABC, abstractmethod
-from typing import Optional, Tuple
-
-from gpflow import Module, Parameter
-# from gpflow.conditionals import conditional, sample_conditional
-from .conditionals import separate_independent_conditional
-
-from gpflow.conditionals.util import sample_mvn
+from gpflow import Module, Parameter, kullback_leiblers
 from gpflow.conditionals import conditional
+from gpflow.conditionals.util import sample_mvn
 from gpflow.config import default_float
-from gpflow.models.training_mixins import InputData, RegressionData
-from gpflow.models.model import InputData, MeanAndVariance
-from gpflow.models.util import inducingpoint_wrapper
-
-from gpflow import kullback_leiblers
-from gpflow.utilities import triangular, positive
 from gpflow.kernels import Kernel, MultioutputKernel
 from gpflow.likelihoods import Likelihood, SwitchedLikelihood
 from gpflow.mean_functions import MeanFunction, Zero
+from gpflow.models.model import InputData, MeanAndVariance
+from gpflow.models.training_mixins import InputData, RegressionData
+from gpflow.models.util import inducingpoint_wrapper
+from gpflow.utilities import positive, triangular
+
+from .conditionals import separate_independent_conditional
 
 tfd = tfp.distributions
 kl = tfd.kullback_leibler
@@ -82,9 +82,9 @@ class GPModel(Module, ABC):
     @abstractmethod
     def predict_f(self,
                   Xnew: InputData,
+                  num_inducing_samples: int = None,
                   full_cov: bool = False,
                   full_output_cov: bool = False) -> MeanAndVariance:
-        # TODO add num_inducing_samples
         raise NotImplementedError
 
     def predict_f_samples(
@@ -142,12 +142,15 @@ class GPModel(Module, ABC):
 
     def predict_y(self,
                   Xnew: InputData,
+                  num_inducing_samples: int = None,
                   full_cov: bool = False,
                   full_output_cov: bool = False) -> MeanAndVariance:
-        """ Compute the mean and variance of the held-out data at the input points. """
-        f_mean, f_var = self.predict_f(Xnew,
-                                       full_cov=full_cov,
-                                       full_output_cov=full_output_cov)
+        """Compute mean and variance at Xnew."""
+        f_mean, f_var = self.predict_f(
+            Xnew,
+            num_inducing_samples=num_inducing_samples,
+            full_cov=full_cov,
+            full_output_cov=full_output_cov)
         return self.likelihood.predict_mean_and_var(f_mean, f_var)
 
 
@@ -241,21 +244,24 @@ class SVGPModel(GPModel):
                                               whiten=self.whiten)
 
     def sample_inducing_points(self, num_samples=None):
-        # TODO put dist as class attribute
+        """Returns samples from the inducing point distribution.
+
+        The distribution is given by,
+        .. math:
+            q ~ \mathcal{N}(q_mu, q_sqrt q_sqrt^T)
+
+        :param num_samples: the number of samples to draw
+        :returns samples with shape [num_samples, num_data, output_dim]
+        """
         mu = tf.transpose(self.q_mu, [1, 0])
         q_dist = tfp.distributions.MultivariateNormalTriL(
             loc=mu,
-            # loc=self.q_mu,
             scale_tril=self.q_sqrt,
             validate_args=False,
             allow_nan_stats=True,
             name='MultivariateNormalQ')
         inducing_samples = q_dist.sample(num_samples)
-        # inducing_samples = self.q_dist.sample(num_samples)
-        # print(inducing_samples.shape)
         return tf.transpose(inducing_samples, [0, 2, 1])
-        # TODO correct this reshape (this only works for 1 output and 1 samples)
-        # return tf.reshape(inducing_samples, [self.num_inducing, 1])
 
     def predict_f(self,
                   Xnew: InputData,
@@ -271,16 +277,6 @@ class SVGPModel(GPModel):
             if num_inducing_samples is None:
                 q_mu = self.q_mu
                 q_sqrt = self.q_sqrt
-                # TODO put back to conditional when gpflow fix this issue
-                # mu, var = separate_independent_conditional(
-                #     Xnew,
-                #     self.inducing_variable,
-                #     self.kernel,
-                #     q_mu,
-                #     full_cov=full_cov,
-                #     full_output_cov=full_output_cov,
-                #     q_sqrt=q_sqrt,
-                #     white=self.whiten)
                 mu, var = conditional(Xnew,
                                       self.inducing_variable,
                                       self.kernel,
@@ -292,21 +288,7 @@ class SVGPModel(GPModel):
             else:
                 q_mu = self.sample_inducing_points(num_inducing_samples)
                 q_sqrt = None
-                print('inside predict_f')
-                print(q_mu.shape)
 
-                # @tf.function
-                # def single_sample_conditional(q_mu):
-                #     # TODO put back to conditional when gpflow fix this issue
-                #     return separate_independent_conditional(
-                #         Xnew,
-                #         self.inducing_variable,
-                #         self.kernel,
-                #         q_mu,
-                #         full_cov=full_cov,
-                #         full_output_cov=full_output_cov,
-                #         q_sqrt=q_sqrt,
-                #         white=self.whiten)
                 @tf.function
                 def single_sample_conditional(q_mu):
                     # TODO put back to conditional when gpflow fix this issue
@@ -318,34 +300,11 @@ class SVGPModel(GPModel):
                                        full_cov=full_cov,
                                        white=self.whiten,
                                        full_output_cov=full_output_cov)
-                    # return separate_independent_conditional(
-                    #     Xnew,
-                    #     self.inducing_variable,
-                    #     self.kernel,
-                    #     q_mu,
-                    #     full_cov=full_cov,
-                    #     full_output_cov=full_output_cov,
-                    #     q_sqrt=q_sqrt,
-                    #     white=self.whiten)
 
                 mu, var = tf.map_fn(single_sample_conditional,
                                     q_mu,
                                     dtype=(default_float(), default_float()))
-
-            # tf.debugging.assert_positive(var)  # We really should make the tests pass with this here
             return mu + self.mean_function(Xnew), var
-
-    def predict_y(self,
-                  Xnew: InputData,
-                  num_inducing_samples: int = None,
-                  full_cov: bool = False,
-                  full_output_cov: bool = False) -> MeanAndVariance:
-        """ Compute the mean and variance of the held-out data at the input points. """
-        f_mean, f_var = self.predict_f(Xnew,
-                                       num_inducing_samples,
-                                       full_cov=full_cov,
-                                       full_output_cov=full_output_cov)
-        return self.likelihood.predict_mean_and_var(f_mean, f_var)
 
 
 def init_fake_svgp(X, Y):
