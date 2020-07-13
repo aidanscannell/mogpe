@@ -11,98 +11,139 @@ from gpflow.config import default_float
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.training_mixins import InputData, RegressionData
 
+import numpy as np
+
+from gpflow import Module, Parameter, logdensities
+from gpflow.models.util import inducingpoint_wrapper
+
+from gpflow.utilities import triangular, positive
+from gpflow.kernels import Kernel, MultioutputKernel
+from gpflow.likelihoods import Likelihood
+from gpflow.mean_functions import MeanFunction, Zero
+
+from .gp import GPModel, SVGPModel
+
 tfd = tfp.distributions
 
 
-class Experts(Module):
+class ExpertsBase(Module):
     def __init__(self, experts_list: List = None, name="Experts"):
-        """Represent the set of experts.
+        """Provides an interface between ExpertBase and MixtureOfExperts.
 
-        This class builds tensors of prior KL divergence and """
+        It should return the KL divergence for each experts inducing points
+        and the set of experts predictions at an input (as a batched TensorFlow
+        distribution)
+
+        :param experts_list: A list of experts that inherit from ExpertBase
+        """
+        super().__init__(name=name)
         assert isinstance(
             experts_list,
-            list), 'experts_list should be a list of Expert instances'
+            list), 'experts_list should be a list of ExpertBase instances'
         self.num_experts = len(experts_list)
         self.experts_list = experts_list
-        kls, dists = [], []
-        # TODO this list is OK because it will be created before graph construction
-        for expert in experts_list:
-            kls.append(expert.prior_kl())
-            # dists.append(expert.predict_y)
-        self.prior_kls = tf.convert_to_tensor(kls)
-        # self.dists = tf.convert_to_tensor(dists)
 
     def prior_kls(self) -> tf.Tensor:
-        kl = self.prior_kls
-        # tf.print('kl')
-        # tf.print(kl)
-        return kl
+        raise NotImplementedError
 
-    # def prior_kls(self) -> tf.Tensor:
-    #     kls = []
-    #     for expert in self.experts_list:
-    #         kls.append(expert.prior_kl())
-    #     return kls
-
-    # def predict_expert_y(expert, Xnew):
-    #     return expert.predict_y(Xnew)
-
-    def predict_prob_y(self, data: Tuple[tf.Tensor, tf.Tensor], kwargs={}):
+    def predict_dists(self, Xnew: InputData, kwargs) -> tfd.Distribution:
         """Returns batched tensor of predicted dists"""
-        # TODO this method only works for Normal dists, needs correcting
-        # mus, vars = [], []
-        prob_y_list = []
-        X, Y = data
+        raise NotImplementedError
+
+
+class SVGPExperts(ExpertsBase):
+    def __init__(self, experts_list: List = None, name="Experts"):
+        """Implementation of ExpertsBase for Normally distributed experts"""
+        super().__init__(experts_list, name=name)
+
+    def prior_kls(self) -> tf.Tensor:
+        kls = []
         for expert in self.experts_list:
-            expected_prob_y = expert.variational_expectation(data, **kwargs)
-            prob_y_list.append(expected_prob_y)
-        prob_ys = tf.convert_to_tensor(prob_y_list)
-        trailing_dims = tf.range(1, tf.rank(prob_ys))
-        transpose_shape = tf.concat([trailing_dims, [0]], 0)
-        return tf.transpose(prob_ys, transpose_shape)
-        # return prob_y_list
-        # return mus, vars
+            kls.append(expert.prior_kl())
+        return tf.convert_to_tensor(kls)
 
-    # def predict_prob_y(self, data: Tuple[tf.Tensor, tf.Tensor], kwargs={}):
-    #     """Returns batched tensor of predicted dists"""
-    #     # TODO this method only works for Normal dists, needs correcting
-    #     # mus, vars = [], []
-    #     prob_y_list = []
-    #     X, Y = data
-    #     for expert in self.experts_list:
-    #         f_mean, f_var = expert.predict_y(X, **kwargs)
-    #         # mus.append(mu)
-    #         # vars.append(var)
-
-    #         expected_prob_y = tf.exp(
-    #             expert.likelihood.predict_log_density(f_mean, f_var, Y))
-    #         prob_y_list.append(expected_prob_y)
-    #     prob_ys = tf.convert_to_tensor(prob_y_list)
-    #     trailing_dims = tf.range(1, tf.rank(prob_ys))
-    #     transpose_shape = tf.concat([trailing_dims, [0]], 0)
-    #     return tf.transpose(prob_ys, transpose_shape)
-    #     # return prob_y_list
-    #     # return mus, vars
-
-    def predict_dists(self, Xnew: InputData, kwargs):
-        """Returns batched tensor of predicted dists"""
+    def predict_dists(self, Xnew: InputData, kwargs) -> tfd.Distribution:
+        """Returns a batched TensorFlow distribution at Xnew with
+        shape [num_inducing_samples, num_data, ouput_dim, num_experts]"""
         # TODO this method only works for Normal dists, needs correcting
         mus, vars = [], []
         for expert in self.experts_list:
-            mu, var = expert.predict_y(Xnew, **kwargs)
+            mu, var = expert.predict_dist(Xnew, **kwargs)
             mus.append(mu)
             vars.append(var)
-        mus = tf.stack(mus)
-        vars = tf.stack(vars)
+        mus = tf.stack(mus, -1)
+        vars = tf.stack(vars, -1)
+        return tfd.Normal(mus, tf.sqrt(vars))
 
-        # move mixture dimension to last dimension
-        trailing_dims_mu = tf.range(1, tf.rank(mus))
-        transpose_shape_mu = tf.concat([trailing_dims_mu, [0]], 0)
-        trailing_dims_var = tf.range(1, tf.rank(vars))
-        transpose_shape_var = tf.concat([trailing_dims_var, [0]], 0)
-        mus = tf.transpose(mus, transpose_shape_mu)
-        vars = tf.transpose(vars, transpose_shape_var)
-        return tfd.Normal(mus, vars)
+
+class ExpertBase(Module, ABC):
+    @abstractmethod
+    def prior_kl(self) -> tf.Tensor:
+        raise NotImplementedError
+
+    # @abstractmethod
+    # def variational_expectation(self,
+    #                             data: InputData,
+    #                             num_inducing_samples: int = None):
+    #     raise NotImplementedError
+    @abstractmethod
+    def predict_dist(self, data: InputData, num_inducing_samples: int = None):
+        raise NotImplementedError
+
+
+class SVGPExpert(SVGPModel, ExpertBase):
+    def __init__(self,
+                 kernel: Kernel,
+                 likelihood: Likelihood,
+                 inducing_variable,
+                 mean_function: MeanFunction = None,
+                 num_latent_gps: int = 1,
+                 q_diag: bool = False,
+                 q_mu=None,
+                 q_sqrt=None,
+                 whiten: bool = True,
+                 num_data=None):
+        super().__init__(kernel, likelihood, inducing_variable, mean_function,
+                         num_latent_gps, q_diag, q_mu, q_sqrt, whiten,
+                         num_data)
+
+    def predict_dist(self,
+                     Xnew: InputData,
+                     num_inducing_samples: int = None,
+                     full_cov: bool = False,
+                     full_output_cov: bool = False):
+        mu, var = self.predict_y(Xnew,
+                                 num_inducing_samples=num_inducing_samples,
+                                 full_cov=full_cov,
+                                 full_output_cov=full_output_cov)
+        return mu, var
+        # return tfd.Normal(mu, tf.sqrt(var))
+
+    def variational_expectation(self,
+                                data: InputData,
+                                num_inducing_samples: int = None):
+        X, Y = data
+        f_mean, f_var = self.predict_f(X, num_inducing_samples, full_cov=False)
+        # if self.num_samples is None:
+        #     expected_prob_y = tf.exp(
+        # self.likelihood.predict_log_density(f_mean, f_var, Y))
+        # else:
+        #     f_samples = expert._sample_mvn(f_mean,
+        #                                    f_var,
+        #                                    self.num_samples,
+        #                                    full_cov=False)
+        #     # f_samples = expert.predict_f_samples(X,
+        #     #                                      num_samples_f,
+        #     #                                      full_cov=False)
+        #     prob_y = tf.exp(expert.likelihood._log_prob(f_samples, Y))
+        #     expected_prob_y = 1. / self.num_samples * tf.reduce_sum(prob_y, 0)
+        log_density = logdensities.gaussian(Y, f_mean,
+                                            f_var + self.likelihood.variance)
+        print(log_density.shape)
+        expected_prob_y = tf.exp(log_density)
+        # expected_prob_y = tf.exp(
+        #     self.likelihood.predict_log_density(f_mean, f_var, Y))
+        return expected_prob_y
 
 
 def init_fake_experts(X, Y, num_experts=2):
