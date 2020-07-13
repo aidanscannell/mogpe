@@ -113,6 +113,9 @@ def monitored_training_loop(model,
     for epoch in range(epochs):
         for _ in range(num_batches_per_epoch):
             tf_optimization_step()
+            # duration = t - time.time()
+            # print("Iteration duration: ", duration)
+            # t = time.time()
         monitor(epoch)
         epoch_id = epoch + 1
         if epoch_id % logging_epoch_freq == 0:
