@@ -74,6 +74,8 @@ class Plotter1D(Plotter):
         alpha = 0.4
         ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
         ax.plot(self.test_inputs, mean, "C0", lw=2)
+        # tf.print('inside plot gp')
+        # tf.print(var)
         ax.fill_between(
             self.test_inputs[:, 0],
             mean[:, 0] - 1.96 * np.sqrt(var[:, 0]),
@@ -119,6 +121,8 @@ class Plotter1D(Plotter):
 
     def plot_y(self, fig, ax):
         tf.print("Plotting y...")
+        alpha = 0.4
+        ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
         y_dist = self.model.predict_y(self.test_inputs,
                                       kwargs={'num_inducing_samples': None})
         y_samples = y_dist.sample(self.num_samples)
