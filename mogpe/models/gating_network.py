@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+from abc import ABC, abstractmethod
 from gpflow import Module
 from gpflow.conditionals import conditional, sample_conditional
 from gpflow.conditionals.util import sample_mvn
@@ -20,7 +21,13 @@ def inv_probit(x):
                                                           2 * jitter) + jitter
 
 
-class GatingNetwork(SVGPModel):
+class GatingNetworkBase(ABC):
+    @abstractmethod
+    def predict_mixing_probs(self, Xnew: InputData):
+        raise NotImplementedError
+
+
+class GatingNetwork(SVGPModel, GatingNetworkBase):
     # TODO either remove likelihood or use Bernoulli/Softmax
     def __init__(self,
                  kernel,
