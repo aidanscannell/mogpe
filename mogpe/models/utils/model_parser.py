@@ -1,19 +1,16 @@
-import json
 import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 
 from bunch import Bunch
-from datetime import datetime
 from gpflow import default_float
-from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
-                            ScalarToTensorBoard)
+# from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
+#                             ScalarToTensorBoard)
 
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset
-from mogpe.models.expert import SVGPExpert
-from mogpe.models.experts import Experts
+from mogpe.models.experts import SVGPExperts, SVGPExpert
 from mogpe.models.gating_network import GatingNetwork
-from mogpe.models.mixture_model import GPMixtureOfExperts
+from mogpe.models.mixture_model import MixtureOfGPExperts
 from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
 from mogpe.visualization.plotter import Plotter1D
 
@@ -262,7 +259,7 @@ def parse_experts(config, input_dim, output_dim, num_data, X):
     for expert in config.experts:
         experts_list.append(
             parse_expert(Bunch(expert), input_dim, output_dim, num_data, X))
-    return Experts(experts_list)
+    return SVGPExperts(experts_list)
 
 
 def parse_model(config, X):
@@ -275,7 +272,7 @@ def parse_model(config, X):
     gating_network = parse_gating_network(gating_network, input_dim,
                                           output_dim, num_data, X)
 
-    return GPMixtureOfExperts(gating_network=gating_network,
+    return MixtureOfGPExperts(gating_network=gating_network,
                               experts=experts,
                               num_inducing_samples=num_inducing_samples,
                               num_data=num_data)
