@@ -5,7 +5,7 @@
     "num_data": 2659,
     "epochs": 5000,
     "batch_size": 100,
-    "num_inducing_samples": 1,
+    "num_inducing_samples": 4,
     "num_experts": 2,
     "slow_tasks_period": 0,
     "fast_tasks_period": 10,
