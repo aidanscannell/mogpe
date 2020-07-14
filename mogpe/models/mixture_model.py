@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 import gpflow as gpf
 import tensorflow as tf
 import tensorflow_probability as tfp
+from gpflow import default_float
 from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
-from gpflow import default_float
 
 tfd = tfp.distributions
 
@@ -14,8 +14,8 @@ tfd = tfp.distributions
 class MixtureOfExperts(BayesianModel, ABC):
     """Abstract base class for mixture of experts models.
 
-    Given an input :math:`x` and an output :math:`y` the mixture of experts model
-    is defined by the following marginal likelihood,
+    Given an input :math:`x` and an output :math:`y` the mixture of experts
+    marginal likelihood is given by,
 
     .. math::
         p(y|x) = \sum_{k=1}^K \Pr(\\alpha=k | x) p(y | \\alpha=k, x)
@@ -26,8 +26,9 @@ class MixtureOfExperts(BayesianModel, ABC):
     The experts are given by :math:`p(y | \\alpha=k, x)` and are responsible for
     predicting in different regions of the input space.
 
-    Each subclass should implement methods for calculating the mixing
-    probabilities and the component distributions for each of the K components.
+    Each subclass that inherits MixtureOfExperts should implement the
+    maximum_log_likelihood_objective(data) method. It is used as the objective
+    function to optimise the models trainable parameters.
 
     :param gating_network: an instance of the GatingNetworkBase class with
                             the predict_mixing_probs(Xnew) method implemented.
@@ -35,26 +36,65 @@ class MixtureOfExperts(BayesianModel, ABC):
                     predict_dists(Xnew) method implemented.
     """
     def __init__(self, gating_network, experts):
+        """
+        :param gating_network: an instance of the GatingNetworkBase class with
+                                the predict_mixing_probs(Xnew) method implemented.
+        :param experts: an instance of the ExpertsBase class with the
+                        predict_dists(Xnew) method implemented.
+        """
         self.gating_network = gating_network
         self.experts = experts
+        self.num_experts = experts.num_experts
 
-    def predict_mixing_probs(self, Xnew, kwargs):
+    def predict_mixing_probs(self, Xnew: InputData, **kwargs):
+        """Calculates the mixing probabilities at Xnew.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :param kwargs: kwargs to be passed to the gating networks
+                       predict_mixing_probs() method.
+        :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
+        """
+        mixing_probs = self.gating_network.predict_mixing_probs(Xnew, **kwargs)
+        # shape_constraints = [
+        #     (mixing_probs, ["...", "num_data", "output_dim",
+        #                     self.num_experts]),
+        # ]
+        # tf.debugging.assert_shapes(
+        #     shape_constraints,
+        #     message=
+        #     "Mixing probabilities dimensions (from gating network) should be [..., num_data, output_dim, num_experts]"
+        # )
         return self.gating_network.predict_mixing_probs(Xnew, **kwargs)
 
-    def predict_experts_dists(self, Xnew: InputData, kwargs) -> tf.Tensor:
-        dists = self.experts.predict_dists(Xnew, kwargs)
+    def predict_experts_dists(self, Xnew: InputData, **kwargs) -> tf.Tensor:
+        """Calculates each experts predictive distribution at Xnew.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :param kwargs: kwargs to be passed to the experts
+                       predict_dists() method.
+        :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
+        """
+        dists = self.experts.predict_dists(Xnew, **kwargs)
         return dists
 
-    def predict_y(self, Xnew: InputData, kwargs={}) -> tfd.Distribution:
-        """ Predicts the mixture distribution at Xnew.
+    def predict_y(self, Xnew: InputData, **kwargs) -> tfd.Distribution:
+        # TODO should there be separate kwargs for gating and experts?
+        """Predicts the mixture distribution at Xnew.
 
-        :param Xnew: an input with shape [num_test, input_dim]
+        :param Xnew: inputs with shape [num_test, input_dim]
         :param kwargs: kwargs to be passed to predict_mixing_probs and
                         predict_experts_dists
         :returns: The prediction as a TensorFlow MixtureSameFamily distribution
         """
-        mixing_probs = self.predict_mixing_probs(Xnew, kwargs)
-        dists = self.predict_experts_dists(Xnew, kwargs)
+        mixing_probs = self.predict_mixing_probs(Xnew, **kwargs)
+        dists = self.predict_experts_dists(Xnew, **kwargs)
+        # assert dists.batch_shape_tensor == tf.shape(mixing_probs)
+        tf.debugging.assert_equal(
+            dists.batch_shape_tensor(),
+            tf.shape(mixing_probs),
+            message=
+            "Gating networks predict_mixing_probs(Xnew,...) and experts predict_dists(Xnew,...) dimensions do not match"
+        )
         return tfd.MixtureSameFamily(
             mixture_distribution=tfd.Categorical(probs=mixing_probs),
             components_distribution=dists)
@@ -62,16 +102,16 @@ class MixtureOfExperts(BayesianModel, ABC):
     def predict_y_samples(self,
                           Xnew: InputData,
                           num_samples: int = 1,
-                          kwargs={}) -> tf.Tensor:
+                          **kwargs) -> tf.Tensor:
         """Returns samples from the predictive mixture distribution at Xnew.
 
-        :param Xnew: an input with shape [num_test, input_dim]
+        :param Xnew: inputs with shape [num_test, input_dim]
         :param num_samples: number of samples to draw
         :param kwargs: kwargs to be passed to predict_mixing_probs and
                         predict_experts_dists
         :returns: a Tensor with shape [num_samples, num_test, output_dim]
         """
-        return self.predict_y(Xnew, kwargs).sample(num_samples)
+        return self.predict_y(Xnew, **kwargs).sample(num_samples)
 
 
 class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
@@ -97,7 +137,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         super().__init__(gating_network, experts)
         self.num_inducing_samples = num_inducing_samples
         self.num_data = num_data
-        self.num_experts = experts.num_experts
 
     def maximum_log_likelihood_objective(
             self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
@@ -107,7 +146,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
-        :returns: a Tensor with shape ()
+        :returns: loss - a Tensor with shape ()
         """
         with tf.name_scope('ELBO') as scope:
             X, Y = data
@@ -118,13 +157,13 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
             with tf.name_scope('predict_mixing_probs') as scope:
                 mixing_probs = self.predict_mixing_probs(
-                    X, {'num_inducing_samples': self.num_inducing_samples})
+                    X, num_inducing_samples=self.num_inducing_samples)
             print("mixing_probs")
             print(mixing_probs.shape)
 
             with tf.name_scope('predict_experts_prob') as scope:
-                batched_dists = self.predict_component_dists(
-                    X, {'num_inducing_samples': self.num_inducing_samples})
+                batched_dists = self.predict_experts_dists(
+                    X, num_inducing_samples=self.num_inducing_samples)
 
                 Y = tf.expand_dims(Y, 0)
                 Y = tf.expand_dims(Y, -1)
@@ -142,16 +181,10 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             #     # print(expected_experts.shape)
 
             shape_constraints = [
-                (
-                    expected_experts,
-                    [
-                        # "num_inducing_samples", "num_data", "num_experts",
-                        # "output_dim"
-                        "num_inducing_samples",
-                        "num_data",
-                        "output_dim",
-                        "num_experts"
-                    ]),
+                (expected_experts, [
+                    "num_inducing_samples", "num_data", "output_dim",
+                    "num_experts"
+                ]),
                 (mixing_probs, [
                     "num_inducing_samples", "num_data", "output_dim",
                     "num_experts"
@@ -167,9 +200,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print('marginalised indicator variable')
             print(weighted_sum_over_indicator.shape)
 
-            # tf.print(weighted_sum_over_indicator)
-            # log = tf.math.log(weighted_sum_over_indicator)
-            # tf.print(log)
             # TODO correct num samples for K experts. This assumes 2 experts
             num_samples = self.num_inducing_samples**(self.num_experts + 1)
             var_exp = 1 / num_samples * tf.reduce_sum(
@@ -194,8 +224,10 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             return tf.reduce_sum(var_exp) * scale - kl_gating - kl_experts
 
     def elbo(self, data: RegressionData) -> tf.Tensor:
-        """
-        This returns the evidence lower bound (ELBO) of the log marginal likelihood.
+        """Returns the evidence lower bound (ELBO) of the log marginal likelihood.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
         """
         return self.maximum_log_likelihood_objective(data)
 
@@ -211,7 +243,7 @@ def init_fake_mixture(X, Y, num_experts=2, num_inducing_samples=1):
 
 
 if __name__ == "__main__":
-    from mogpe.models.utils.data import load_mixture_dataset
+    from mogpe.data.utils import load_mixture_dataset
 
     # Load data set
     data_file = '../../data/processed/artificial-data-used-in-paper.npz'
