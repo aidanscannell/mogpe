@@ -1,7 +1,7 @@
 API
 ===
 
-Mixture Models
+Mixture of Experts
 ^^^^^^^^^^^^^^
 .. autoclass:: mogpe.models.mixture_model.MixtureOfExperts
    :members:
@@ -11,11 +11,6 @@ Mixture Models
 Experts
 ^^^^^^^
 .. automodule:: mogpe.models.experts
-   :members:
-
-Expert
-^^^^^^^
-.. automodule:: mogpe.models.expert
    :members:
 
 Gating Network
