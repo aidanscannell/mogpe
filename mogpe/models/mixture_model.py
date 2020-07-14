@@ -10,38 +10,6 @@ from gpflow import default_float
 
 tfd = tfp.distributions
 
-# class MixtureModel(BayesianModel, ABC):
-#     """Abstract base class for mixture models.
-
-#     Given an input :math:`x` and an output :math:`y` a mixture model is defined by the
-#     following marginal likelihood,
-
-#     .. math::
-#         p(y|x) = \sum_{k=1}^K \Pr(\\alpha=k) p(y | \\alpha=k, x)
-
-#     Assuming the mixture indicator variable :math:`\\alpha \in \{1, ... K\}`
-#     the mixing probabilities are given by :math:`\Pr(\\alpha=k)` and
-#     the component distributions are given by :math:`p(y | \\alpha=k, x)`.
-
-#     A subclass should implement methods for calculating the mixing
-#     probabilities and the component distributions for each of the K components.
-#     This class inherits GPflow's BayesianModel so the maximum_log_likelihood_objective
-#     method must be instantiated.
-#     """
-#     @abstractmethod
-#     def predict_mixing_probs(self, *args, **kwargs):
-#         """Calculates the mixing probabilities."""
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def predict_component_dists(self, Xnew, kwargs={}):
-#         """Calculates each components prediction at Xnew.
-
-#         :param Xnew: inputs with shape [num_test, input_dim]
-#         :returns: a batched Tensor of [num_test, num_experts]
-#         """
-#         raise NotImplementedError
-
 
 class MixtureOfExperts(BayesianModel, ABC):
     """Abstract base class for mixture of experts models.
