@@ -92,7 +92,7 @@ class Plotter1D(Plotter):
 
     def plot_experts_y(self, fig, axs):
         tf.print("Plotting experts y...")
-        dists = self.model.predict_component_dists(self.test_inputs, kwargs={})
+        dists = self.model.predict_experts_dists(self.test_inputs)
         mean = dists.mean()
         var = dists.variance()
         num_experts = tf.shape(mean)[-1]
@@ -101,8 +101,7 @@ class Plotter1D(Plotter):
 
     def plot_gating_network(self, fig, ax):
         tf.print("Plotting gating network...")
-        mixing_probs = self.model.predict_mixing_probs(self.test_inputs,
-                                                       kwargs={})
+        mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
         # for k in tf.range(num_experts):
         for k in range(num_experts):
@@ -123,8 +122,7 @@ class Plotter1D(Plotter):
         tf.print("Plotting y...")
         alpha = 0.4
         ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
-        y_dist = self.model.predict_y(self.test_inputs,
-                                      kwargs={'num_inducing_samples': None})
+        y_dist = self.model.predict_y(self.test_inputs)
         y_samples = y_dist.sample(self.num_samples)
         ax.plot(self.test_inputs, y_dist.mean(), color='k')
 
