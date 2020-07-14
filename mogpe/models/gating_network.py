@@ -80,20 +80,8 @@ class GatingNetwork(SVGPModel, GatingNetworkBase):
         :param num_inducing_samples: how many samples to draw from inducing points
         """
         prob_a_0 = self.predict_prob_a_0(Xnew, num_inducing_samples)
-        print('prob_a_0')
-        print(prob_a_0.shape)
         prob_a_1 = 1 - prob_a_0
-        # mixing_probs = tf.stack([prob_a_1, prob_a_0])
-        mixing_probs = tf.stack([prob_a_0, prob_a_1])
-        print("mixing_probs")
-        print(mixing_probs.shape)
-        # mixing_probs = tf.expand_dims(mixing_probs, -1)
-        # move mixture dimension to last dimension
-        trailing_dims = tf.range(1, tf.rank(mixing_probs))
-        transpose_shape = tf.concat([trailing_dims, [0]], 0)
-        mixing_probs = tf.transpose(mixing_probs, transpose_shape)
-        print(mixing_probs.shape)
-        # mixing_probs = tf.transpose(mixing_probs, [*trailing_dims, 0])
+        mixing_probs = tf.stack([prob_a_0, prob_a_1], -1)
         return mixing_probs
 
 
