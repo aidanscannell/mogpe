@@ -22,8 +22,16 @@ def inv_probit(x):
 
 
 class GatingNetworkBase(ABC):
+    """Abstract base class for the gating network.
+
+    """
     @abstractmethod
-    def predict_mixing_probs(self, Xnew: InputData):
+    def predict_mixing_probs(self, Xnew: InputData, **kwargs):
+        """Calculates the set of experts mixing probabilities at Xnew :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
+        """
         raise NotImplementedError
 
 
