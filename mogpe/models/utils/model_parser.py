@@ -10,7 +10,7 @@ from gpflow import default_float
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset
 from mogpe.models.experts import SVGPExperts, SVGPExpert
 from mogpe.models.gating_network import GatingNetwork
-from mogpe.models.mixture_model import MixtureOfGPExperts
+from mogpe.models.mixture_model import MixtureOfSVGPExperts
 from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
 from mogpe.visualization.plotter import Plotter1D
 
@@ -272,7 +272,7 @@ def parse_model(config, X):
     gating_network = parse_gating_network(gating_network, input_dim,
                                           output_dim, num_data, X)
 
-    return MixtureOfGPExperts(gating_network=gating_network,
-                              experts=experts,
-                              num_inducing_samples=num_inducing_samples,
-                              num_data=num_data)
+    return MixtureOfSVGPExperts(gating_network=gating_network,
+                                experts=experts,
+                                num_inducing_samples=num_inducing_samples,
+                                num_data=num_data)

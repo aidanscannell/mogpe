@@ -106,8 +106,8 @@ class MixtureOfExperts(BayesianModel, ABC):
         return self.predict_y(Xnew, kwargs).sample(num_samples)
 
 
-class MixtureOfGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
-    """Mixture of GP experts using stochastic variational inference.
+class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
+    """Mixture of SVGP experts using stochastic variational inference.
 
     Implemention of a mixture of Gaussian process (GPs) experts method where
     the gating network is also implemented using GPs.
