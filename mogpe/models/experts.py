@@ -127,9 +127,6 @@ class SVGPExpert(SVGPModel, ExpertBase):
                                  num_inducing_samples=num_inducing_samples,
                                  full_cov=full_cov,
                                  full_output_cov=full_output_cov)
-        print('helllloooi')
-        print(mu.shape)
-        print(var.shape)
         return mu, var
         # return tfd.Normal(mu, tf.sqrt(var))
 
