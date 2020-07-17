@@ -20,7 +20,7 @@ class MixtureOfExperts(BayesianModel, ABC):
     .. math::
         p(y|x) = \sum_{k=1}^K \Pr(\\alpha=k | x) p(y | \\alpha=k, x)
 
-    Assuming the mixture indicator variable :math:`\\alpha \in \{1, ...,K\}`
+    Assuming the expert indicator variable :math:`\\alpha \in \{1, ...,K\}`
     the mixing probabilities are given by :math:`\Pr(\\alpha=k | x)` and are
     collectively referred to as the gating network.
     The experts are given by :math:`p(y | \\alpha=k, x)` and are responsible for
@@ -170,11 +170,19 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 batched_dists = self.predict_experts_dists(
                     X, num_inducing_samples=self.num_inducing_samples)
 
+                print('batched dists')
+                print(batched_dists)
+                print('y')
                 Y = tf.expand_dims(Y, 0)
                 Y = tf.expand_dims(Y, -1)
+                print(Y)
                 expected_experts = batched_dists.prob(Y)
                 print('expected experts')
                 print(expected_experts.shape)
+                # TODO is it correct to sum over output dimension?
+                # sum over output_dim
+                # expected_experts = tf.reduce_sum(expected_experts, -2)
+                # print(expected_experts.shape)
 
             # with tf.name_scope('predict_experts_prob') as scope:
             #     # expected_experts = self.experts.predict_prob_y(data)
@@ -185,37 +193,42 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             #     # expected_experts = tf.expand_dims(expected_experts, -1)
             #     # print(expected_experts.shape)
 
+            mixing_probs = tf.expand_dims(mixing_probs, -1)
+            print('new mixing probs')
+            print(mixing_probs)
             shape_constraints = [
                 (expected_experts, [
                     "num_inducing_samples", "num_data", "output_dim",
                     "num_experts"
                 ]),
-                (mixing_probs, [
-                    "num_inducing_samples", "num_data", "output_dim",
-                    "num_experts"
-                ]),
+                (mixing_probs,
+                 ["num_inducing_samples", "num_data", "num_experts", 1]),
             ]
             tf.debugging.assert_shapes(
                 shape_constraints,
                 message="Gating network and experts dimensions do not match")
             with tf.name_scope('marginalise_indicator_variable') as scope:
-                weighted_sum_over_indicator = tf.matmul(mixing_probs,
-                                                        expected_experts,
-                                                        transpose_b=True)
+                weighted_sum_over_indicator = tf.matmul(
+                    expected_experts, mixing_probs)
             print('marginalised indicator variable')
+            print(weighted_sum_over_indicator.shape)
+
+            # TODO where should output dimension be reduced?
+            weighted_sum_over_indicator = tf.reduce_sum(
+                weighted_sum_over_indicator, (-2, -1))
+            print('Reduce sum over output dimension')
             print(weighted_sum_over_indicator.shape)
 
             # TODO correct num samples for K experts. This assumes 2 experts
             num_samples = self.num_inducing_samples**(self.num_experts + 1)
             var_exp = 1 / num_samples * tf.reduce_sum(
                 tf.math.log(weighted_sum_over_indicator), axis=0)
-            # tf.print(var_exp)
             print('averaged samples')
             print(var_exp.shape)
-            # TODO where should output dimension be reduced?
-            var_exp = tf.linalg.diag_part(var_exp)
-            print('Ignore covariance in output dimension')
-            print(var_exp.shape)
+            # # TODO where should output dimension be reduced?
+            # var_exp = tf.linalg.diag_part(var_exp)
+            # print('Ignore covariance in output dimension')
+            # print(var_exp.shape)
             print('Reduce sum to get loss')
             print(tf.reduce_sum(var_exp).shape)
 
