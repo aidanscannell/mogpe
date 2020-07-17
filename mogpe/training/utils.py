@@ -125,45 +125,6 @@ def monitored_training_loop(model,
         # t = time.time()
 
 
-def init_slow_tasks(plotter, num_experts, log_dir, slow_period=500):
-    # Set up slow tasks
-    image_task_experts_f = ImageToTensorBoard(
-        log_dir,
-        plotter.plot_experts_f,
-        name="experts_latent_function_posterior",
-        fig_kw={'figsize': (10, 4)},
-        subplots_kw={
-            'nrows': 1,
-            'ncols': num_experts
-        })
-    image_task_experts_y = ImageToTensorBoard(log_dir,
-                                              plotter.plot_experts_y,
-                                              name="experts_output_posterior",
-                                              fig_kw={'figsize': (10, 4)},
-                                              subplots_kw={
-                                                  'nrows': 1,
-                                                  'ncols': num_experts
-                                              })
-    image_task_gating = ImageToTensorBoard(
-        log_dir,
-        plotter.plot_gating_network,
-        name="gating_network_mixing_probabilities",
-    )
-    image_task_y = ImageToTensorBoard(
-        log_dir,
-        plotter.plot_y,
-        name="predictive_posterior",
-    )
-    # image_tasks = [
-    #     image_task_experts_y, image_task_experts_f, image_task_gating
-    # ]
-    image_tasks = [
-        image_task_experts_y, image_task_experts_f, image_task_gating,
-        image_task_y
-    ]
-    return MonitorTaskGroup(image_tasks, period=slow_period)
-
-
 def save_model(model, save_dir=None):
     if save_dir is None:
         save_dir = str(pathlib.Path(tempfile.gettempdir()))
