@@ -1,11 +1,11 @@
-API
-===
+mogpe
+=====
 
 Mixture of Experts
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 .. autoclass:: mogpe.models.mixture_model.MixtureOfExperts
    :members:
-.. autoclass:: mogpe.models.mixture_model.MixtureOfGPExperts
+.. autoclass:: mogpe.models.mixture_model.MixtureOfSVGPExperts
    :members:
 
 Experts

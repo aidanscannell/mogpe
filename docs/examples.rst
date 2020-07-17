@@ -1,10 +1,9 @@
 Examples
 ========
+.. toctree::
+   :maxdepth: 1
+   :glob:
 
-Notebooks
-
-Two Experts
-^^^^^^^^^^^
-
-K Experts
-^^^^^^^^^^^
+   notebooks/mixture-of-two-gp-experts
+   ..
+      ../notebooks/*
