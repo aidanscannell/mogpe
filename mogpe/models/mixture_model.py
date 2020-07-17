@@ -154,7 +154,9 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         with tf.name_scope('ELBO') as scope:
             X, Y = data
 
-            kl_gating = self.gating_network.prior_kl()
+            # kl_gating = self.gating_network.prior_kl()
+            kls_gatings = self.gating_network.prior_kls()
+            kl_gating = tf.reduce_sum(kls_gatings)
             kls_experts = self.experts.prior_kls()
             kl_experts = tf.reduce_sum(kls_experts)
 
