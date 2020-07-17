@@ -4,15 +4,10 @@ import tensorflow as tf
 
 from bunch import Bunch
 from gpflow import default_float
-# from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
-#                             ScalarToTensorBoard)
 
-from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset
 from mogpe.models.experts import SVGPExperts, SVGPExpert
-from mogpe.models.gating_network import GatingNetwork
+from mogpe.models.gating_network import GatingNetworkBinary, GatingNetworkMulti, GatingFunction
 from mogpe.models.mixture_model import MixtureOfSVGPExperts
-from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
-from mogpe.visualization.plotter import Plotter1D
 
 
 def parse_kernel(kernel, input_dim, output_dim):
@@ -232,26 +227,71 @@ def parse_expert(expert, input_dim, output_dim, num_data, X):
                       num_data=num_data)
 
 
-def parse_gating_network(gating_network, input_dim, output_dim, num_data, X):
-    mean_function = parse_mean_function(gating_network)
-    kernel = parse_kernel(Bunch(gating_network.kernel),
+def parse_gating_network(config, num_experts, input_dim, output_dim, num_data,
+                         X):
+    if num_experts > 2:
+        return parse_multi_gating_network(config, input_dim, output_dim,
+                                          num_data, X)
+    else:
+        gating_network = Bunch(config.gating_network)
+        return parse_binary_gating_network(gating_network, input_dim,
+                                           output_dim, num_data, X)
+
+
+def parse_multi_gating_network(config, input_dim, output_dim, num_data, X):
+    gating_function_list = []
+    for gating_function in config.gating_network:
+        gating_function_list.append(
+            parse_gating_function(Bunch(gating_function), input_dim,
+                                  output_dim, num_data, X))
+
+    return GatingNetworkMulti(gating_function_list)
+
+
+def parse_binary_gating_network(gating_network, input_dim, output_dim,
+                                num_data, X):
+    gating_function = parse_gating_function(gating_network, input_dim,
+                                            output_dim, num_data, X)
+    # mean_function = parse_mean_function(gating_network)
+    # kernel = parse_kernel(Bunch(gating_network.kernel),
+    #                       input_dim=input_dim,
+    #                       output_dim=output_dim)
+
+    # q_mu, q_sqrt, q_diag = parse_inducing_points(gating_network, output_dim)
+    # whiten = parse_whiten(gating_network)
+    # inducing_variable = parse_inducing_variable(gating_network, input_dim, X)
+    # gating_function = GatingFunction(kernel,
+    #                                  inducing_variable=inducing_variable,
+    #                                  mean_function=mean_function,
+    #                                  num_latent_gps=output_dim,
+    #                                  q_diag=q_diag,
+    #                                  q_mu=q_mu,
+    #                                  q_sqrt=q_sqrt,
+    #                                  whiten=whiten,
+    #                                  num_data=num_data)
+
+    return GatingNetworkBinary(gating_function)
+
+
+def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
+    mean_function = parse_mean_function(gating_function)
+    kernel = parse_kernel(Bunch(gating_function.kernel),
                           input_dim=input_dim,
                           output_dim=output_dim)
 
-    q_mu, q_sqrt, q_diag = parse_inducing_points(gating_network, output_dim)
-    whiten = parse_whiten(gating_network)
-    inducing_variable = parse_inducing_variable(gating_network, input_dim, X)
+    q_mu, q_sqrt, q_diag = parse_inducing_points(gating_function, output_dim)
+    whiten = parse_whiten(gating_function)
+    inducing_variable = parse_inducing_variable(gating_function, input_dim, X)
 
-    return GatingNetwork(kernel,
-                         likelihood=None,
-                         inducing_variable=inducing_variable,
-                         mean_function=mean_function,
-                         num_latent_gps=output_dim,
-                         q_diag=q_diag,
-                         q_mu=q_mu,
-                         q_sqrt=q_sqrt,
-                         whiten=whiten,
-                         num_data=num_data)
+    return GatingFunction(kernel,
+                          inducing_variable=inducing_variable,
+                          mean_function=mean_function,
+                          num_latent_gps=output_dim,
+                          q_diag=q_diag,
+                          q_mu=q_mu,
+                          q_sqrt=q_sqrt,
+                          whiten=whiten,
+                          num_data=num_data)
 
 
 def parse_experts(config, input_dim, output_dim, num_data, X):
@@ -267,9 +307,10 @@ def parse_model(config, X):
     input_dim = config.input_dim
     output_dim = config.output_dim
     num_data = config.num_data
+    num_experts = config.num_experts
     experts = parse_experts(config, input_dim, output_dim, num_data, X)
-    gating_network = Bunch(config.gating_network)
-    gating_network = parse_gating_network(gating_network, input_dim,
+    # gating_network = config.gating_network
+    gating_network = parse_gating_network(config, num_experts, input_dim,
                                           output_dim, num_data, X)
 
     return MixtureOfSVGPExperts(gating_network=gating_network,
