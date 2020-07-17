@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+
+from abc import ABC, abstractmethod
+from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
 
 color_1 = 'olive'
 color_2 = 'darkmagenta'
@@ -13,8 +14,13 @@ color_obs = 'red'
 
 
 class Plotter(ABC):
-    def __init__(self, num_samples=100, params=None):
+    def __init__(self, model, X, Y, num_samples=100, params=None):
         self.num_samples = num_samples
+        self.model = model
+        self.num_experts = self.model.num_experts
+        self.X = X
+        self.Y = Y
+        self.output_dim = Y.shape[1]
         if params is None:
             params = {
                 # 'axes.labelsize': 30,
@@ -46,6 +52,10 @@ class Plotter(ABC):
     def plot_y(self, fig, ax):
         raise NotImplementedError
 
+    @abstractmethod
+    def tf_monitor_task_group(self, log_dir, slow_period=500):
+        raise NotImplementedError
+
 
 class Plotter1D(Plotter):
     def __init__(self,
@@ -55,10 +65,7 @@ class Plotter1D(Plotter):
                  test_inputs=None,
                  num_samples=100,
                  params=None):
-        super().__init__(num_samples, params)
-        self.model = model
-        self.X = X
-        self.Y = Y
+        super().__init__(model, X, Y, num_samples, params)
         if test_inputs is None:
             num_test = 100
             factor = 1.2
@@ -74,38 +81,42 @@ class Plotter1D(Plotter):
         alpha = 0.4
         ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
         ax.plot(self.test_inputs, mean, "C0", lw=2)
-        # tf.print('inside plot gp')
-        # tf.print(var)
         ax.fill_between(
             self.test_inputs[:, 0],
-            mean[:, 0] - 1.96 * np.sqrt(var[:, 0]),
-            mean[:, 0] + 1.96 * np.sqrt(var[:, 0]),
+            mean - 1.96 * np.sqrt(var),
+            mean + 1.96 * np.sqrt(var),
             color="C0",
             alpha=0.2,
         )
 
     def plot_experts_f(self, fig, axs):
         tf.print("Plotting experts f...")
+        row = 0
         for k, expert in enumerate(self.model.experts.experts_list):
             mean, var = expert.predict_f(self.test_inputs)
-            self.plot_gp(fig, axs[k], mean, var)
+            for j in range(self.output_dim):
+                self.plot_gp(fig, axs[row], mean[:, j], var[:, j])
+                row += 1
 
     def plot_experts_y(self, fig, axs):
         tf.print("Plotting experts y...")
         dists = self.model.predict_experts_dists(self.test_inputs)
         mean = dists.mean()
         var = dists.variance()
-        num_experts = tf.shape(mean)[-1]
-        for k in tf.range(num_experts):
-            self.plot_gp(fig, axs[k], mean[:, :, k], var[:, :, k])
+        row = 0
+        for k, expert in enumerate(self.model.experts.experts_list):
+            for j in range(self.output_dim):
+                self.plot_gp(fig, axs[row],
+                             dists.mean()[:, j, k],
+                             dists.variance()[:, j, k])
+                row += 1
 
     def plot_gating_network(self, fig, ax):
         tf.print("Plotting gating network...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
-        # for k in tf.range(num_experts):
         for k in range(num_experts):
-            ax.plot(self.test_inputs, mixing_probs[:, :, k], label=str(k + 1))
+            ax.plot(self.test_inputs, mixing_probs[:, k], label=str(k + 1))
         ax.legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
@@ -139,6 +150,45 @@ class Plotter1D(Plotter):
         self.plot_experts_y(fig, axs)
         fig, ax = plt.subplots(1, 1)
         self.plot_y(fig, ax)
+
+    def tf_monitor_task_group(self, log_dir, slow_period=500):
+        ncols = 1
+        nrows_experts = self.num_experts
+        nrows_y = self.output_dim
+        image_task_experts_f = ImageToTensorBoard(
+            log_dir,
+            self.plot_experts_f,
+            name="experts_latent_function_posterior",
+            fig_kw={'figsize': (10, 4)},
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': ncols
+            })
+        image_task_experts_y = ImageToTensorBoard(
+            log_dir,
+            self.plot_experts_y,
+            name="experts_output_posterior",
+            fig_kw={'figsize': (10, 4)},
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': ncols
+            })
+        image_task_gating = ImageToTensorBoard(
+            log_dir,
+            self.plot_gating_network,
+            name="gating_network_mixing_probabilities",
+        )
+        image_task_y = ImageToTensorBoard(log_dir,
+                                          self.plot_y,
+                                          name="predictive_posterior")
+        # image_tasks = [
+        #     image_task_experts_y, image_task_experts_f, image_task_gating
+        # ]
+        image_tasks = [
+            image_task_experts_y, image_task_experts_f, image_task_gating,
+            image_task_y
+        ]
+        return MonitorTaskGroup(image_tasks, period=slow_period)
 
 
 if __name__ == "__main__":
