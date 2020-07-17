@@ -9,8 +9,9 @@ from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
 
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset, load_quadcopter_dataset
 from mogpe.models.utils.model_parser import parse_model
-from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
+from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop
 from mogpe.visualization.plotter import Plotter1D
+from mogpe.visualization.plotter2D import Plotter2D
 
 
 def parse_fast_tasks(fast_tasks_period, training_loss, model, log_dir):
@@ -23,14 +24,14 @@ def parse_fast_tasks(fast_tasks_period, training_loss, model, log_dir):
         return None
 
 
-def parse_slow_tasks(slow_tasks_period, plotter, num_experts, log_dir):
-    if slow_tasks_period > 0:
-        return init_slow_tasks(plotter,
-                               num_experts,
-                               log_dir,
-                               slow_period=slow_tasks_period)
-    else:
-        return None
+# def parse_slow_tasks(slow_tasks_period, plotter, num_experts, log_dir):
+#     if slow_tasks_period > 0:
+#         return init_slow_tasks(plotter,
+#                                num_experts,
+#                                log_dir,
+#                                slow_period=slow_tasks_period)
+#     else:
+#         return None
 
 
 def parse_dataset(dataset_name):
@@ -55,11 +56,15 @@ def create_tf_dataset(dataset, num_data, batch_size):
     num_batches_per_epoch = num_data // batch_size
     train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
     train_dataset = (train_dataset.repeat().prefetch(prefetch_size).shuffle(
-        buffer_size=shuffle_buffer_size).batch(batch_size))
+        buffer_size=shuffle_buffer_size).batch(batch_size,
+                                               drop_remainder=True))
     return train_dataset, num_batches_per_epoch
 
 
-def parse_config(config):
+def run_config_file(config_file):
+    with open(config_file) as json_config:
+        config_dict = json.load(json_config)
+    config = Bunch(config_dict)
     num_inducing_samples = config.num_inducing_samples
 
     dataset = parse_dataset(config.dataset_name)
@@ -76,16 +81,22 @@ def parse_config(config):
     # gpf.set_trainable(model.experts.experts_list[1].inducing_variable, False)
     # gpf.set_trainable(model.gating_network.inducing_variable, False)
     gpf.utilities.print_summary(model)
-    print('num latent gps gating')
-    print(model.gating_network.num_latent_gps)
 
     log_dir = '../../models/logs/' + config.dataset_name + '/' + datetime.now(
     ).strftime("%m-%d-%H%M%S")
 
-    if config.slow_tasks_period > 0:
+    if input_dim == 1:
         plotter = Plotter1D(model, X, Y)
-        slow_tasks = parse_slow_tasks(config.slow_tasks_period, plotter,
-                                      config.num_experts, log_dir)
+        slow_tasks = plotter.tf_monitor_task_group(log_dir,
+                                                   config.slow_tasks_period)
+        # slow_tasks = parse_slow_tasks(config.slow_tasks_period, plotter,
+        #                               config.num_experts, log_dir)
+    elif input_dim == 2:
+        plotter = Plotter2D(model, X, Y)
+        slow_tasks = plotter.tf_monitor_task_group(log_dir,
+                                                   config.slow_tasks_period)
+        # slow_tasks = parse_slow_tasks(config.slow_tasks_period, plotter,
+        #                               config.num_experts, log_dir)
     else:
         slow_tasks = None
     training_loss = model.training_loss_closure(iter(train_dataset))
@@ -125,33 +136,23 @@ def parse_config(config):
                                 logging_epoch_freq=config.logging_epoch_freq)
 
 
-# def parse_config_json(config_file, X):
-#     """Returns GPMixtureOfExperts object with config from json file
-
-#     :param config_file: path to json config file
-#     :returns: Initialised Mixture of GP Experts model
-#     :rtype: GPMixtureOfExperts
-#     """
-#     with open(config_file) as json_config:
-#         config_dict = json.load(json_config)
-#     config = Bunch(config_dict)
-#     return parse_config(config, X)
-
-
-def run_config(config_file):
+def parse_model_from_config_file(config_file):
     with open(config_file) as json_config:
         config_dict = json.load(json_config)
     config = Bunch(config_dict)
-    parse_config(config)
+    dataset = parse_dataset(config.dataset_name)
+    X, Y = dataset
+    return parse_model(config, X)
 
 
 if __name__ == "__main__":
     config_file = '../../configs/mcycle.json'
     config_file = '../../configs/artificial_2b.json'
-    # config_file = '../../configs/quadcopter.json'
+    config_file = '../../configs/quadcopter.json'
+    config_file = '../../configs/mcycle-3-experts.json'
 
     # model = parse_config_json(config_file)
-    run_config(config_file)
+    run_config_file(config_file)
     # gpf.utilities.print_summary(model)
     # TODO make gating_netowrk accept different likelihoods
     # TODO make size of input_dim
