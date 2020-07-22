@@ -3,7 +3,8 @@ import numpy as np
 import tensorflow as tf
 import palettable
 
-from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
+from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, ImageColorBarToTensorBoard
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mogpe.visualization.plotter import Plotter
 
@@ -23,9 +24,11 @@ class Plotter2D(Plotter):
                  test_inputs=None,
                  num_samples=100,
                  params=None,
+                 num_levels=10,
                  cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap):
         super().__init__(model, X, Y, num_samples, params)
         self.cmap = cmap
+        self.num_levels = num_levels
         if test_inputs is None:
             num_test = 400
             factor = 1.2
@@ -42,63 +45,205 @@ class Plotter2D(Plotter):
         else:
             self.test_inputs = test_inputs
 
-    def plot_gp(self, fig, axs, mean, var):
-        def plot_contour(fig, ax, x, y, z):
-            contf = ax.tricontourf(x, y, z, 100, cmap=self.cmap)
-            cbar = fig.colorbar(contf, ax=ax)
+    def plot_gp(self, fig, axs, mean, var, mean_levels=None, var_levels=None):
+        """Plots contours and colorbars for mean and var side by side
 
-        plot_contour(fig, axs[0], self.test_inputs[:, 0],
-                     self.test_inputs[:, 1], mean)
-        plot_contour(fig, axs[1], self.test_inputs[:, 0],
-                     self.test_inputs[:, 1], var)
+        :param axs: [2,]
+        :param mean: [num_data, 1]
+        :param var: [num_data, 1]
+        :param mean_levels: levels for mean contourf e.g. np.linspace(0, 1, 10)
+        :param var_levels: levels for var contourf e.g. np.linspace(0, 1, 10)
+        """
+        mean_contf, var_contf = self.plot_gp_contf(fig, axs, mean, var,
+                                                   mean_levels, var_levels)
+        mean_cbar = self.cbar(fig, axs[0], mean_contf)
+        var_cbar = self.cbar(fig, axs[1], var_contf)
+        return np.array([mean_cbar, var_cbar])
+
+    def plot_gp_contf(self,
+                      fig,
+                      axs,
+                      mean,
+                      var,
+                      mean_levels=None,
+                      var_levels=None):
+        """Plots contours for mean and var side by side
+
+        :param axs: [2,]
+        :param mean: [num_data, 1]
+        :param var: [num_data, 1]
+        :param mean_levels: levels for mean contourf e.g. np.linspace(0, 1, 10)
+        :param var_levels: levels for var contourf e.g. np.linspace(0, 1, 10)
+        """
+        mean_contf = axs[0].tricontourf(self.test_inputs[:, 0],
+                                        self.test_inputs[:, 1],
+                                        mean,
+                                        100,
+                                        levels=mean_levels,
+                                        cmap=self.cmap)
+        var_contf = axs[1].tricontourf(self.test_inputs[:, 0],
+                                       self.test_inputs[:, 1],
+                                       var,
+                                       100,
+                                       levels=var_levels,
+                                       cmap=self.cmap)
+        return mean_contf, var_contf
+
+    def cbar(self, fig, ax, contf):
+        """Adds cbar to ax or ax[0] is np.ndarray
+
+        :param ax: either a matplotlib ax or np.ndarray axs
+        :param contf: contourf
+        """
+        if isinstance(ax, np.ndarray):
+            divider = make_axes_locatable(ax[0])
+        else:
+            divider = make_axes_locatable(ax)
+        cax = divider.append_axes("top", size="5%", pad=0.05)
+        cbar = fig.colorbar(contf,
+                            ax=ax,
+                            use_gridspec=True,
+                            cax=cax,
+                            format='%0.2f',
+                            orientation='horizontal')
+        cax.xaxis.set_ticks_position('top')
+        cax.xaxis.set_label_position('top')
+        return cbar
+
+    def plot_gps_shared_cbar(self, fig, axs, means, vars):
+        """Plots mean and var for each expert in each output dim
+
+        The rows iterate through experts and then output_dim
+        e.g. row 1 = expert 1, output_dim 1
+             row 2 = expert 1, output_dim 2
+             row 3 = expert 2, output_dim 1
+             row 4 = expert 2, output_dim 2
+
+        :param axs: [num_experts*output_dim, 2]
+        :param means: [num_data, output_dim, num_experts]
+        :param vars: [num_data, output_dim, num_experts]
+        """
+        mean_levels = tf.linspace(tf.math.reduce_min(means),
+                                  tf.math.reduce_max(means), self.num_levels)
+        var_levels = tf.linspace(tf.math.reduce_min(vars),
+                                 tf.math.reduce_max(vars), self.num_levels)
+        row = 0
+        num_experts = means.shape[-1]
+        for k in range(num_experts):
+            for j in range(self.output_dim):
+                if row != num_experts * self.output_dim - 1:
+                    axs[row, 0].get_xaxis().set_visible(False)
+                    axs[row, 1].get_xaxis().set_visible(False)
+                mean_contf, var_contf = self.plot_gp_contf(
+                    fig,
+                    axs[row, :],
+                    means[:, j, k],
+                    vars[:, j, k],
+                    mean_levels=mean_levels,
+                    var_levels=var_levels)
+                row += 1
+        mean_cbar = self.cbar(fig, axs[:, 0], mean_contf)
+        var_cbar = self.cbar(fig, axs[:, 1], var_contf)
+        return np.array([mean_cbar, var_cbar])
 
     def plot_experts_f(self, fig, axs):
+        """Plots each experts latent function posterior in each output dim
+
+        The rows iterate through experts and then output_dim
+        e.g. row 1 = expert 1, output_dim 1
+             row 2 = expert 1, output_dim 2
+             row 3 = expert 2, output_dim 1
+             row 4 = expert 2, output_dim 2
+
+        :param axs: [num_experts*output_dim, 2]
+        """
         tf.print("Plotting experts f...")
-        row = 0
-        for k, expert in enumerate(self.model.experts.experts_list):
-            for j in range(self.output_dim):
-                mean, var = expert.predict_f(self.test_inputs)
-                self.plot_gp(fig, axs[row, :], mean[:, j], var[:, j])
-                row += 1
+        means, vars = self.model.predict_experts_fs(self.test_inputs)
+        mean_levels = tf.linspace(tf.math.reduce_min(means),
+                                  tf.math.reduce_max(means), self.num_levels)
+        var_levels = tf.linspace(tf.math.reduce_min(vars),
+                                 tf.math.reduce_max(vars), self.num_levels)
+        return self.plot_gps_shared_cbar(fig, axs, means, vars)
 
     def plot_experts_y(self, fig, axs):
+        """Plots each experts predictive posterior in each output dim
+
+        The rows iterate through experts and then output_dim
+        e.g. row 1 = expert 1, output_dim 1
+             row 2 = expert 1, output_dim 2
+             row 3 = expert 2, output_dim 1
+             row 4 = expert 2, output_dim 2
+
+        :param axs: [num_experts*output_dim, 2]
+        """
         tf.print("Plotting experts y...")
         dists = self.model.predict_experts_dists(self.test_inputs)
-        mean = dists.mean()
-        var = dists.variance()
-        row = 0
-        for k, expert in enumerate(self.model.experts.experts_list):
-            for j in range(self.output_dim):
-                mean, var = expert.predict_f(self.test_inputs)
-                self.plot_gp(fig, axs[row, :],
-                             dists.mean()[:, j, k],
-                             dists.variance()[:, j, k])
-                row += 1
+        means = dists.mean()
+        vars = dists.variance()
+        mean_levels = tf.linspace(tf.math.reduce_min(means),
+                                  tf.math.reduce_max(means), self.num_levels)
+        var_levels = tf.linspace(tf.math.reduce_min(vars),
+                                 tf.math.reduce_max(vars), self.num_levels)
+        return self.plot_gps_shared_cbar(fig, axs, means, vars)
 
-    def plot_gating_network(self, fig, ax):
+    def plot_gating_network(self, fig, axs):
+        """Plots mixing probabilities for each expert in each output dim
+
+        :param axs: [num_experts, output_dim]
+        """
         tf.print("Plotting gating network...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
-        for k in range(self.num_experts):
-            ax.plot(self.test_inputs, mixing_probs[:, k], label=str(k + 1))
-        ax.legend()
-
-    def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
-        ax.scatter(input_broadcast,
-                   y_samples,
-                   marker='.',
-                   s=4.9,
-                   color=color,
-                   lw=0.4,
-                   rasterized=True,
-                   alpha=0.2)
+        levels = np.linspace(0., 1., 5)
+        print(mixing_probs.shape)
+        if self.output_dim > 1:
+            cbars = []
+            for k in range(self.num_experts):
+                for j in range(self.output_dim):
+                    if k < self.num_experts - 1:
+                        axs[k, j].get_xaxis().set_visible(False)
+                    contf = axs[k, j].tricontourf(self.test_inputs[:, 0],
+                                                  self.test_inputs[:, 1],
+                                                  mixing_probs[:, j, k],
+                                                  100,
+                                                  levels=levels,
+                                                  cmap=self.cmap)
+                    if k == 0:
+                        cbars.append(self.cbar(fig, axs[:, j], contf))
+            return cbars
+        else:
+            for k in range(self.num_experts):
+                if k < self.num_experts - 1:
+                    axs[k].get_xaxis().set_visible(False)
+                contf = axs[k].tricontourf(self.test_inputs[:, 0],
+                                           self.test_inputs[:, 1],
+                                           mixing_probs[:, 0, k],
+                                           100,
+                                           levels=levels,
+                                           cmap=self.cmap)
+            cbar = self.cbar(fig, axs, contf)
+            return cbar
 
     def plot_y(self, fig, axs):
+        """Plots mean and var of moment matched predictive posterior
+
+        :param axs: [output_dim, 2]
+        """
         tf.print("Plotting y (moment matched)...")
         y_dist = self.model.predict_y(self.test_inputs)
-        for j in range(self.output_dim):
-            self.plot_gp(fig, axs[j, :],
-                         y_dist.mean()[:, j],
-                         y_dist.variance()[:, j])
+        means = y_dist.mean()
+        vars = y_dist.variance()
+        if self.output_dim > 1:
+            # add num_experts of 1 for correct broadcasting in plot_gps_shared_cbar
+            means = tf.expand_dims(means, -1)
+            vars = tf.expand_dims(vars, -1)
+            mean_levels = tf.linspace(tf.math.reduce_min(means),
+                                      tf.math.reduce_max(means),
+                                      self.num_levels)
+            var_levels = tf.linspace(tf.math.reduce_min(vars),
+                                     tf.math.reduce_max(vars), self.num_levels)
+            return self.plot_gps_shared_cbar(fig, axs, means, vars)
+        else:
+            return self.plot_gp(fig, axs, means[:, 0], vars[:, 0])
 
     def plot_model(self):
         nrows = self.num_experts * self.output_dim
@@ -115,7 +260,7 @@ class Plotter2D(Plotter):
         ncols = 2
         nrows_y = self.output_dim
         nrows_experts = self.num_experts * self.output_dim
-        image_task_experts_f = ImageToTensorBoard(
+        image_task_experts_f = ImageColorBarToTensorBoard(
             log_dir,
             self.plot_experts_f,
             name="experts_latent_function_posterior",
@@ -124,7 +269,7 @@ class Plotter2D(Plotter):
                 'nrows': nrows_experts,
                 'ncols': ncols
             })
-        image_task_experts_y = ImageToTensorBoard(
+        image_task_experts_y = ImageColorBarToTensorBoard(
             log_dir,
             self.plot_experts_y,
             name="experts_output_posterior",
@@ -133,18 +278,23 @@ class Plotter2D(Plotter):
                 'nrows': nrows_experts,
                 'ncols': ncols
             })
-        image_task_gating = ImageToTensorBoard(
+        image_task_gating = ImageColorBarToTensorBoard(
             log_dir,
             self.plot_gating_network,
             name="gating_network_mixing_probabilities",
-        )
-        image_task_y = ImageToTensorBoard(log_dir,
-                                          self.plot_y,
-                                          name="predictive_posterior",
-                                          subplots_kw={
-                                              'nrows': nrows_y,
-                                              'ncols': ncols
-                                          })
+            subplots_kw={
+                'nrows': self.num_experts,
+                'ncols': self.output_dim
+            })
+        image_task_y = ImageColorBarToTensorBoard(
+            log_dir,
+            self.plot_y,
+            name="predictive_posterior_moment_matched",
+            fig_kw={'figsize': (10, 2)},
+            subplots_kw={
+                'nrows': nrows_y,
+                'ncols': ncols
+            })
         # image_tasks = [
         #     image_task_experts_y, image_task_experts_f, image_task_gating
         # ]
@@ -152,6 +302,9 @@ class Plotter2D(Plotter):
             image_task_experts_y, image_task_experts_f, image_task_gating,
             image_task_y
         ]
+        # image_tasks = [
+        #     image_task_experts_y, image_task_experts_f, image_task_y
+        # ]
         return MonitorTaskGroup(image_tasks, period=slow_period)
 
 
