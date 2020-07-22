@@ -95,6 +95,7 @@ class GPModel(Module, ABC):
     ) -> tf.Tensor:
         """
         Produce samples from the posterior latent function(s) at the input points.
+
         :param Xnew: InputData
             Input locations at which to draw samples, shape [..., N, D]
             where N is the number of rows and D is the input dimension of each point.
@@ -110,7 +111,7 @@ class GPModel(Module, ABC):
         :param full_output_cov:
             If True, draw correlated samples over the outputs.
             If False, draw samples that are uncorrelated over the outputs.
-        Currently, the method does not support `full_output_cov=True` and `full_cov=True`.
+            Currently, the method does not support `full_output_cov=True` and `full_cov=True`.
         """
         if full_cov and full_output_cov:
             raise NotImplementedError(
@@ -241,11 +242,12 @@ class SVGPModel(GPModel):
         """Returns samples from the inducing point distribution.
 
         The distribution is given by,
-        .. math:
-            q ~ \mathcal{N}(q_mu, q_sqrt q_sqrt^T)
+
+        .. math::
+            q \sim \mathcal{N}(q\_mu, q\_sqrt q\_sqrt^T)
 
         :param num_samples: the number of samples to draw
-        :returns samples with shape [num_samples, num_data, output_dim]
+        :returns: samples with shape [num_samples, num_data, output_dim]
         """
         mu = tf.transpose(self.q_mu, [1, 0])
         q_dist = tfp.distributions.MultivariateNormalTriL(
