@@ -8,6 +8,9 @@ from gpflow import default_float
 from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
 
+from mogpe.models.gating_network import GatingNetworkBase, SVGPGatingNetworkBase
+from mogpe.models.experts import ExpertsBase, SVGPExperts
+
 tfd = tfp.distributions
 
 
@@ -35,14 +38,17 @@ class MixtureOfExperts(BayesianModel, ABC):
     :param experts: an instance of the ExpertsBase class with the
                     predict_dists(Xnew) method implemented.
     """
-    def __init__(self, gating_network, experts):
+    def __init__(self, gating_network: GatingNetworkBase,
+                 experts: ExpertsBase):
         """
         :param gating_network: an instance of the GatingNetworkBase class with
                                 the predict_mixing_probs(Xnew) method implemented.
         :param experts: an instance of the ExpertsBase class with the
                         predict_dists(Xnew) method implemented.
         """
+        assert isinstance(gating_network, GatingNetworkBase)
         self.gating_network = gating_network
+        assert isinstance(experts, ExpertsBase)
         self.experts = experts
         self.num_experts = experts.num_experts
 
@@ -127,16 +133,19 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
     :param gating_network: an instance of the GatingNetworkBase class with
                             the predict_mixing_probs(Xnew) method implemented.
-    :param experts: an instance of the ExpertsBase class with the
+    :param experts: an instance of the SVGPExperts class with the
                     predict_dists(Xnew) method implemented.
-    :param num_inducing_samples:
-    :param num_data:
+    :param num_inducing_samples: the number of samples to draw from the
+                                 inducing point distributions during training.
+    :param num_data: the number of data points.
     """
     def __init__(self,
-                 gating_network,
-                 experts,
-                 num_inducing_samples=1,
-                 num_data=None):
+                 gating_network: SVGPGatingNetworkBase,
+                 experts: SVGPExperts,
+                 num_inducing_samples: int = 1,
+                 num_data: int = None):
+        assert isinstance(gating_network, SVGPGatingNetworkBase)
+        assert isinstance(experts, SVGPExperts)
         super().__init__(gating_network, experts)
         self.num_inducing_samples = num_inducing_samples
         self.num_data = num_data
@@ -184,40 +193,33 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 # expected_experts = tf.reduce_sum(expected_experts, -2)
                 # print(expected_experts.shape)
 
-            # with tf.name_scope('predict_experts_prob') as scope:
-            #     # expected_experts = self.experts.predict_prob_y(data)
-            #     expected_experts = self.experts.predict_prob_y(
-            #         data, {'num_inducing_samples': self.num_inducing_samples})
-            #     print('expected experts')
-            #     print(expected_experts.shape)
-            #     # expected_experts = tf.expand_dims(expected_experts, -1)
-            #     # print(expected_experts.shape)
-
-            mixing_probs = tf.expand_dims(mixing_probs, -1)
-            print('new mixing probs')
-            print(mixing_probs)
             shape_constraints = [
                 (expected_experts, [
                     "num_inducing_samples", "num_data", "output_dim",
                     "num_experts"
                 ]),
-                (mixing_probs,
-                 ["num_inducing_samples", "num_data", "num_experts", 1]),
+                (mixing_probs, [
+                    "num_inducing_samples", "num_data", "output_dim",
+                    "num_experts"
+                ]),
             ]
             tf.debugging.assert_shapes(
                 shape_constraints,
                 message="Gating network and experts dimensions do not match")
             with tf.name_scope('marginalise_indicator_variable') as scope:
-                weighted_sum_over_indicator = tf.matmul(
-                    expected_experts, mixing_probs)
+                weighted_sum_over_indicator = tf.matmul(expected_experts,
+                                                        mixing_probs,
+                                                        transpose_b=True)
             print('marginalised indicator variable')
             print(weighted_sum_over_indicator.shape)
 
             # TODO where should output dimension be reduced?
-            weighted_sum_over_indicator = tf.reduce_sum(
-                weighted_sum_over_indicator, (-2, -1))
-            print('Reduce sum over output dimension')
-            print(weighted_sum_over_indicator.shape)
+            # weighted_sum_over_indicator = tf.reduce_sum(
+            #     weighted_sum_over_indicator, (-2, -1))
+            # weighted_sum_over_indicator = tf.reduce_sum(
+            #     weighted_sum_over_indicator, (-2, -1))
+            # print('Reduce sum over output dimension')
+            # print(weighted_sum_over_indicator.shape)
 
             # TODO correct num samples for K experts. This assumes 2 experts
             num_samples = self.num_inducing_samples**(self.num_experts + 1)
@@ -226,11 +228,16 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print('averaged samples')
             print(var_exp.shape)
             # # TODO where should output dimension be reduced?
-            # var_exp = tf.linalg.diag_part(var_exp)
-            # print('Ignore covariance in output dimension')
-            # print(var_exp.shape)
-            print('Reduce sum to get loss')
-            print(tf.reduce_sum(var_exp).shape)
+            var_exp = tf.linalg.diag_part(var_exp)
+            print('Ignore covariance in output dimension')
+            print(var_exp.shape)
+            var_exp = tf.reduce_sum(var_exp, 0)
+            print('Reduce sum over num_data')
+            print(var_exp.shape)
+
+            var_exp = tf.reduce_sum(var_exp)
+            print('Reduce sum over output_dim to get loss')
+            print(var_exp.shape)
 
             if self.num_data is not None:
                 num_data = tf.cast(self.num_data, default_float())
@@ -239,7 +246,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             else:
                 scale = tf.cast(1.0, default_float())
 
-            return tf.reduce_sum(var_exp) * scale - kl_gating - kl_experts
+            return var_exp * scale - kl_gating - kl_experts
 
     def elbo(self, data: RegressionData) -> tf.Tensor:
         """Returns the evidence lower bound (ELBO) of the log marginal likelihood.
@@ -248,6 +255,26 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                      and outputs [num_data, ouput_dim])
         """
         return self.maximum_log_likelihood_objective(data)
+
+    def predict_experts_fs(
+            self,
+            Xnew: InputData,
+            num_inducing_samples: int = None,
+            full_cov=False,
+            full_output_cov=False) -> Tuple[tf.Tensor, tf.Tensor]:
+        """"Compute mean and (co)variance of experts latent functions at Xnew.
+
+        If num_inducing_samples is not None then sample inducing points instead
+        of analytically integrating them. This is required in the mixture of
+        experts lower bound.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :param num_inducing_samples: the number of samples to draw from the
+                                    inducing point distributions during training.
+        :returns: a tuple of (mean, (co)var) each with shape [..., num_test, output_dim, num_experts]
+        """
+        return self.experts.predict_fs(Xnew, num_inducing_samples, full_cov,
+                                       full_output_cov)
 
 
 def init_fake_mixture(X, Y, num_experts=2, num_inducing_samples=1):
