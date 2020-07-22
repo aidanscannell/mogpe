@@ -196,6 +196,29 @@ class SVGPExperts(ExpertsBase):
         vars = tf.stack(vars, -1)
         return tfd.Normal(mus, tf.sqrt(vars))
 
+    def predict_fs(self,
+                   Xnew: InputData,
+                   num_inducing_samples: int = None,
+                   full_cov=False,
+                   full_output_cov=False):
+        """Returns the set experts latent function mean and (co)vars at Xnew.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :returns: a tuple of (mean, (co)var) each with shape [..., num_test, output_dim, num_experts]
+        """
+        mus, vars = [], []
+        for expert in self.experts_list:
+            mu, var = expert.predict_f(Xnew, num_inducing_samples, full_cov,
+                                       full_output_cov)
+            mus.append(mu)
+            vars.append(var)
+        mus = tf.stack(mus, -1)
+        vars = tf.stack(vars, -1)
+        print('inside predict fs experts')
+        print(mus.shape)
+        print(vars.shape)
+        return mus, vars
+
 
 def init_fake_expert(X, Y):
     from mogpe.models.utils.model import init_inducing_variables
