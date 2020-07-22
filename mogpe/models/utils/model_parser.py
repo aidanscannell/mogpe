@@ -6,7 +6,7 @@ from bunch import Bunch
 from gpflow import default_float
 
 from mogpe.models.experts import SVGPExperts, SVGPExpert
-from mogpe.models.gating_network import GatingNetworkBinary, GatingNetworkMulti, GatingFunction
+from mogpe.models.gating_network import SVGPGatingNetworkBinary, SVGPGatingNetworkMulti, SVGPGatingFunction
 from mogpe.models.mixture_model import MixtureOfSVGPExperts
 
 
@@ -245,7 +245,7 @@ def parse_multi_gating_network(config, input_dim, output_dim, num_data, X):
             parse_gating_function(Bunch(gating_function), input_dim,
                                   output_dim, num_data, X))
 
-    return GatingNetworkMulti(gating_function_list)
+    return SVGPGatingNetworkMulti(gating_function_list)
 
 
 def parse_binary_gating_network(gating_network, input_dim, output_dim,
@@ -260,7 +260,7 @@ def parse_binary_gating_network(gating_network, input_dim, output_dim,
     # q_mu, q_sqrt, q_diag = parse_inducing_points(gating_network, output_dim)
     # whiten = parse_whiten(gating_network)
     # inducing_variable = parse_inducing_variable(gating_network, input_dim, X)
-    # gating_function = GatingFunction(kernel,
+    # gating_function = SVGPGatingFunction(kernel,
     #                                  inducing_variable=inducing_variable,
     #                                  mean_function=mean_function,
     #                                  num_latent_gps=output_dim,
@@ -270,7 +270,7 @@ def parse_binary_gating_network(gating_network, input_dim, output_dim,
     #                                  whiten=whiten,
     #                                  num_data=num_data)
 
-    return GatingNetworkBinary(gating_function)
+    return SVGPGatingNetworkBinary(gating_function)
 
 
 def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
@@ -283,15 +283,15 @@ def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
     whiten = parse_whiten(gating_function)
     inducing_variable = parse_inducing_variable(gating_function, input_dim, X)
 
-    return GatingFunction(kernel,
-                          inducing_variable=inducing_variable,
-                          mean_function=mean_function,
-                          num_latent_gps=output_dim,
-                          q_diag=q_diag,
-                          q_mu=q_mu,
-                          q_sqrt=q_sqrt,
-                          whiten=whiten,
-                          num_data=num_data)
+    return SVGPGatingFunction(kernel,
+                              inducing_variable=inducing_variable,
+                              mean_function=mean_function,
+                              num_latent_gps=output_dim,
+                              q_diag=q_diag,
+                              q_mu=q_mu,
+                              q_sqrt=q_sqrt,
+                              whiten=whiten,
+                              num_data=num_data)
 
 
 def parse_experts(config, input_dim, output_dim, num_data, X):
