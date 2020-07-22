@@ -41,8 +41,9 @@ class ExpertBase(Module, ABC):
         # def predict_dist(self, Xnew: InputData, **kwargs) -> tfd.Distribution:
         """Returns the individual experts prediction at Xnew.
 
-        :param Xnew: inputs with shape [num_test, input_dim]
         TODO: this does not return a tfd.Distribution
+
+        :param Xnew: inputs with shape [num_test, input_dim]
         :returns: an instance of a TensorFlow Distribution
         """
         raise NotImplementedError
@@ -56,7 +57,7 @@ class ExpertsBase(Module):
     method that returns the set of experts predictions at an input (as a
     batched TensorFlow distribution).
     """
-    def __init__(self, experts_list: List = None, name="Experts"):
+    def __init__(self, experts_list: List[ExpertBase] = None, name="Experts"):
         """
         :param experts_list: A list of experts that inherit from ExpertBase
         """
@@ -64,6 +65,8 @@ class ExpertsBase(Module):
         assert isinstance(
             experts_list,
             list), 'experts_list should be a list of ExpertBase instances'
+        for expert in experts_list:
+            assert isinstance(expert, ExpertBase)
         self.num_experts = len(experts_list)
         self.experts_list = experts_list
 
@@ -163,12 +166,14 @@ class SVGPExperts(ExpertsBase):
     Provides an interface between a set of SVGPExpert instances and the
     MixtureOfSVGPExperts class.
     """
-    def __init__(self, experts_list: List = None, name="Experts"):
+    def __init__(self, experts_list: List[SVGPExpert] = None, name="Experts"):
         """
         :param experts_list: a list of SVGPExpert instances with the predict_dist()
                              method implemented.
         """
         super().__init__(experts_list, name=name)
+        for expert in experts_list:
+            assert isinstance(expert, SVGPExpert)
 
     def prior_kls(self) -> tf.Tensor:
         """Returns the set of experts KL divergences as a batched tensor.
