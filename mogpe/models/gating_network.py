@@ -23,7 +23,7 @@ def inv_probit(x):
                                                           2 * jitter) + jitter
 
 
-class GatingFunction(SVGPModel):
+class SVGPGatingFunction(SVGPModel):
     # TODO either remove likelihood or use Bernoulli/Softmax
     def __init__(self,
                  kernel,
@@ -48,9 +48,7 @@ class GatingFunction(SVGPModel):
 
 
 class GatingNetworkBase(Module, ABC):
-    """Abstract base class for the gating network.
-
-    """
+    """Abstract base class for the gating network."""
     @abstractmethod
     def predict_mixing_probs(self, Xnew: InputData, **kwargs):
         """Calculates the set of experts mixing probabilities at Xnew :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
@@ -61,20 +59,17 @@ class GatingNetworkBase(Module, ABC):
         raise NotImplementedError
 
 
-class GatingNetworkMulti(GatingNetworkBase):
-    # TODO either remove likelihood or use Bernoulli/Softmax
+class SVGPGatingNetworkBase(GatingNetworkBase):
+    """Abstract base class for gating networks based on SVGPs."""
     def __init__(self,
-                 gating_function_list: List = None,
-                 likelihood: Likelihood = None,
+                 gating_function_list: List[SVGPGatingFunction] = None,
                  name='GatingNetwork'):
         super().__init__(name=name)
         assert isinstance(gating_function_list, List)
+        for gating_function in gating_function_list:
+            assert isinstance(gating_function, SVGPGatingFunction)
         self.gating_function_list = gating_function_list
         self.num_experts = len(gating_function_list)
-        if likelihood is None:
-            self.likelihood = Softmax(num_classes=self.num_experts)
-        else:
-            self.likelihood = likelihood
 
     def prior_kls(self) -> tf.Tensor:
         """Returns the set of experts KL divergences as a batched tensor.
@@ -85,6 +80,33 @@ class GatingNetworkMulti(GatingNetworkBase):
         for gating_function in self.gating_function_list:
             kls.append(gating_function.prior_kl())
         return tf.convert_to_tensor(kls)
+
+    # @abstractmethod
+    # def prior_kls(self) -> tf.Tensor:
+    #     """Returns the set of experts KL divergences as a batched tensor.
+
+    #     :returns: a Tensor with shape [num_experts,]
+    #     """
+    #     raise NotImplementedError
+
+
+class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
+    # TODO either remove likelihood or use Bernoulli/Softmax
+    def __init__(self,
+                 gating_function_list: List[SVGPGatingFunction] = None,
+                 likelihood: Likelihood = None,
+                 name='GatingNetwork'):
+        super().__init__(gating_function_list, name=name)
+        # assert isinstance(gating_function_list, List)
+        # for gating_function in gating_function_list:
+        #     assert isinstance(gating_function, SVGPGatingFunction)
+        # self.gating_function_list = gating_function_list
+        # self.num_experts = len(gating_function_list)
+
+        if likelihood is None:
+            self.likelihood = Softmax(num_classes=self.num_experts)
+        else:
+            self.likelihood = likelihood
 
     def predict_mixing_probs(self,
                              Xnew: InputData,
@@ -123,64 +145,34 @@ class GatingNetworkMulti(GatingNetworkBase):
                                      dtype=tf.float64)
         return mixing_probs
 
-    # def predict_mixing_probs(self,
-    #                          Xnew: InputData,
-    #                          num_inducing_samples: int = None):
-    #     """Compute mixing probabilities.
 
-    #     Returns a tensor with dims
-    #     [num_experts, num_inducing_samples, num_data, output_dim]
-    #     if num_inducing_samples=None otherwise a tensor with dims
-    #     [num_experts, num_data, output_dim]
-
-    #     .. math::
-    #         \\mathbf{u}_h \sim \mathcal{N}(q\_mu, q\_sqrt \cdot q\_sqrt^T) \\\\
-    #         \\Pr(\\alpha=k | \\mathbf{Xnew}, \\mathbf{u}_h)
-
-    #     :param Xnew: test input(s) [num_data, input_dim]
-    #     :param num_inducing_samples: how many samples to draw from inducing points
-    #     """
-    #     prob_a_0 = self.predict_prob_a_0(Xnew, num_inducing_samples)
-    #     prob_a_1 = 1 - prob_a_0
-    #     mixing_probs = tf.stack([prob_a_0, prob_a_1], -1)
-    #     return mixing_probs
-
-
-class GatingNetworkBinary(GatingNetworkBase):
+class SVGPGatingNetworkBinary(SVGPGatingNetworkBase):
     def __init__(self,
-                 gating_function: GatingFunction = None,
+                 gating_function: SVGPGatingFunction = None,
                  name='GatingNetwork'):
-        super().__init__(name=name)
-        self.gating_function = gating_function
+        assert isinstance(gating_function, SVGPGatingFunction)
+        gating_function_list = [gating_function]
+        super().__init__(gating_function_list, name=name)
+        # self.gating_function = gating_function
         self.likelihood = Bernoulli()
+        self.num_experts = 2
 
-    def prior_kls(self) -> tf.Tensor:
-        """Returns the set of experts KL divergences as a batched tensor.
+    # def prior_kls(self) -> tf.Tensor:
+    #     """Returns the set of experts KL divergences as a batched tensor.
 
-        :returns: a Tensor with shape [num_experts,]
-        """
-        return tf.convert_to_tensor(self.gating_function.prior_kl())
-
-    # def _predict_prob_a_0_given_h(self, h_mean, h_var):
-    #     return 1 - inv_probit(h_mean / (tf.sqrt(1 + h_var)))
-
-    # def predict_prob_a_0(self,
-    #                      Xnew: InputData,
-    #                      num_inducing_samples: int = None):
-    #     h_mean, h_var = self.predict_f(Xnew,
-    #                                    num_inducing_samples,
-    #                                    full_cov=False)
-    #     return self._predict_prob_a_0_given_h(h_mean, h_var)
+    #     :returns: a Tensor with shape [num_experts,]
+    #     """
+    #     return tf.convert_to_tensor(self.gating_function.prior_kl())
 
     def predict_mixing_probs(self,
                              Xnew: InputData,
                              num_inducing_samples: int = None):
         """Compute mixing probabilities.
 
-        Returns a tensor with dims
-        [num_experts, num_inducing_samples, num_data, output_dim]
-        if num_inducing_samples=None otherwise a tensor with dims
-        [num_experts, num_data, output_dim]
+        Returns a tensor with dimensions,
+            [num_inducing_samples,num_data, output_dim, num_experts]
+        if num_inducing_samples=None otherwise a tensor with dimensions,
+            [num_data, output_dim, num_experts]
 
         .. math::
             \\mathbf{u}_h \sim \mathcal{N}(q\_mu, q\_sqrt \cdot q\_sqrt^T) \\\\
@@ -189,9 +181,8 @@ class GatingNetworkBinary(GatingNetworkBase):
         :param Xnew: test input(s) [num_data, input_dim]
         :param num_inducing_samples: how many samples to draw from inducing points
         """
-        h_mu, h_var = self.gating_function.predict_f(Xnew,
-                                                     num_inducing_samples,
-                                                     full_cov=False)
+        h_mu, h_var = self.gating_function_list[0].predict_f(
+            Xnew, num_inducing_samples, full_cov=False)
 
         def single_predict_mean(args):
             h_mu, h_var = args
@@ -203,13 +194,11 @@ class GatingNetworkBinary(GatingNetworkBase):
             prob_a_0 = tf.map_fn(single_predict_mean, (h_mu, h_var),
                                  dtype=tf.float64)
 
-        prob_a_0 = tf.reduce_sum(prob_a_0, -1)
+        print('prob_a_0 in gating network mixing probs')
+        print(prob_a_0.shape)
         prob_a_1 = 1 - prob_a_0
         mixing_probs = tf.stack([prob_a_0, prob_a_1], -1)
         return mixing_probs
-
-
-# def init_fake_gating_network(X, Y, num_experts=2, num_inducing=30):
 
 
 def init_fake_gating_network_binary(X, Y):
@@ -244,13 +233,13 @@ def init_fake_gating_network_binary(X, Y):
         kern_list.append(gpf.kernels.RBF(lengthscales=lengthscale))
     kernel = gpf.kernels.SeparateIndependent(kern_list)
 
-    gating_function = GatingFunction(kernel,
-                                     likelihood,
-                                     inducing_variable,
-                                     mean_function,
-                                     q_mu=q_mu,
-                                     q_sqrt=q_sqrt)
-    return GatingNetworkBinary(gating_function)
+    gating_function = SVGPGatingFunction(kernel,
+                                         likelihood,
+                                         inducing_variable,
+                                         mean_function,
+                                         q_mu=q_mu,
+                                         q_sqrt=q_sqrt)
+    return SVGPGatingNetworkBinary(gating_function)
 
 
 if __name__ == "__main__":
