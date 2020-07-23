@@ -116,8 +116,22 @@ class Plotter1D(Plotter):
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
         for k in range(num_experts):
-            ax.plot(self.test_inputs, mixing_probs[:, k], label=str(k + 1))
-        ax.legend()
+            ax.plot(self.test_inputs, mixing_probs[:, 0, k], label=str(k + 1))
+        # for k in range(self.num_experts):
+        #     for j in range(self.output_dim):
+        #         if self.output_dim == 1:
+        #             ax = axs
+        #         else:
+        #             ax = axs[j]
+        #         ax.plot(self.test_inputs,
+        #                 mixing_probs[:, j, k],
+        #                 label=str(k + 1))
+        # for j in range(self.output_dim):
+        #     if self.output_dim == 1:
+        #         ax = axs
+        #     else:
+        #         ax = axs[j]
+        #     ax.legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
         ax.scatter(input_broadcast,
@@ -177,7 +191,10 @@ class Plotter1D(Plotter):
             log_dir,
             self.plot_gating_network,
             name="gating_network_mixing_probabilities",
-        )
+            subplots_kw={
+                'nrows': 1,
+                'ncols': self.output_dim
+            })
         image_task_y = ImageToTensorBoard(log_dir,
                                           self.plot_y,
                                           name="predictive_posterior")
