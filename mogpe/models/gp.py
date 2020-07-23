@@ -1,7 +1,6 @@
-'''
-This file implements Gaussian processes and is based on
-GPflow https://github.com/GPflow/GPflow.
-'''
+"""
+This code is copied (and lightly modified) from `GPflow <https://github.com/GPflow/GPflow>`_.
+"""
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
@@ -238,7 +237,7 @@ class SVGPModel(GPModel):
                                               self.q_sqrt,
                                               whiten=self.whiten)
 
-    def sample_inducing_points(self, num_samples=None):
+    def sample_inducing_points(self, num_samples: int = None) -> tf.Tensor:
         """Returns samples from the inducing point distribution.
 
         The distribution is given by,
@@ -287,7 +286,7 @@ class SVGPModel(GPModel):
 
                 @tf.function
                 def single_sample_conditional(q_mu):
-                    # TODO put back to conditional when gpflow fix this issue
+                    # TODO requires my hack/fix to gpflow's separate_independent_conditional
                     return conditional(Xnew,
                                        self.inducing_variable,
                                        self.kernel,
