@@ -17,3 +17,8 @@ Gating Network
 ^^^^^^^^^^^^^^
 .. automodule:: mogpe.models.gating_network
    :members:
+
+Gaussian Processes
+^^^^^^^^^^^^^^^^^^
+.. automodule:: mogpe.models.gp
+   :members:
