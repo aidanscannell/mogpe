@@ -1,12 +1,13 @@
+############
 Introduction
-============
-This package implements a mixture of Gaussian process (GPs)
-experts method where both the experts and the gating network are implemented using GPs.
+############
+This package provides the building blocks for implementing mixture of Gaussian process experts models
+using `GPflow <https://www.gpflow.org/>`_ and `TensorFlow <https://www.tensorflow.org/>`_.
 It was originally created by Aidan Scannell.
-The model leverages `GPflow <https://www.gpflow.org/>`_/`TensorFlow <https://www.tensorflow.org/>`_
-and exploits the factorization achieved
-with sparse GPs to train the model with stochastic variational inference.
-More detail about the model and inference can be found in the associated paper.
+It implements a method where both the experts and the gating network are formulated using
+sparse variational Gaussian processes and trains the model using stochastic variational inference.
+More details about the model and inference can be found at
+:ref:`understanding_math:The Maths` and more details on the code base at :ref:`understanding_code:The Code`.
 
 
 Install
@@ -27,5 +28,4 @@ cd into the root of this package and install it and its dependencies with,
 
 Getting Started
 ^^^^^^^^^^^^^^^
-
 See notebooks.
