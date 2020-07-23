@@ -13,6 +13,7 @@ nbsphinx
 sphinx_autodoc_typehints
 recommonmark
 bunch
+pandoc
 
 pandas
 matplotlib
