@@ -109,7 +109,7 @@ def monitored_training_loop(model,
 
     monitor = Monitor(fast_tasks, slow_tasks)
 
-    # t = time.time()
+    t = time.time()
     for epoch in range(epochs):
         for _ in range(num_batches_per_epoch):
             tf_optimization_step()

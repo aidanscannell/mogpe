@@ -148,8 +148,9 @@ def parse_model_from_config_file(config_file):
 if __name__ == "__main__":
     config_file = '../../configs/mcycle.json'
     config_file = '../../configs/artificial_2b.json'
-    config_file = '../../configs/quadcopter.json'
+    # config_file = '../../configs/quadcopter.json'
     config_file = '../../configs/mcycle-3-experts.json'
+    # config_file = '../../configs/quadcopter_3_experts.json'
 
     # model = parse_config_json(config_file)
     run_config_file(config_file)
