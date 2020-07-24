@@ -9,15 +9,21 @@ Mixture of Gaussian Process Experts using SVI documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples:
-   :glob:
+   :caption: Understanding:
 
-   examples
+   understanding_code
+   understanding_math
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples:
+
+   notebooks/mixture-of-two-gp-experts
+   notebooks/mixture-of-k-gp-experts
 
 .. toctree::
    :maxdepth: 1
    :caption: API:
-   :glob:
 
    api
 
