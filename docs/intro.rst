@@ -28,4 +28,6 @@ cd into the root of this package and install it and its dependencies with,
 
 Getting Started
 ^^^^^^^^^^^^^^^
-See notebooks.
+Please see :ref:`understanding_code:The Code` for details on the implementation and see
+:ref:`understanding_math:The Maths` to get an understanding of the underlying mathematics.
+For example usage see the notebooks.
