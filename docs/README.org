@@ -1,5 +1,14 @@
-Documentation
+* Documentation
 
+In order to convert the jupyter notebooks to rst pandoc must be installed.
+On Mac OSX you can install it with brew,
+#+BEGIN_SRC shell
+brew install pandoc
+#+END_SRC
+Otherwise see [[https://pandoc.org/installing.html][installing pandoc]].
+
+To build the (html) documentation 1) activate the projects virtual environment, 2) cd into the docs/ directory
+and then run,
 #+BEGIN_SRC shell
 make html
 #+END_SRC
