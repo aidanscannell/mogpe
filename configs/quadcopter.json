@@ -1,13 +1,13 @@
 {
     "dataset_name": "quadcopter",
     "input_dim": 2,
-    "output_dim": 3,
+    "output_dim": 1,
     "num_data": 2659,
     "epochs": 5000,
     "batch_size": 100,
     "num_inducing_samples": 4,
     "num_experts": 2,
-    "slow_tasks_period": 0,
+    "slow_tasks_period": 200,
     "fast_tasks_period": 10,
     "logging_epoch_freq": 100,
     "experts": [{
