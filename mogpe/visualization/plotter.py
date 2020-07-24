@@ -104,11 +104,11 @@ class Plotter1D(Plotter):
         mean = dists.mean()
         var = dists.variance()
         row = 0
+        print('axs')
+        print(axs.shape)
         for k, expert in enumerate(self.model.experts.experts_list):
             for j in range(self.output_dim):
-                self.plot_gp(fig, axs[row],
-                             dists.mean()[:, j, k],
-                             dists.variance()[:, j, k])
+                self.plot_gp(fig, axs[row], mean[:, j, k], var[:, j, k])
                 row += 1
 
     def plot_gating_network(self, fig, ax):
@@ -131,7 +131,7 @@ class Plotter1D(Plotter):
         #         ax = axs
         #     else:
         #         ax = axs[j]
-        #     ax.legend()
+        ax.legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
         ax.scatter(input_broadcast,
@@ -160,7 +160,7 @@ class Plotter1D(Plotter):
     def plot_model(self):
         fig, ax = plt.subplots(1, 1)
         self.plot_gating_network(fig, ax)
-        fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+        fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
         self.plot_experts_y(fig, axs)
         fig, ax = plt.subplots(1, 1)
         self.plot_y(fig, ax)
