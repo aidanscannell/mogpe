@@ -191,7 +191,6 @@ class SVGPExperts(ExpertsBase):
         :param Xnew: inputs with shape [num_test, input_dim]
         :returns: a batched tfd.Distribution with batch_shape [..., num_test, output_dim, num_experts]
         """
-        # TODO this method only works for Normal dists, needs correcting
         mus, vars = [], []
         for expert in self.experts_list:
             mu, var = expert.predict_dist(Xnew, **kwargs)
