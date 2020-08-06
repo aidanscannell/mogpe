@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import palettable
 
-from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, ImageColorBarToTensorBoard
+from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, ImageWithCbarToTensorBoard
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from mogpe.visualization.plotter import Plotter
@@ -260,7 +260,7 @@ class Plotter2D(Plotter):
         ncols = 2
         nrows_y = self.output_dim
         nrows_experts = self.num_experts * self.output_dim
-        image_task_experts_f = ImageColorBarToTensorBoard(
+        image_task_experts_f = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_f,
             name="experts_latent_function_posterior",
@@ -269,7 +269,7 @@ class Plotter2D(Plotter):
                 'nrows': nrows_experts,
                 'ncols': ncols
             })
-        image_task_experts_y = ImageColorBarToTensorBoard(
+        image_task_experts_y = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_y,
             name="experts_output_posterior",
@@ -278,7 +278,7 @@ class Plotter2D(Plotter):
                 'nrows': nrows_experts,
                 'ncols': ncols
             })
-        image_task_gating = ImageColorBarToTensorBoard(
+        image_task_gating = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_gating_network,
             name="gating_network_mixing_probabilities",
@@ -286,7 +286,7 @@ class Plotter2D(Plotter):
                 'nrows': self.num_experts,
                 'ncols': self.output_dim
             })
-        image_task_y = ImageColorBarToTensorBoard(
+        image_task_y = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_y,
             name="predictive_posterior_moment_matched",
