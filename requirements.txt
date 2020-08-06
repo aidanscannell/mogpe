@@ -20,5 +20,5 @@ matplotlib
 palettable
 numpy
 tensorflow-probability==0.9.0
-tensorflow==2.1.0
+tensorflow==2.2.0
 gpflow==2.0.1
