@@ -1,15 +1,15 @@
 {
     "dataset_name": "quadcopter",
     "input_dim": 2,
-    "output_dim": 1,
-    "num_data": 2659,
-    "epochs": 5000,
-    "batch_size": 100,
-    "num_inducing_samples": 4,
+    "output_dim": 2,
+    "num_data": 4147,
+    "epochs": 2100,
+    "batch_size": 300,
+    "num_inducing_samples": 1,
     "num_experts": 2,
-    "slow_tasks_period": 200,
+    "slow_tasks_period": 100,
     "fast_tasks_period": 10,
-    "logging_epoch_freq": 100,
+    "logging_epoch_freq": 50,
     "experts": [{
             "kernel": {
                 "name": "rbf",
@@ -26,7 +26,7 @@
             },
             "mean_function": "constant",
             "inducing_points": {
-                "num_inducing": 30,
+                "num_inducing": 70,
                 "q_mu": {
                     "mean": 0.0,
                     "var": 2
@@ -47,12 +47,12 @@
             "likelihood": {
                 "name": "gaussian",
                 "params": {
-                    "variance": 0.9
+                    "variance": 1.9
                 }
             },
             "mean_function": "constant",
             "inducing_points": {
-                "num_inducing": 30,
+                "num_inducing": 70,
                 "q_mu": {
                     "mean": 0.0,
                     "var": 2
@@ -73,7 +73,7 @@
         },
         "mean_funcion": "zero",
         "inducing_points": {
-            "num_inducing": 30,
+            "num_inducing": 150,
             "q_mu": {
                 "mean": 0.0,
                 "var": 2
