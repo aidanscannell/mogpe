@@ -6,7 +6,7 @@ from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
                             ScalarToTensorBoard)
 
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset
-from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, init_slow_tasks
+from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop
 from mogpe.models.mixture_model import init_fake_mixture
 from mogpe.models.utils.parse_json_config import parse_config_json
 from mogpe.visualization.plotter import Plotter1D
