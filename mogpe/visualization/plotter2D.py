@@ -29,6 +29,8 @@ class Plotter2D(Plotter):
         super().__init__(model, X, Y, num_samples, params)
         self.cmap = cmap
         self.num_levels = num_levels
+        # self.levels = np.linspace(0., 1., num_levels)
+        self.levels = np.linspace(0., 1., 50)
         if test_inputs is None:
             num_test = 400
             factor = 1.2
@@ -123,6 +125,8 @@ class Plotter2D(Plotter):
         :param means: [num_data, output_dim, num_experts]
         :param vars: [num_data, output_dim, num_experts]
         """
+        # output_dim = tf.shape(means)[1]
+        output_dim = means.shape[1]
         mean_levels = tf.linspace(tf.math.reduce_min(means),
                                   tf.math.reduce_max(means), self.num_levels)
         var_levels = tf.linspace(tf.math.reduce_min(vars),
@@ -130,8 +134,8 @@ class Plotter2D(Plotter):
         row = 0
         num_experts = means.shape[-1]
         for k in range(num_experts):
-            for j in range(self.output_dim):
-                if row != num_experts * self.output_dim - 1:
+            for j in range(output_dim):
+                if row != num_experts * output_dim - 1:
                     axs[row, 0].get_xaxis().set_visible(False)
                     axs[row, 1].get_xaxis().set_visible(False)
                 mean_contf, var_contf = self.plot_gp_contf(
@@ -163,7 +167,21 @@ class Plotter2D(Plotter):
                                   tf.math.reduce_max(means), self.num_levels)
         var_levels = tf.linspace(tf.math.reduce_min(vars),
                                  tf.math.reduce_max(vars), self.num_levels)
-        return self.plot_gps_shared_cbar(fig, axs, means, vars)
+        # return self.plot_gps_shared_cbar(fig, axs, means, vars)
+        num_experts = means.shape[-1]
+        output_dim = means.shape[-2]
+        row = 0
+        cbars = []
+        for k in range(num_experts):
+            for j in range(output_dim):
+                if row != num_experts * output_dim - 1:
+                    axs[row, 0].get_xaxis().set_visible(False)
+                    axs[row, 1].get_xaxis().set_visible(False)
+                cbars.append(
+                    self.plot_gp(fig, axs[row, :], means[:, j, k],
+                                 vars[:, j, k]))
+                row += 1
+        return np.array(cbars)
 
     def plot_experts_y(self, fig, axs):
         """Plots each experts predictive posterior in each output dim
@@ -180,10 +198,6 @@ class Plotter2D(Plotter):
         dists = self.model.predict_experts_dists(self.test_inputs)
         means = dists.mean()
         vars = dists.variance()
-        mean_levels = tf.linspace(tf.math.reduce_min(means),
-                                  tf.math.reduce_max(means), self.num_levels)
-        var_levels = tf.linspace(tf.math.reduce_min(vars),
-                                 tf.math.reduce_max(vars), self.num_levels)
         return self.plot_gps_shared_cbar(fig, axs, means, vars)
 
     def plot_gating_network(self, fig, axs):
@@ -193,8 +207,6 @@ class Plotter2D(Plotter):
         """
         tf.print("Plotting gating network...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
-        levels = np.linspace(0., 1., 5)
-        print(mixing_probs.shape)
         if self.output_dim > 1:
             cbars = []
             for k in range(self.num_experts):
@@ -205,7 +217,7 @@ class Plotter2D(Plotter):
                                                   self.test_inputs[:, 1],
                                                   mixing_probs[:, j, k],
                                                   100,
-                                                  levels=levels,
+                                                  levels=self.levels,
                                                   cmap=self.cmap)
                     if k == 0:
                         cbars.append(self.cbar(fig, axs[:, j], contf))
@@ -218,10 +230,45 @@ class Plotter2D(Plotter):
                                            self.test_inputs[:, 1],
                                            mixing_probs[:, 0, k],
                                            100,
-                                           levels=levels,
+                                           levels=self.levels,
                                            cmap=self.cmap)
             cbar = self.cbar(fig, axs, contf)
             return cbar
+
+    def plot_gating_gps(self, fig, axs):
+        """Plots mean and var of gating network gp
+
+        :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
+        """
+        tf.print("Plotting gating gps...")
+        means, vars = self.model.gating_network.predict_fs(self.test_inputs)
+        # output_dim = means.shape[1]
+        # if self.num_experts > 2:
+        #     cbars.append(self.plot_gps_shared_cbar(fig, axs, means, vars))
+        # else:
+        #     # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
+        #     cbars.append(
+        #         self.plot_gp(fig, axs, means[:, i, 0], vars[:, i, 0]))
+        cbars = []
+        for i in range(self.output_dim):
+            if self.num_experts > 2:
+                # TODO haven't test the >2 expert case
+                cbars.append(
+                    self.plot_gps_shared_cbar(fig,
+                                              axs[i:i + self.num_experts, :],
+                                              means, vars))
+            else:
+                # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
+                cbars.append(
+                    self.plot_gp(fig, axs[i, :], means[:, i, 0],
+                                 vars[:, i, 0]))
+                for ax in axs[i, :]:
+                    ax.scatter(self.X[:, 0],
+                               self.X[:, 1],
+                               marker='x',
+                               alpha=0.01,
+                               color='k')
+        return np.array(cbars)
 
     def plot_y(self, fig, axs):
         """Plots mean and var of moment matched predictive posterior
@@ -236,19 +283,21 @@ class Plotter2D(Plotter):
             # add num_experts of 1 for correct broadcasting in plot_gps_shared_cbar
             means = tf.expand_dims(means, -1)
             vars = tf.expand_dims(vars, -1)
-            mean_levels = tf.linspace(tf.math.reduce_min(means),
-                                      tf.math.reduce_max(means),
-                                      self.num_levels)
-            var_levels = tf.linspace(tf.math.reduce_min(vars),
-                                     tf.math.reduce_max(vars), self.num_levels)
             return self.plot_gps_shared_cbar(fig, axs, means, vars)
         else:
             return self.plot_gp(fig, axs, means[:, 0], vars[:, 0])
 
     def plot_model(self):
         nrows = self.num_experts * self.output_dim
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(self.num_experts, self.output_dim)
         self.plot_gating_network(fig, ax)
+        if self.num_experts > 2:
+            num_gating_gps = self.num_experts
+        else:
+            num_gating_gps = 1
+        num_gating_gps *= self.output_dim
+        fig, axs = plt.subplots(num_gating_gps, 2)
+        self.plot_gating_gps(fig, axs)
         fig, axs = plt.subplots(nrows, 2, figsize=(10, 4))
         self.plot_experts_f(fig, axs)
         fig, axs = plt.subplots(nrows, 2, figsize=(10, 4))
@@ -260,6 +309,10 @@ class Plotter2D(Plotter):
         ncols = 2
         nrows_y = self.output_dim
         nrows_experts = self.num_experts * self.output_dim
+        if self.num_experts > 2:
+            num_gating_gps = self.num_experts * self.output_dim
+        else:
+            num_gating_gps = 1 * self.output_dim
         image_task_experts_f = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_f,
@@ -277,6 +330,15 @@ class Plotter2D(Plotter):
             subplots_kw={
                 'nrows': nrows_experts,
                 'ncols': ncols
+            })
+        image_task_gating_gps = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_gating_gps,
+            name="gating_network_gps_posteriors",
+            fig_kw={'figsize': (10, 2 * num_gating_gps)},
+            subplots_kw={
+                'nrows': num_gating_gps,
+                'ncols': 2
             })
         image_task_gating = ImageWithCbarToTensorBoard(
             log_dir,
@@ -300,7 +362,8 @@ class Plotter2D(Plotter):
         # ]
         image_tasks = [
             image_task_experts_y, image_task_experts_f, image_task_gating,
-            image_task_y
+            image_task_gating_gps, image_task_y
+            # image_task_y
         ]
         # image_tasks = [
         #     image_task_experts_y, image_task_experts_f, image_task_y
