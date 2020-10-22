@@ -274,6 +274,8 @@ def parse_binary_gating_network(gating_network, input_dim, output_dim,
 
 
 def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
+    # TODO remove this output dim hack and fix code
+    output_dim = 1
     mean_function = parse_mean_function(gating_function)
     kernel = parse_kernel(Bunch(gating_function.kernel),
                           input_dim=input_dim,

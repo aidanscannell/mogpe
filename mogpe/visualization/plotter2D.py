@@ -207,33 +207,44 @@ class Plotter2D(Plotter):
         """
         tf.print("Plotting gating network...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
-        if self.output_dim > 1:
-            cbars = []
-            for k in range(self.num_experts):
-                for j in range(self.output_dim):
-                    if k < self.num_experts - 1:
-                        axs[k, j].get_xaxis().set_visible(False)
-                    contf = axs[k, j].tricontourf(self.test_inputs[:, 0],
-                                                  self.test_inputs[:, 1],
-                                                  mixing_probs[:, j, k],
-                                                  100,
-                                                  levels=self.levels,
-                                                  cmap=self.cmap)
-                    if k == 0:
-                        cbars.append(self.cbar(fig, axs[:, j], contf))
-            return cbars
-        else:
-            for k in range(self.num_experts):
-                if k < self.num_experts - 1:
-                    axs[k].get_xaxis().set_visible(False)
-                contf = axs[k].tricontourf(self.test_inputs[:, 0],
-                                           self.test_inputs[:, 1],
-                                           mixing_probs[:, 0, k],
-                                           100,
-                                           levels=self.levels,
-                                           cmap=self.cmap)
-            cbar = self.cbar(fig, axs, contf)
-            return cbar
+        for k in range(self.num_experts):
+            if k < self.num_experts - 1:
+                axs[k].get_xaxis().set_visible(False)
+            contf = axs[k].tricontourf(self.test_inputs[:, 0],
+                                       self.test_inputs[:, 1],
+                                       mixing_probs[:, 0, k],
+                                       100,
+                                       levels=self.levels,
+                                       cmap=self.cmap)
+        cbar = self.cbar(fig, axs, contf)
+        return cbar
+        # if self.output_dim > 1:
+        #     cbars = []
+        #     for k in range(self.num_experts):
+        #         for j in range(self.output_dim):
+        #             if k < self.num_experts - 1:
+        #                 axs[k, j].get_xaxis().set_visible(False)
+        #             contf = axs[k, j].tricontourf(self.test_inputs[:, 0],
+        #                                           self.test_inputs[:, 1],
+        #                                           mixing_probs[:, j, k],
+        #                                           100,
+        #                                           levels=self.levels,
+        #                                           cmap=self.cmap)
+        #             if k == 0:
+        #                 cbars.append(self.cbar(fig, axs[:, j], contf))
+        #     return cbars
+        # else:
+        #     for k in range(self.num_experts):
+        #         if k < self.num_experts - 1:
+        #             axs[k].get_xaxis().set_visible(False)
+        #         contf = axs[k].tricontourf(self.test_inputs[:, 0],
+        #                                    self.test_inputs[:, 1],
+        #                                    mixing_probs[:, 0, k],
+        #                                    100,
+        #                                    levels=self.levels,
+        #                                    cmap=self.cmap)
+        #     cbar = self.cbar(fig, axs, contf)
+        #     return cbar
 
     def plot_gating_gps(self, fig, axs):
         """Plots mean and var of gating network gp
@@ -242,33 +253,47 @@ class Plotter2D(Plotter):
         """
         tf.print("Plotting gating gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
-        # output_dim = means.shape[1]
+        print('means vars')
+        print(means.shape)
+        print(vars.shape)
         # if self.num_experts > 2:
-        #     cbars.append(self.plot_gps_shared_cbar(fig, axs, means, vars))
+        #     return self.plot_gps_shared_cbar(fig, axs, means, vars)
         # else:
-        #     # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
-        #     cbars.append(
-        #         self.plot_gp(fig, axs, means[:, i, 0], vars[:, i, 0]))
+        #     return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
         cbars = []
-        for i in range(self.output_dim):
-            if self.num_experts > 2:
-                # TODO haven't test the >2 expert case
-                cbars.append(
-                    self.plot_gps_shared_cbar(fig,
-                                              axs[i:i + self.num_experts, :],
-                                              means, vars))
-            else:
-                # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
-                cbars.append(
-                    self.plot_gp(fig, axs[i, :], means[:, i, 0],
-                                 vars[:, i, 0]))
-                for ax in axs[i, :]:
-                    ax.scatter(self.X[:, 0],
-                               self.X[:, 1],
-                               marker='x',
-                               alpha=0.01,
-                               color='k')
+        if self.num_experts > 2:
+            # TODO haven't test the >2 expert case
+            cbars.append(self.plot_gps_shared_cbar(fig, axs, means, vars))
+        else:
+            # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
+            cbars.append(self.plot_gp(fig, axs, means[:, 0, 0], vars[:, 0, 0]))
+            for ax in axs:
+                ax.scatter(self.X[:, 0],
+                           self.X[:, 1],
+                           marker='x',
+                           alpha=0.01,
+                           color='k')
         return np.array(cbars)
+        # output_dim = means.shape[1]
+        # for i in range(self.output_dim):
+        #     if self.num_experts > 2:
+        #         # TODO haven't test the >2 expert case
+        #         cbars.append(
+        #             self.plot_gps_shared_cbar(fig,
+        #                                       axs[i:i + self.num_experts, :],
+        #                                       means, vars))
+        #     else:
+        #         # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
+        #         cbars.append(
+        #             self.plot_gp(fig, axs[i, :], means[:, i, 0],
+        #                          vars[:, i, 0]))
+        #         for ax in axs[i, :]:
+        #             ax.scatter(self.X[:, 0],
+        #                        self.X[:, 1],
+        #                        marker='x',
+        #                        alpha=0.01,
+        #                        color='k')
+        # return np.array(cbars)
 
     def plot_y(self, fig, axs):
         """Plots mean and var of moment matched predictive posterior
@@ -310,9 +335,11 @@ class Plotter2D(Plotter):
         nrows_y = self.output_dim
         nrows_experts = self.num_experts * self.output_dim
         if self.num_experts > 2:
-            num_gating_gps = self.num_experts * self.output_dim
+            # num_gating_gps = self.num_experts * self.output_dim
+            num_gating_gps = self.num_experts
         else:
-            num_gating_gps = 1 * self.output_dim
+            # num_gating_gps = 1 * self.output_dim
+            num_gating_gps = 1
         image_task_experts_f = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_f,
@@ -346,7 +373,8 @@ class Plotter2D(Plotter):
             name="gating_network_mixing_probabilities",
             subplots_kw={
                 'nrows': self.num_experts,
-                'ncols': self.output_dim
+                'ncols': 1
+                # 'ncols': self.output_dim
             })
         image_task_y = ImageWithCbarToTensorBoard(
             log_dir,

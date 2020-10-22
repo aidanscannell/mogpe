@@ -94,8 +94,11 @@ class MixtureOfExperts(BayesianModel, ABC):
         """
         mixing_probs = self.predict_mixing_probs(Xnew, **kwargs)
         dists = self.predict_experts_dists(Xnew, **kwargs)
+        print('inside predict y')
+        print(mixing_probs.shape)
+        print(dists.batch_shape)
         if dists.batch_shape != tf.shape(mixing_probs):
-            mixing_probs = tf.expand_dims(mixing_probs, -2)
+            # mixing_probs = tf.expand_dims(mixing_probs, -2)
             mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
 
         tf.debugging.assert_equal(
@@ -150,8 +153,9 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self.num_inducing_samples = num_inducing_samples
         self.num_data = num_data
 
-    def maximum_log_likelihood_objective(
-            self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+    def maximum_log_likelihood_objective(self,
+                                         data: Tuple[tf.Tensor, tf.Tensor]
+                                         ) -> tf.Tensor:
         """Objective for maximum likelihood estimation.
 
         Lower bound to the log-marginal likelihood (ELBO).
@@ -162,6 +166,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         """
         with tf.name_scope('ELBO') as scope:
             X, Y = data
+            num_test = X.shape[0]
 
             # kl_gating = self.gating_network.prior_kl()
             kls_gatings = self.gating_network.prior_kls()
@@ -172,6 +177,10 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             with tf.name_scope('predict_mixing_probs') as scope:
                 mixing_probs = self.predict_mixing_probs(
                     X, num_inducing_samples=self.num_inducing_samples)
+            # TODO move this reshape into gating function
+            # mixing_probs = tf.reshape(
+            #     mixing_probs,
+            #     [self.num_inducing_samples, num_test, self.num_experts])
             print("mixing_probs")
             print(mixing_probs.shape)
 
@@ -190,18 +199,17 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 print(expected_experts.shape)
                 # TODO is it correct to sum over output dimension?
                 # sum over output_dim
-                # expected_experts = tf.reduce_sum(expected_experts, -2)
-                # print(expected_experts.shape)
+                expected_experts = tf.reduce_sum(expected_experts, -2)
+                print('Experts after summing over output dims')
+                print(expected_experts.shape)
+                expected_experts = tf.expand_dims(expected_experts, -2)
+                print(expected_experts.shape)
 
             shape_constraints = [
-                (expected_experts, [
-                    "num_inducing_samples", "num_data", "output_dim",
-                    "num_experts"
-                ]),
-                (mixing_probs, [
-                    "num_inducing_samples", "num_data", "output_dim",
-                    "num_experts"
-                ]),
+                (expected_experts,
+                 ["num_inducing_samples", "num_data", "1", "num_experts"]),
+                (mixing_probs,
+                 ["num_inducing_samples", "num_data", "1", "num_experts"]),
             ]
             tf.debugging.assert_shapes(
                 shape_constraints,
@@ -228,16 +236,16 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print('averaged samples')
             print(var_exp.shape)
             # # TODO where should output dimension be reduced?
-            var_exp = tf.linalg.diag_part(var_exp)
-            print('Ignore covariance in output dimension')
-            print(var_exp.shape)
-            var_exp = tf.reduce_sum(var_exp, 0)
+            # var_exp = tf.linalg.diag_part(var_exp)
+            # print('Ignore covariance in output dimension')
+            # print(var_exp.shape)
+            var_exp = tf.reduce_sum(var_exp)
             print('Reduce sum over num_data')
             print(var_exp.shape)
 
-            var_exp = tf.reduce_sum(var_exp)
-            print('Reduce sum over output_dim to get loss')
-            print(var_exp.shape)
+            # var_exp = tf.reduce_sum(var_exp)
+            # print('Reduce sum over output_dim to get loss')
+            # print(var_exp.shape)
 
             if self.num_data is not None:
                 num_data = tf.cast(self.num_data, default_float())
@@ -256,12 +264,12 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         """
         return self.maximum_log_likelihood_objective(data)
 
-    def predict_experts_fs(
-            self,
-            Xnew: InputData,
-            num_inducing_samples: int = None,
-            full_cov=False,
-            full_output_cov=False) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict_experts_fs(self,
+                           Xnew: InputData,
+                           num_inducing_samples: int = None,
+                           full_cov=False,
+                           full_output_cov=False
+                           ) -> Tuple[tf.Tensor, tf.Tensor]:
         """"Compute mean and (co)variance of experts latent functions at Xnew.
 
         If num_inducing_samples is not None then sample inducing points instead

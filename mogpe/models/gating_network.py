@@ -55,7 +55,7 @@ class GatingNetworkBase(Module, ABC):
 
         :param Xnew: inputs with shape [num_test, input_dim]
         TODO correct dimensions
-        :returns: mean and var batched Tensors with shape [..., num_test, output_dim, num_experts]
+        :returns: mean and var batched Tensors with shape [..., num_test, 1, num_experts]
         """
         raise NotImplementedError
 
@@ -64,7 +64,7 @@ class GatingNetworkBase(Module, ABC):
         """Calculates the set of experts mixing probabilities at Xnew :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
 
         :param Xnew: inputs with shape [num_test, input_dim]
-        :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
+        :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
         """
         raise NotImplementedError
 
