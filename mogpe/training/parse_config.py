@@ -9,7 +9,7 @@ from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup,
 
 from mogpe.data.utils import load_mixture_dataset, load_mcycle_dataset, load_quadcopter_dataset
 from mogpe.models.utils.model_parser import parse_model
-from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop
+from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, save_model
 from mogpe.visualization.plotter import Plotter1D
 from mogpe.visualization.plotter2D import Plotter2D
 
@@ -43,8 +43,16 @@ def parse_dataset(dataset_name):
         dataset, _, _ = load_mixture_dataset(filename=data_file)
 
     elif dataset_name == 'quadcopter':
-        data_file = '../../data/processed/quadcopter_turbulence.npz'
-        dataset = load_quadcopter_dataset(filename=data_file)
+        data_file = '../../data/processed/quadcopter_turbulence_single_direction_with_reversed.npz'
+        # data_file = '../../data/processed/quadcopter_turbulence_single_direction.npz'
+        # data_file = '../../data/processed/quadcopter_turbulence.npz'
+        try:
+            dataset = load_quadcopter_dataset(filename=data_file)
+        except:
+            # data_file = '../data/processed/quadcopter_turbulence_single_direction.npz'
+            data_file = '../data/processed/quadcopter_turbulence_single_direction_with_reversed.npz'
+            # data_file = '../data/processed/quadcopter_turbulence.npz'
+            dataset = load_quadcopter_dataset(filename=data_file)
     else:
         raise NotImplementedError('No dataset by this name.')
     return dataset
@@ -74,6 +82,9 @@ def run_config_file(config_file):
     output_dim = Y.shape[1]
     train_dataset, num_batches_per_epoch = create_tf_dataset(
         dataset, num_data, config.batch_size)
+    # import matplotlib.pyplot as plt
+    # plt.(X[:, 0], X[:, 1])
+    # plt.show()
 
     model = parse_model(config, X)
     # gpf.set_trainable(model.experts.experts_list[0].likelihood.variance, False)
@@ -84,6 +95,13 @@ def run_config_file(config_file):
 
     log_dir = '../../models/logs/' + config.dataset_name + '/' + datetime.now(
     ).strftime("%m-%d-%H%M%S")
+
+    # from mogpe.training.utils import save_model
+    # save_model_dir = log_dir + "-gpflow_model"
+    # save_model(model, save_model_dir)
+
+    # from mogpe.training.utils import save_model_params
+    # save_dir = log_dir + "-param_dict.npz"
 
     if input_dim == 1:
         plotter = Plotter1D(model, X, Y)
@@ -102,6 +120,27 @@ def run_config_file(config_file):
     training_loss = model.training_loss_closure(iter(train_dataset))
     fast_tasks = parse_fast_tasks(config.fast_tasks_period, training_loss,
                                   model, log_dir)
+    # print('loaded prediction')
+    # loaded_model = tf.saved_model.load(save_model_dir)
+    # mu, var = loaded_model.predict_experts_ys(plotter.test_inputs)
+    # print('expert ys')
+    # print(mu.shape)
+    # print(var.shape)
+    # mu, var = loaded_model.predict_experts_fs(plotter.test_inputs)
+    # print('expert fs')
+    # print(mu.shape)
+    # print(var.shape)
+    # print('inpouts')
+    # print(plotter.test_inputs.shape)
+    # mu, var = loaded_model.predict_gating_fs(plotter.test_inputs[0:10, :])
+    # print('gating fs')
+    # print(mu.shape)
+    # print(var.shape)
+    # # print(loaded_result)
+    # loaded_result = loaded_model.predict_mixing_probs(
+    #     plotter.test_inputs[0:1, :])
+    # print('mixing probs')
+    # print(loaded_result.shape)
 
     if fast_tasks is None and slow_tasks is None:
         training_tf_loop(model,
@@ -133,7 +172,27 @@ def run_config_file(config_file):
                                 fast_tasks=fast_tasks,
                                 slow_tasks=slow_tasks,
                                 num_batches_per_epoch=num_batches_per_epoch,
-                                logging_epoch_freq=config.logging_epoch_freq)
+                                logging_epoch_freq=config.logging_epoch_freq,
+                                save_dir=log_dir)
+    save_model_dir = log_dir + "-gpflow_model"
+    save_model(model, save_model_dir)
+    save_param_dict(model, log_dir)
+    # save_model_params(model, save_dir)
+    # plotter.plot_model()
+
+
+def save_param_dict(model, log_dir):
+    save_model_dir = log_dir + "-param_dict.pickle"
+    param_dict = gpf.utilities.parameter_dict(model)
+    # import json
+    # json = json.dumps(param_dict)
+    # f = open(save_model_dir, "w")
+    # f.write(json)
+    # f.close()
+    import pickle
+    f = open(save_model_dir, "wb")
+    pickle.dump(param_dict, f)
+    f.close()
 
 
 def parse_model_from_config_file(config_file):
@@ -148,8 +207,8 @@ def parse_model_from_config_file(config_file):
 if __name__ == "__main__":
     config_file = '../../configs/mcycle.json'
     config_file = '../../configs/artificial_2b.json'
-    # config_file = '../../configs/quadcopter.json'
-    config_file = '../../configs/mcycle-3-experts.json'
+    config_file = '../../configs/quadcopter.json'
+    # config_file = '../../configs/mcycle-3-experts.json'
     # config_file = '../../configs/quadcopter_3_experts.json'
 
     # model = parse_config_json(config_file)
