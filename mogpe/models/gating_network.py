@@ -50,6 +50,16 @@ class SVGPGatingFunction(SVGPModel):
 class GatingNetworkBase(Module, ABC):
     """Abstract base class for the gating network."""
     @abstractmethod
+    def predict_fs(self, Xnew: InputData, **kwargs):
+        """Calculates the set of gating function posteriors at Xnew
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        TODO correct dimensions
+        :returns: mean and var batched Tensors with shape [..., num_test, output_dim, num_experts]
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def predict_mixing_probs(self, Xnew: InputData, **kwargs):
         """Calculates the set of experts mixing probabilities at Xnew :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
 
@@ -81,13 +91,17 @@ class SVGPGatingNetworkBase(GatingNetworkBase):
             kls.append(gating_function.prior_kl())
         return tf.convert_to_tensor(kls)
 
-    # @abstractmethod
-    # def prior_kls(self) -> tf.Tensor:
-    #     """Returns the set of experts KL divergences as a batched tensor.
-
-    #     :returns: a Tensor with shape [num_experts,]
-    #     """
-    #     raise NotImplementedError
+    def predict_fs(self, Xnew: InputData, num_inducing_samples: int = None):
+        Fmu, Fvar = [], []
+        for gating_function in self.gating_function_list:
+            f_mu, f_var = gating_function.predict_f(Xnew, num_inducing_samples)
+            Fmu.append(f_mu)
+            Fvar.append(f_var)
+        # Fmu = tf.stack(Fmu)
+        # Fvar = tf.stack(Fvar)
+        Fmu = tf.stack(Fmu, -1)
+        Fvar = tf.stack(Fvar, -1)
+        return Fmu, Fvar
 
 
 class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
@@ -146,8 +160,6 @@ class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
 
             def single_predict_mean(args):
                 Fmu, Fvar = args
-                print('inside single inducing sample')
-                print(Fmu.shape)
                 integrand2 = lambda *X: self.likelihood.conditional_variance(
                     *X) + tf.square(self.likelihood.conditional_mean(*X))
                 epsilon = None
@@ -173,13 +185,11 @@ class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
         #                          dtype=tf.float64)
         mixing_probs = tf.vectorized_map(single_output_predict_mean,
                                          (Fmu, Fvar))
-        print(mixing_probs.shape)
         if num_inducing_samples is None:
             mixing_probs = tf.transpose(mixing_probs, [1, 0, 2])
         else:
             mixing_probs = tf.transpose(mixing_probs, [1, 2, 0, 3])
         # mixing_probs = tf.transpose(mixing_probs, [1, 2, 0, 3])
-        print(mixing_probs.shape)
         return mixing_probs
 
 
