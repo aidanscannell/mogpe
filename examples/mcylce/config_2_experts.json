@@ -1,0 +1,86 @@
+{
+    "dataset_name": "mcycle",
+    "input_dim": 1,
+    "output_dim": 1,
+    "num_data": 133,
+    "epochs": 20000,
+    "batch_size": 30,
+    "num_inducing_samples": 1,
+    "num_experts": 2,
+    "slow_tasks_period": 500,
+    "fast_tasks_period": 10,
+    "logging_epoch_freq": 100,
+    "experts": [{
+            "kernel": {
+                "name": "rbf",
+                "params": {
+                    "lengthscale": 10.0,
+                    "variance": 0.1
+                }
+            },
+            "likelihood": {
+                "name": "gaussian",
+                "params": {
+                    "variance": 0.0011
+                }
+            },
+            "mean_function": "constant",
+            "inducing_points": {
+                "num_inducing": 30,
+                "q_mu": {
+                    "mean": 0.0,
+                    "var": 2
+                },
+                "q_sqrt": 1.0,
+                "q_diag": "False"
+            },
+            "whiten": "True"
+        },
+        {
+            "kernel": {
+                "name": "rbf",
+                "params": {
+                    "lengthscale": 0.5,
+                    "variance": 2.0
+                }
+            },
+            "likelihood": {
+                "name": "gaussian",
+                "params": {
+                    "variance": 0.9
+                }
+            },
+            "mean_function": "constant",
+            "inducing_points": {
+                "num_inducing": 30,
+                "q_mu": {
+                    "mean": 0.0,
+                    "var": 2
+                },
+                "q_sqrt": 1.0,
+                "q_diag": "False"
+            },
+            "whiten": "True"
+        }
+    ],
+    "gating_network": {
+        "kernel": {
+            "name": "rbf",
+            "params": {
+                "lengthscale": 0.5,
+                "variance": 3.0
+            }
+        },
+        "mean_funcion": "zero",
+        "inducing_points": {
+            "num_inducing": 30,
+            "q_mu": {
+                "mean": 0.0,
+                "var": 10
+            },
+            "q_sqrt": 10.0,
+            "q_diag": "False"
+        },
+        "whiten": "True"
+    }
+}
