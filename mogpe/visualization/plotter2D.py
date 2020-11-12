@@ -3,9 +3,10 @@ import numpy as np
 import tensorflow as tf
 import palettable
 
-from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, ImageWithCbarToTensorBoard
+from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from mogpe.training.monitor import ImageWithCbarToTensorBoard
 from mogpe.visualization.plotter import Plotter
 
 color_1 = 'olive'
