@@ -199,8 +199,9 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 print(expected_experts.shape)
                 # TODO is it correct to sum over output dimension?
                 # sum over output_dim
-                expected_experts = tf.reduce_sum(expected_experts, -2)
-                print('Experts after summing over output dims')
+                expected_experts = tf.reduce_prod(expected_experts, -2)
+                print('Experts after product over output dims')
+                # print('Experts after summing over output dims')
                 print(expected_experts.shape)
                 expected_experts = tf.expand_dims(expected_experts, -2)
                 print(expected_experts.shape)
