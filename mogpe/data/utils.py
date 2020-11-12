@@ -64,10 +64,10 @@ def load_mcycle_dataset(filename='../../../data/external/mcycle.csv'):
 
 
 def load_quadcopter_dataset(
-        filename='../../../data/processed/quadcopter_turbulence.npz',
-        # filename='../../../data/processed/quadcopter_turbulence_single_direction.npz',
-        # filename='../../../data/processed/quadcopter_turbulence_single_direction_with_reversed.npz',
-        standardise=False):
+    filename='../../../data/processed/quadcopter_turbulence.npz',
+    # filename='../../../data/processed/quadcopter_turbulence_single_direction.npz',
+    # filename='../../../data/processed/quadcopter_turbulence_single_direction_with_reversed.npz',
+    standardise=False):
     data = np.load(filename)
     X = data['x']
     # Y = data['y'][:, 0:1]
@@ -99,18 +99,32 @@ def load_quadcopter_dataset(
     # X, Y = trim_dataset(X, Y, x1_low=-0.5, x2_low=-3., x1_high=1., x2_high=1.)
     # X, Y = trim_dataset(X, Y, x1_low=-1., x2_low=-3., x1_high=2., x2_high=-0.5)
     # X, Y = trim_dataset(X, Y, x1_low=-1., x2_low=-3., x1_high=1., x2_high=0.)
-    X, Y = trim_dataset(X,
-                        Y,
-                        x1_low=-3.,
-                        x2_low=-0.5,
-                        x1_high=-0.5,
-                        x2_high=1.7)
+    # X, Y = trim_dataset(X, Y, x1_low=-3., x2_low=-0.5, x1_high=-1., x2_high=2.)
+    # X, Y = trim_dataset(X,
+    #                     Y,
+    #                     x1_low=-3.,
+    #                     x2_low=-0.75,
+    #                     x1_high=-1.,
+    #                     x2_high=1.5)
+    # X, Y = trim_dataset(X, Y, x1_low=-3., x2_low=0.5, x1_high=-0.5, x2_high=3.)
+    # X, Y = trim_dataset(X, Y, x1_low=-2., x2_low=0.5, x1_high=0., x2_high=3.)
+    # X, Y = trim_dataset(X, Y, x1_low=-0.5, x2_low=0.5, x1_high=1.5, x2_high=3.)
+    # X, Y = trim_dataset(X, Y, x1_low=-0.5, x2_low=-0.1, x1_high=1., x2_high=3.)
+    # X, Y = trim_dataset(X, Y, x1_low=-0.5, x2_low=-1., x1_high=0.5, x2_high=3.)
+    # X, Y = trim_dataset(X,
+    #                     Y,
+    #                     x1_low=-3.,
+    #                     x2_low=-3.,
+    #                     x1_high=-0.5,
+    #                     x2_high=-1.)
+    # X, Y = trim_dataset(X, Y, x1_low=-3., x2_low=-2., x1_high=-0.5, x2_high=3.)
+    X, Y = trim_dataset(X, Y, x1_low=-1., x2_low=-1., x1_high=1., x2_high=3.)
 
     X = tf.convert_to_tensor(X, dtype=default_float())
     Y = tf.convert_to_tensor(Y, dtype=default_float())
-    import matplotlib.pyplot as plt
-    plt.scatter(X[:, 0], X[:, 1])
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.scatter(X[:, 0], X[:, 1])
+    # plt.show()
 
     # standardise input
     if standardise:
