@@ -75,11 +75,6 @@ target/
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
 
-# exclude data from source control by default
-# /data/
-/data/raw
-/data/interim
-
 # Mac OS-specific storage files
 .DS_Store
 
@@ -89,3 +84,5 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+examples/logs
