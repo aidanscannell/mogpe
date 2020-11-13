@@ -155,7 +155,6 @@ def parse_inducing_variable(expert, input_dim, X):
         inducing_points = Bunch(expert.inducing_points)
         X = []
         num_data = X.shape[0]
-        input_dim = X.shape[1]
         idx = np.random.choice(range(num_data),
                                size=inducing_points.num_inducing,
                                replace=False)
@@ -200,7 +199,63 @@ def parse_num_data(config):
         return None
 
 
-def parse_expert(expert, input_dim, output_dim, num_data, X):
+def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
+    # TODO remove this output dim hack and fix code
+    output_dim = 1
+    mean_function = parse_mean_function(gating_function)
+    kernel = parse_kernel(Bunch(gating_function.kernel),
+                          input_dim=input_dim,
+                          output_dim=output_dim)
+
+    q_mu, q_sqrt, q_diag = parse_inducing_points(gating_function, output_dim)
+    whiten = parse_whiten(gating_function)
+    inducing_variable = parse_inducing_variable(gating_function, input_dim, X)
+
+    return SVGPGatingFunction(kernel,
+                              inducing_variable=inducing_variable,
+                              mean_function=mean_function,
+                              num_latent_gps=output_dim,
+                              q_diag=q_diag,
+                              q_mu=q_mu,
+                              q_sqrt=q_sqrt,
+                              whiten=whiten,
+                              num_data=num_data)
+
+
+def parse_binary_gating_network(gating_network, input_dim, output_dim,
+                                num_data, X):
+    gating_function = parse_gating_function(gating_network, input_dim,
+                                            output_dim, num_data, X)
+
+    return SVGPGatingNetworkBinary(gating_function)
+
+
+def parse_multi_gating_network(config, input_dim, output_dim, num_data, X):
+    gating_function_list = []
+    for gating_function in config.gating_functions:
+        gating_function_list.append(
+            parse_gating_function(Bunch(gating_function), input_dim,
+                                  output_dim, num_data, X))
+    return SVGPGatingNetworkMulti(gating_function_list)
+
+
+def parse_gating_network(config, num_experts, X):
+    num_data = X.shape[0]
+    if num_experts > 2:
+        return parse_multi_gating_network(config, config.input_dim,
+                                          config.output_dim, num_data, X)
+    else:
+        try:
+            gating_network = Bunch(config.gating_functions[0])
+        except KeyError:
+            gating_network = Bunch(config.gating_functions)
+
+        return parse_binary_gating_network(gating_network, config.input_dim,
+                                           config.output_dim, num_data, X)
+
+
+def parse_expert(expert, input_dim, output_dim, X):
+    num_data = X.shape[0]
     mean_function = parse_mean_function(expert)
     likelihood = parse_likelihood(Bunch(expert.likelihood))
     kernel = parse_kernel(Bunch(expert.kernel),
@@ -228,93 +283,21 @@ def parse_expert(expert, input_dim, output_dim, num_data, X):
                       num_data=num_data)
 
 
-def parse_gating_network(config, num_experts, input_dim, output_dim, num_data,
-                         X):
-    if num_experts > 2:
-        return parse_multi_gating_network(config, input_dim, output_dim,
-                                          num_data, X)
-    else:
-        gating_network = Bunch(config.gating_network)
-        return parse_binary_gating_network(gating_network, input_dim,
-                                           output_dim, num_data, X)
-
-
-def parse_multi_gating_network(config, input_dim, output_dim, num_data, X):
-    gating_function_list = []
-    for gating_function in config.gating_network:
-        gating_function_list.append(
-            parse_gating_function(Bunch(gating_function), input_dim,
-                                  output_dim, num_data, X))
-
-    return SVGPGatingNetworkMulti(gating_function_list)
-
-
-def parse_binary_gating_network(gating_network, input_dim, output_dim,
-                                num_data, X):
-    gating_function = parse_gating_function(gating_network, input_dim,
-                                            output_dim, num_data, X)
-    # mean_function = parse_mean_function(gating_network)
-    # kernel = parse_kernel(Bunch(gating_network.kernel),
-    #                       input_dim=input_dim,
-    #                       output_dim=output_dim)
-
-    # q_mu, q_sqrt, q_diag = parse_inducing_points(gating_network, output_dim)
-    # whiten = parse_whiten(gating_network)
-    # inducing_variable = parse_inducing_variable(gating_network, input_dim, X)
-    # gating_function = SVGPGatingFunction(kernel,
-    #                                  inducing_variable=inducing_variable,
-    #                                  mean_function=mean_function,
-    #                                  num_latent_gps=output_dim,
-    #                                  q_diag=q_diag,
-    #                                  q_mu=q_mu,
-    #                                  q_sqrt=q_sqrt,
-    #                                  whiten=whiten,
-    #                                  num_data=num_data)
-
-    return SVGPGatingNetworkBinary(gating_function)
-
-
-def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
-    # TODO remove this output dim hack and fix code
-    output_dim = 1
-    mean_function = parse_mean_function(gating_function)
-    kernel = parse_kernel(Bunch(gating_function.kernel),
-                          input_dim=input_dim,
-                          output_dim=output_dim)
-
-    q_mu, q_sqrt, q_diag = parse_inducing_points(gating_function, output_dim)
-    whiten = parse_whiten(gating_function)
-    inducing_variable = parse_inducing_variable(gating_function, input_dim, X)
-
-    return SVGPGatingFunction(kernel,
-                              inducing_variable=inducing_variable,
-                              mean_function=mean_function,
-                              num_latent_gps=output_dim,
-                              q_diag=q_diag,
-                              q_mu=q_mu,
-                              q_sqrt=q_sqrt,
-                              whiten=whiten,
-                              num_data=num_data)
-
-
-def parse_experts(config, input_dim, output_dim, num_data, X):
+def parse_experts(config, X):
     experts_list = []
     for expert in config.experts:
         experts_list.append(
-            parse_expert(Bunch(expert), input_dim, output_dim, num_data, X))
+            parse_expert(Bunch(expert), config.input_dim, config.output_dim, X))
     return SVGPExperts(experts_list)
 
 
 def parse_model(config, X):
+    # assumes X.shape = (num_data, input_dim)
     num_inducing_samples = config.num_inducing_samples
-    input_dim = config.input_dim
-    output_dim = config.output_dim
-    num_data = config.num_data
+    num_data = X.shape[0]
     num_experts = config.num_experts
-    experts = parse_experts(config, input_dim, output_dim, num_data, X)
-    # gating_network = config.gating_network
-    gating_network = parse_gating_network(config, num_experts, input_dim,
-                                          output_dim, num_data, X)
+    experts = parse_experts(config, X)
+    gating_network = parse_gating_network(config, num_experts, X)
 
     return MixtureOfSVGPExperts(gating_network=gating_network,
                                 experts=experts,
