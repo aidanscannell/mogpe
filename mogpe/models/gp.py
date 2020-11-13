@@ -1,6 +1,3 @@
-"""
-This code is copied (and lightly modified) from `GPflow <https://github.com/GPflow/GPflow>`_.
-"""
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
@@ -8,147 +5,32 @@ import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from gpflow import Module, Parameter, kullback_leiblers
+from gpflow import kullback_leiblers
 from gpflow.conditionals import conditional
 from gpflow.conditionals.util import sample_mvn
 from gpflow.config import default_float
-from gpflow.kernels import Kernel, MultioutputKernel
-from gpflow.likelihoods import Likelihood, SwitchedLikelihood
-from gpflow.mean_functions import MeanFunction, Zero
+from gpflow.kernels import Kernel
+from gpflow.likelihoods import Likelihood
+from gpflow.mean_functions import MeanFunction
+from gpflow.models import SVGP
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.training_mixins import InputData, RegressionData
-from gpflow.models.util import inducingpoint_wrapper
-from gpflow.utilities import positive, triangular
-
-from .conditionals import separate_independent_conditional
 
 tfd = tfp.distributions
 kl = tfd.kullback_leibler
 
 
-class GPModel(Module, ABC):
-    def __init__(self,
-                 kernel: Kernel,
-                 likelihood: Likelihood,
-                 mean_function: Optional[MeanFunction] = None,
-                 num_latent_gps: int = None):
-        super().__init__(name='Expert')
-        assert num_latent_gps is not None, "GPModel requires specification of num_latent_gps"
-        self.num_latent_gps = num_latent_gps
-        if mean_function is None:
-            mean_function = Zero()
-        self.mean_function = mean_function
-        self.kernel = kernel
-        self.likelihood = likelihood
+class SVGPModel(SVGP):
+    """Extension of GPflow's SVGP class with inducing point sampling.
 
-    @staticmethod
-    def calc_num_latent_gps_from_data(data, kernel: Kernel,
-                                      likelihood: Likelihood) -> int:
-        """
-        Calculates the number of latent GPs required based on the data as well
-        as the type of kernel and likelihood.
-        """
-        _, Y = data
-        output_dim = Y.shape[-1]
-        return GPModel.calc_num_latent_gps(kernel, likelihood, output_dim)
-
-    @staticmethod
-    def calc_num_latent_gps(kernel: Kernel, likelihood: Likelihood,
-                            output_dim: int) -> int:
-        """
-        Calculates the number of latent GPs required given the number of
-        outputs `output_dim` and the type of likelihood and kernel.
-        Note: It's not nice for `GPModel` to need to be aware of specific
-        likelihoods as here. However, `num_latent_gps` is a bit more broken in
-        general, we should fix this in the future. There are also some slightly
-        problematic assumptions re the output dimensions of mean_function.
-        See https://github.com/GPflow/GPflow/issues/1343
-        """
-        if isinstance(kernel, MultioutputKernel):
-            # MultioutputKernels already have num_latent_gps attributes
-            num_latent_gps = kernel.num_latent_gps
-        elif isinstance(likelihood, SwitchedLikelihood):
-            # the SwitchedLikelihood partitions/stitches based on the last
-            # column in Y, but we should not add a separate latent GP for this!
-            # hence decrement by 1
-            num_latent_gps = output_dim - 1
-            assert num_latent_gps > 0
-        else:
-            num_latent_gps = output_dim
-
-        return num_latent_gps
-
-    @abstractmethod
-    def predict_f(self,
-                  Xnew: InputData,
-                  full_cov: bool = False,
-                  full_output_cov: bool = False) -> MeanAndVariance:
-        raise NotImplementedError
-
-    def predict_f_samples(
-        self,
-        Xnew: InputData,
-        num_samples: Optional[int] = 1,
-        full_cov: bool = False,
-        full_output_cov: bool = False,
-    ) -> tf.Tensor:
-        """
-        Produce samples from the posterior latent function(s) at the input points.
-
-        :param Xnew: InputData
-            Input locations at which to draw samples, shape [..., N, D]
-            where N is the number of rows and D is the input dimension of each point.
-        :param num_samples:
-            Number of samples to draw.
-            If `None`, a single sample is drawn and the return shape is [..., N, P],
-            for any positive integer the return shape contains an extra batch
-            dimension, [..., S, N, P], with S = num_samples and P is the number of outputs.
-        :param full_cov:
-            If True, draw correlated samples over the inputs. Computes the Cholesky over the
-            dense covariance matrix of size [num_data, num_data].
-            If False, draw samples that are uncorrelated over the inputs.
-        :param full_output_cov:
-            If True, draw correlated samples over the outputs.
-            If False, draw samples that are uncorrelated over the outputs.
-            Currently, the method does not support `full_output_cov=True` and `full_cov=True`.
-        """
-        if full_cov and full_output_cov:
-            raise NotImplementedError(
-                "The combination of both `full_cov` and `full_output_cov` is not supported."
-            )
-
-        # check below for shape info
-        mean, cov = self.predict_f(Xnew,
-                                   full_cov=full_cov,
-                                   full_output_cov=full_output_cov)
-        if full_cov:
-            # mean: [..., N, P]
-            # cov: [..., P, N, N]
-            mean_for_sample = tf.linalg.adjoint(mean)  # [..., P, N]
-            samples = sample_mvn(mean_for_sample,
-                                 cov,
-                                 full_cov,
-                                 num_samples=num_samples)  # [..., (S), P, N]
-            samples = tf.linalg.adjoint(samples)  # [..., (S), N, P]
-        else:
-            # mean: [..., N, P]
-            # cov: [..., N, P] or [..., N, P, P]
-            samples = sample_mvn(mean,
-                                 cov,
-                                 full_output_cov,
-                                 num_samples=num_samples)  # [..., (S), N, P]
-        return samples  # [..., (S), N, P]
-
-    def predict_y(self,
-                  Xnew: InputData,
-                  num_inducing_samples: int = None,
-                  full_cov: bool = False,
-                  full_output_cov: bool = False) -> MeanAndVariance:
-        """Compute mean and variance at Xnew."""
-        raise NotImplementedError
-
-
-class SVGPModel(GPModel):
+    It reimplements predict_f and predict_y with an argument to set the number of samples
+    (num_inducing_samples) to draw form the inducing outputs distribution.
+    If num_inducing_samples is None then the standard functionality is achieved, i.e. the inducing points
+    are analytically marginalised.
+    If num_inducing_samples=3 then 3 samples are drawn from the inducing ouput distribution and the standard
+    GP conditional is called (q_sqrt=None). The results for each sample are stacked on the leading dimension
+    and the user now has the ability marginalise them outside of this class.
+    """
     def __init__(
             self,
             kernel: Kernel,
@@ -156,86 +38,13 @@ class SVGPModel(GPModel):
             inducing_variable,
             mean_function: MeanFunction = None,
             num_latent_gps: int = 1,
-            # num_inducing_samples: Optional[int] = None,
             q_diag: bool = False,
             q_mu=None,
             q_sqrt=None,
             whiten: bool = True,
             num_data=None):
-        super().__init__(kernel, likelihood, mean_function, num_latent_gps)
-        self.num_data = num_data
-        self.q_diag = q_diag
-        self.whiten = whiten
-        self.inducing_variable = inducingpoint_wrapper(inducing_variable)
-
-        # init variational parameters
-        self.num_inducing = len(self.inducing_variable)
-        self._init_variational_parameters(self.num_inducing, q_mu, q_sqrt,
-                                          q_diag)
-
-    def _init_variational_parameters(self, num_inducing, q_mu, q_sqrt, q_diag):
-        """
-            Constructs the mean and cholesky of the covariance of the variational Gaussian posterior.
-            If a user passes values for `q_mu` and `q_sqrt` the routine checks if they have consistent
-            and correct shapes. If a user does not specify any values for `q_mu` and `q_sqrt`, the routine
-            initializes them, their shape depends on `num_inducing` and `q_diag`.
-            Note: most often the comments refer to the number of observations (=output dimensions) with P,
-            number of latent GPs with L, and number of inducing points M. Typically P equals L,
-            but when certain multioutput kernels are used, this can change.
-            Parameters
-            ----------
-            :param num_inducing: int
-                Number of inducing variables, typically refered to as M.
-            :param q_mu: np.array or None
-                Mean of the variational Gaussian posterior. If None the function will initialise
-                the mean with zeros. If not None, the shape of `q_mu` is checked.
-            :param q_sqrt: np.array or None
-                Cholesky of the covariance of the variational Gaussian posterior.
-                If None the function will initialise `q_sqrt` with identity matrix.
-                If not None, the shape of `q_sqrt` is checked, depending on `q_diag`.
-            :param q_diag: bool
-                Used to check if `q_mu` and `q_sqrt` have the correct shape or to
-                construct them with the correct shape. If `q_diag` is true,
-                `q_sqrt` is two dimensional and only holds the square root of the
-                covariance diagonal elements. If False, `q_sqrt` is three dimensional.
-            """
-        q_mu = np.zeros(
-            (num_inducing, self.num_latent_gps)) if q_mu is None else q_mu
-        self.q_mu = Parameter(q_mu, dtype=default_float())  # [M, P]
-
-        if q_sqrt is None:
-            if self.q_diag:
-                ones = np.ones((num_inducing, self.num_latent_gps),
-                               dtype=default_float())
-                self.q_sqrt = Parameter(ones, transform=positive())  # [M, P]
-            else:
-                q_sqrt = [
-                    np.eye(num_inducing, dtype=default_float())
-                    for _ in range(self.num_latent_gps)
-                ]
-                q_sqrt = np.array(q_sqrt)
-                self.q_sqrt = Parameter(q_sqrt,
-                                        transform=triangular())  # [P, M, M]
-        else:
-            if q_diag is True:
-                assert q_sqrt.ndim == 2
-                self.num_latent_gps = q_sqrt.shape[1]
-                self.q_sqrt = Parameter(q_sqrt,
-                                        transform=positive())  # [M, L|P]
-            else:
-                assert q_sqrt.ndim == 3
-                self.num_latent_gps = q_sqrt.shape[0]
-                num_inducing = q_sqrt.shape[1]
-                self.q_sqrt = Parameter(q_sqrt,
-                                        transform=triangular())  # [L|P, M, M]
-
-    def prior_kl(self) -> tf.Tensor:
-        with tf.name_scope('KL_divergence') as scope:
-            return kullback_leiblers.prior_kl(self.inducing_variable,
-                                              self.kernel,
-                                              self.q_mu,
-                                              self.q_sqrt,
-                                              whiten=self.whiten)
+        super().__init__(kernel, likelihood, inducing_variable, mean_function=mean_function, num_latent_gps=num_latent_gps,
+                         q_diag=q_diag, q_mu=q_mu, q_sqrt=q_sqrt, whiten=whiten, num_data=num_data)
 
     def sample_inducing_points(self, num_samples: int = None) -> tf.Tensor:
         """Returns samples from the inducing point distribution.
@@ -300,6 +109,7 @@ class SVGPModel(GPModel):
                                     q_mu,
                                     dtype=(default_float(), default_float()))
             return mu + self.mean_function(Xnew), var
+
 
     def predict_y(self,
                   Xnew: InputData,
