@@ -204,6 +204,12 @@ class SVGPGatingNetworkBinary(SVGPGatingNetworkBase):
     #     """
     #     return tf.convert_to_tensor(self.gating_function.prior_kl())
 
+    def predict_fs(self, Xnew: InputData, num_inducing_samples: int = None) -> MeanAndVariance:
+        f_mu, f_var = self.gating_function_list[0].predict_f(Xnew, num_inducing_samples)
+        Fmu = tf.stack([f_mu, -f_mu], -1)
+        Fvar = tf.stack([f_var, f_var], -1)
+        return Fmu, Fvar
+
     def predict_mixing_probs(self,
                              Xnew: InputData,
                              num_inducing_samples: int = None):
