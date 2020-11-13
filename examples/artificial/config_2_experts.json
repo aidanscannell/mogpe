@@ -10,6 +10,7 @@
     "slow_tasks_period": 300,
     "fast_tasks_period": 10,
     "logging_epoch_freq": 100,
+    "log_dir": "../logs/artificial",
     "experts": [{
             "kernel": {
                 "name": "cosine",
