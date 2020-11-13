@@ -3,7 +3,6 @@ import gpflow as gpf
 import tensorflow as tf
 import pandas as pd
 
-from datetime import datetime
 from gpflow import default_float
 
 from mogpe.training.config_parser import train_with_config_and_dataset
@@ -30,7 +29,6 @@ def load_mcycle_dataset(filename='./mcycle.csv'):
 
 data_file = './mcycle.csv'
 config_file = './config_2_experts.json'
-log_dir = '../logs/' + datetime.now().strftime("%m-%d-%H%M%S")
 
 dataset = load_mcycle_dataset(data_file)
 trained_model = train_with_config_and_dataset(config_file, dataset)
