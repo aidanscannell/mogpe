@@ -104,8 +104,6 @@ class Plotter1D(Plotter):
         mean = dists.mean()
         var = dists.variance()
         row = 0
-        print('axs')
-        print(axs.shape)
         for k, expert in enumerate(self.model.experts.experts_list):
             for j in range(self.output_dim):
                 self.plot_gp(fig, axs[row], mean[:, j, k], var[:, j, k])
