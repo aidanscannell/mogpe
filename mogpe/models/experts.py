@@ -1,22 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List
 
-import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from gpflow import Module, Parameter, logdensities
-from gpflow.conditionals import conditional, sample_conditional
-from gpflow.conditionals.util import sample_mvn
+
+import gpflow as gpf
+from gpflow import Module
 from gpflow.config import default_float
-from gpflow.kernels import Kernel, MultioutputKernel
+from gpflow.kernels import Kernel
 from gpflow.likelihoods import Likelihood
-from gpflow.mean_functions import MeanFunction, Zero
+from gpflow.mean_functions import MeanFunction
 from gpflow.models.model import InputData, MeanAndVariance
-from gpflow.models.training_mixins import InputData, RegressionData
-from gpflow.models.util import inducingpoint_wrapper
-from gpflow.utilities import positive, triangular
-from mogpe.models.gp import GPModel, SVGPModel
+from gpflow.models.training_mixins import InputData
+from mogpe.models.gp import SVGPModel
 
 tfd = tfp.distributions
 
