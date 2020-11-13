@@ -7,7 +7,7 @@ from bunch import Bunch
 from datetime import datetime
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard)
 
-from mogpe.models.utils.model_parser import parse_model
+from mogpe.training.model_parser import parse_model
 from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, save_model
 from mogpe.visualization.plotter import Plotter1D
 from mogpe.visualization.plotter2D import Plotter2D
