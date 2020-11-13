@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import json
+# import json
+import toml
 import gpflow as gpf
 import tensorflow as tf
 
@@ -34,9 +35,11 @@ def parse_fast_tasks(fast_tasks_period, training_loss, model, log_dir):
         return None
 
 
-def train_with_config_and_dataset(config_file, dataset):
-    with open(config_file) as json_config:
-        config_dict = json.load(json_config)
+def train_from_config_and_dataset(config_file, dataset):
+    with open(config_file) as toml_config:
+        config_dict = toml.load(toml_config)
+    print('config dict')
+    print(config_dict)
     config = Bunch(config_dict)
     log_dir = config.log_dir + '/' + datetime.now().strftime("%m-%d-%H%M%S")
 
