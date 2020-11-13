@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import gpflow as gpf
 import tensorflow as tf
 import pandas as pd
 
@@ -29,6 +28,7 @@ def load_mcycle_dataset(filename='./mcycle.csv'):
 
 data_file = './mcycle.csv'
 config_file = './config_2_experts.json'
+config_file = './config_3_experts.json'
 
 dataset = load_mcycle_dataset(data_file)
 trained_model = train_with_config_and_dataset(config_file, dataset)
@@ -40,7 +40,3 @@ trained_model = train_with_config_and_dataset(config_file, dataset)
 # save_param_dict(model, log_dir)
 # save_model_params(model, save_dir)
 # plotter.plot_model()
-
-
-
-

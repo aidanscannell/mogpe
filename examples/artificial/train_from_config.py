@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-import gpflow as gpf
 import tensorflow as tf
-import pandas as pd
 
 from gpflow import default_float
 
