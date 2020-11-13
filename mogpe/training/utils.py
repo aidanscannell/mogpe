@@ -239,6 +239,20 @@ def load_model_params(load_dir):
     # print(params['q_mu'])
 
 
+def save_param_dict(model, log_dir):
+    save_model_dir = log_dir + "-param_dict.pickle"
+    param_dict = gpf.utilities.parameter_dict(model)
+    # import json
+    # json = json.dumps(param_dict)
+    # f = open(save_model_dir, "w")
+    # f.write(json)
+    # f.close()
+    import pickle
+    f = open(save_model_dir, "wb")
+    pickle.dump(param_dict, f)
+    f.close()
+
+
 if __name__ == "__main__":
     load_dir = '/Users/aidanscannell/Developer/python-projects/mixture-of-k-gp-experts/models/logs/quadcopter/09-02-151153-param_dict.npz'
     load_model_params(load_dir)
