@@ -254,9 +254,6 @@ class Plotter2D(Plotter):
         """
         tf.print("Plotting gating gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
-        print('means vars')
-        print(means.shape)
-        print(vars.shape)
         # if self.num_experts > 2:
         #     return self.plot_gps_shared_cbar(fig, axs, means, vars)
         # else:
