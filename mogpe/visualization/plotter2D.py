@@ -206,7 +206,7 @@ class Plotter2D(Plotter):
 
         :param axs: [num_experts, output_dim]
         """
-        tf.print("Plotting gating network...")
+        tf.print("Plotting gating network mixing probabilities...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         for k in range(self.num_experts):
             if k < self.num_experts - 1:
@@ -252,7 +252,7 @@ class Plotter2D(Plotter):
 
         :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
         """
-        tf.print("Plotting gating gps...")
+        tf.print("Plotting gating network gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
         # if self.num_experts > 2:
         #     return self.plot_gps_shared_cbar(fig, axs, means, vars)
