@@ -77,10 +77,10 @@ class Plotter1D(Plotter):
         else:
             self.test_inputs = test_inputs
 
-    def plot_gp(self, fig, ax, mean, var):
+    def plot_gp(self, fig, ax, mean, var, label=""):
         alpha = 0.4
         ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
-        ax.plot(self.test_inputs, mean, "C0", lw=2)
+        ax.plot(self.test_inputs, mean, "C0", lw=2, label=label)
         ax.fill_between(
             self.test_inputs[:, 0],
             mean - 1.96 * np.sqrt(var),
@@ -110,26 +110,23 @@ class Plotter1D(Plotter):
                 row += 1
 
     def plot_gating_network(self, fig, ax):
-        tf.print("Plotting gating network...")
+        tf.print("Plotting gating network mixing probabilities...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
         for k in range(num_experts):
             ax.plot(self.test_inputs, mixing_probs[:, 0, k], label=str(k + 1))
-        # for k in range(self.num_experts):
-        #     for j in range(self.output_dim):
-        #         if self.output_dim == 1:
-        #             ax = axs
-        #         else:
-        #             ax = axs[j]
-        #         ax.plot(self.test_inputs,
-        #                 mixing_probs[:, j, k],
-        #                 label=str(k + 1))
-        # for j in range(self.output_dim):
-        #     if self.output_dim == 1:
-        #         ax = axs
-        #     else:
-        #         ax = axs[j]
         ax.legend()
+
+    def plot_gating_gps(self, fig, axs):
+        """Plots mean and var of gating network gp
+
+        :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
+        """
+        tf.print("Plotting gating network gps...")
+        means, vars = self.model.gating_network.predict_fs(self.test_inputs)
+        for k in range(self.num_experts):
+            self.plot_gp(fig, axs[k], means[:, 0, k], vars[:, 0, k], label=str(k + 1))
+            axs[k].legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
         ax.scatter(input_broadcast,
@@ -158,6 +155,8 @@ class Plotter1D(Plotter):
     def plot_model(self):
         fig, ax = plt.subplots(1, 1)
         self.plot_gating_network(fig, ax)
+        fig, ax = plt.subplots(1, 1)
+        self.plot_gating_network_gps(fig, ax)
         fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
         self.plot_experts_y(fig, axs)
         fig, ax = plt.subplots(1, 1)
@@ -174,7 +173,7 @@ class Plotter1D(Plotter):
             fig_kw={'figsize': (10, 4)},
             subplots_kw={
                 'nrows': nrows_experts,
-                'ncols': ncols
+                'ncols': self.output_dim
             })
         image_task_experts_y = ImageToTensorBoard(
             log_dir,
@@ -183,7 +182,15 @@ class Plotter1D(Plotter):
             fig_kw={'figsize': (10, 4)},
             subplots_kw={
                 'nrows': nrows_experts,
-                'ncols': ncols
+                'ncols': self.output_dim
+            })
+        image_task_gating_gps = ImageToTensorBoard(
+            log_dir,
+            self.plot_gating_gps,
+            name="gating_network_gps_posteriors",
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': 1
             })
         image_task_gating = ImageToTensorBoard(
             log_dir,
@@ -191,17 +198,17 @@ class Plotter1D(Plotter):
             name="gating_network_mixing_probabilities",
             subplots_kw={
                 'nrows': 1,
-                'ncols': self.output_dim
+                'ncols': 1
             })
         image_task_y = ImageToTensorBoard(log_dir,
                                           self.plot_y,
-                                          name="predictive_posterior")
+                                          name="predictive_posterior_samples")
         # image_tasks = [
         #     image_task_experts_y, image_task_experts_f, image_task_gating
         # ]
         image_tasks = [
-            image_task_experts_y, image_task_experts_f, image_task_gating,
-            image_task_y
+            image_task_experts_y, image_task_experts_f, image_task_gating_gps,
+            image_task_gating, image_task_y
         ]
         return MonitorTaskGroup(image_tasks, period=slow_period)
 
