@@ -1,12 +1,11 @@
-* Mixture of Gaussian Process Experts using Stochastic Variational Inference
+* =mogpe= - Mixture of Gaussian Process Experts in TensorFlow 
 
-# This repository contains the code accompanying NeurIPS 2020 submission
-# /Mixture of Two Gaussian Process Experts using Stochastic Variational Inference/.
-This repository contains code implementing a mixture of Gaussian process (GPs)
-experts method where the gating network is also implemented using GPs.
-The model leverages code from GPflow/TensorFlow and trains the model
-with stochastic variational inference by exploiting the factorization achieved
-by sparse GPs. More details on the source code can be found in [[./src/README.org][README.org]].
+This package implements a modern mixture of Gaussian process
+experts (MoGPE) inference for GP based gating networks.
+=mogpe= uses [[https://github.com/GPflow/GPflow.git][GPflow 2.0]]/[[https://github.com/tensorflow/tensorflow.git][TensorFlow 2.1+]] for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
+
+Inference exploits factorization through sparse GPs and trains a variational lower bound stochastically.
+More details on the source code can be found in [[./src/README.org][README.org]].
 
 
 ** Install
