@@ -58,17 +58,17 @@ class MixtureOfExperts(BayesianModel, ABC):
         :param Xnew: inputs with shape [num_test, input_dim]
         :param kwargs: kwargs to be passed to the gating networks
                        predict_mixing_probs() method.
-        :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
+        :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
         """
         mixing_probs = self.gating_network.predict_mixing_probs(Xnew, **kwargs)
         # shape_constraints = [
-        #     (mixing_probs, ["...", "num_data", "output_dim",
+        #     (mixing_probs, ["...", "num_data", "1",
         #                     self.num_experts]),
         # ]
         # tf.debugging.assert_shapes(
         #     shape_constraints,
         #     message=
-        #     "Mixing probabilities dimensions (from gating network) should be [..., num_data, output_dim, num_experts]"
+        #     "Mixing probabilities dimensions (from gating network) should be [..., num_data, 1, num_experts]"
         # )
         return self.gating_network.predict_mixing_probs(Xnew, **kwargs)
 
