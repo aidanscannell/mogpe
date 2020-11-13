@@ -12,6 +12,7 @@ from gpflow.config import default_float
 from gpflow.likelihoods import Bernoulli, Likelihood, Softmax
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
+from gpflow.quadrature import ndiag_mc
 from mogpe.models.gp import SVGPModel
 
 
@@ -48,7 +49,7 @@ class SVGPGatingFunction(SVGPModel):
 class GatingNetworkBase(Module, ABC):
     """Abstract base class for the gating network."""
     @abstractmethod
-    def predict_fs(self, Xnew: InputData, **kwargs):
+    def predict_fs(self, Xnew: InputData, **kwargs) -> MeanAndVariance:
         """Calculates the set of gating function posteriors at Xnew
 
         :param Xnew: inputs with shape [num_test, input_dim]
@@ -58,7 +59,7 @@ class GatingNetworkBase(Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def predict_mixing_probs(self, Xnew: InputData, **kwargs):
+    def predict_mixing_probs(self, Xnew: InputData, **kwargs) -> tf.Tensor:
         """Calculates the set of experts mixing probabilities at Xnew :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
 
         :param Xnew: inputs with shape [num_test, input_dim]
@@ -89,7 +90,7 @@ class SVGPGatingNetworkBase(GatingNetworkBase):
             kls.append(gating_function.prior_kl())
         return tf.convert_to_tensor(kls)
 
-    def predict_fs(self, Xnew: InputData, num_inducing_samples: int = None):
+    def predict_fs(self, Xnew: InputData, num_inducing_samples: int = None) -> MeanAndVariance:
         Fmu, Fvar = [], []
         for gating_function in self.gating_function_list:
             f_mu, f_var = gating_function.predict_f(Xnew, num_inducing_samples)
@@ -123,9 +124,7 @@ class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
 
     def predict_mixing_probs(self,
                              Xnew: InputData,
-                             num_inducing_samples: int = None):
-        from gpflow.quadrature import ndiag_mc
-        # from mogpe.models.quadrature import ndiag_mc
+                             num_inducing_samples: int = None) -> tf.Tensor:
 
         mixing_probs = []
         Fmu, Fvar = [], []
