@@ -70,18 +70,18 @@ class ImageWithCbarToTensorBoard(ToTensorBoard):
             self.axes.clear()
 
     def _clear_cbs(self):
-        tf.print('inside clear cbs')
+        # tf.print('inside clear cbs')
         if isinstance(self.cbs, np.ndarray):
-            tf.print('cbs is ndarray')
+            # tf.print('cbs is ndarray')
             for cb in self.cbs.flatten():
                 # cb.ax.clear()
                 cb.remove()
         elif isinstance(self.cbs, list):
-            tf.print('cbs is List')
+            # tf.print('cbs is List')
             for cb in self.cbs:
                 cb.remove()
         else:
-            tf.print('cbs isnt ndarray or List')
+            # tf.print('cbs isnt ndarray or List')
             # self.cbs.ax.clear()
             self.cbs.remove()
 
@@ -91,7 +91,7 @@ class ImageWithCbarToTensorBoard(ToTensorBoard):
         self._clear_axes()
         # if self.colorbar_kw != {}:
         if self.cbs is not None:
-            tf.print('cbs is not None')
+            # tf.print('cbs is not None')
             self._clear_cbs()
         self.cbs = self.plotting_function(self.fig, self.axes)
         # else:
