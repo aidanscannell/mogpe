@@ -12,8 +12,7 @@ params = {
 }
 plt.rcParams.update(params)
 
-# path_to_csv_folder = '../../data/raw/quadcopter/27-feb/half-lengthscale'
-load_npz_filename = '../../data/processed/quadcopter_turbulence_new.npz'
+load_npz_filename = './quadcopter_data.npz'
 
 data = np.load(load_npz_filename)
 X = data['x']
@@ -25,7 +24,6 @@ plt.quiver(
     X[:, 1],
     Y[:, 0],
     Y[:, 1],
-    # np.zeros([*Y[:, 0].shape]),
     angles='xy',
     scale_units='xy',
     width=0.001,
@@ -34,6 +32,4 @@ plt.quiver(
 plt.xlabel('$x$')
 plt.ylabel('$y$')
 # plt.axis('off')
-save_name = '../features/data/quadcopter/quiver_xy.pdf'
-plt.savefig(save_name, transparent=True, bbox_inches='tight')
 plt.show()
