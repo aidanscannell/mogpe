@@ -4,7 +4,7 @@ import pandas as pd
 
 from gpflow import default_float
 
-from mogpe.training.config_parser import train_with_config_and_dataset
+from mogpe.training.toml_config_parser import train_from_config_and_dataset
 
 
 def load_mcycle_dataset(filename='./mcycle.csv'):
@@ -26,17 +26,12 @@ def load_mcycle_dataset(filename='./mcycle.csv'):
     return data
 
 
-data_file = './mcycle.csv'
-config_file = './config_2_experts.json'
-config_file = './config_3_experts.json'
+# Set path to data set csv file
+data_file = './data/mcycle.csv'
+
+# Set path to training config
+config_file = './configs/config_2_experts.toml'
+config_file = './configs/config_3_experts.toml'
 
 dataset = load_mcycle_dataset(data_file)
-trained_model = train_with_config_and_dataset(config_file, dataset)
-
-
-# save_model_dir = log_dir + "-gpflow_model"
-# save_model(model, save_model_dir)
-
-# save_param_dict(model, log_dir)
-# save_model_params(model, save_dir)
-# plotter.plot_model()
+trained_model = train_from_config_and_dataset(config_file, dataset)

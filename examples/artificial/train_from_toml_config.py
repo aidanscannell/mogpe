@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from gpflow import default_float
 
-from mogpe.training.config_parser import train_with_config_and_dataset
+from mogpe.training.config_parser import train_from_config_and_dataset
 
 
 def load_mixture_dataset(
@@ -32,13 +32,7 @@ def load_mixture_dataset(
 
 data_file = './artificial-data-used-in-paper.npz'
 config_file = './config_2_experts.json'
+config_file = './config_2_experts.json'
 
 dataset, _, _ = load_mixture_dataset(data_file)
-trained_model = train_with_config_and_dataset(config_file, dataset)
-
-# save_model_dir = log_dir + "-gpflow_model"
-# save_model(model, save_model_dir)
-
-# save_param_dict(model, log_dir)
-# save_model_params(model, save_dir)
-# plotter.plot_model()
+trained_model = train_from_config_and_dataset(config_file, dataset)
