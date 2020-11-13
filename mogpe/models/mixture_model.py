@@ -7,9 +7,9 @@ import tensorflow_probability as tfp
 from gpflow import default_float
 from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
-
-from mogpe.models.gating_network import GatingNetworkBase, SVGPGatingNetworkBase
 from mogpe.models.experts import ExpertsBase, SVGPExperts
+from mogpe.models.gating_network import (GatingNetworkBase,
+                                         SVGPGatingNetworkBase)
 
 tfd = tfp.distributions
 

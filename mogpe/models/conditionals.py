@@ -1,31 +1,19 @@
 import tensorflow as tf
-
 from gpflow import covariances
-from gpflow.inducing_variables import (
-    InducingPoints,
-    FallbackSharedIndependentInducingVariables,
-    FallbackSeparateIndependentInducingVariables,
-    SharedIndependentInducingVariables,
-    SeparateIndependentInducingVariables,
-)
-from gpflow.kernels import (
-    Combination,
-    MultioutputKernel,
-    SeparateIndependent,
-    SharedIndependent,
-    IndependentLatent,
-    LinearCoregionalization,
-)
-from gpflow.config import default_float, default_jitter
 from gpflow.conditionals.dispatch import conditional
-from gpflow.conditionals.util import (
-    base_conditional,
-    expand_independent_outputs,
-    fully_correlated_conditional,
-    independent_interdomain_conditional,
-    mix_latent_gp,
-    rollaxis_left,
-)
+from gpflow.conditionals.util import (base_conditional,
+                                      expand_independent_outputs,
+                                      fully_correlated_conditional,
+                                      independent_interdomain_conditional,
+                                      mix_latent_gp, rollaxis_left)
+from gpflow.config import default_float, default_jitter
+from gpflow.inducing_variables import (
+    FallbackSeparateIndependentInducingVariables,
+    FallbackSharedIndependentInducingVariables, InducingPoints,
+    SeparateIndependentInducingVariables, SharedIndependentInducingVariables)
+from gpflow.kernels import (Combination, IndependentLatent,
+                            LinearCoregionalization, MultioutputKernel,
+                            SeparateIndependent, SharedIndependent)
 
 
 @conditional.register(object, SharedIndependentInducingVariables,

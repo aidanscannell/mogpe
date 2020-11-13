@@ -1,19 +1,17 @@
+from abc import ABC, abstractmethod
+from typing import List
+
 import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-from abc import ABC, abstractmethod
 from gpflow import Module
 from gpflow.conditionals import conditional, sample_conditional
 from gpflow.conditionals.util import sample_mvn
 from gpflow.config import default_float
+from gpflow.likelihoods import Bernoulli, Likelihood, Softmax
 from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.util import inducingpoint_wrapper
-from gpflow.models.model import InputData, MeanAndVariance
-from gpflow.likelihoods import Likelihood, Softmax, Bernoulli
-from typing import List
-
 from mogpe.models.gp import SVGPModel
 
 
