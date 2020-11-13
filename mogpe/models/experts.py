@@ -213,9 +213,6 @@ class SVGPExperts(ExpertsBase):
             vars.append(var)
         mus = tf.stack(mus, -1)
         vars = tf.stack(vars, -1)
-        print('inside predict fs experts')
-        print(mus.shape)
-        print(vars.shape)
         return mus, vars
 
 
@@ -270,7 +267,5 @@ if __name__ == "__main__":
     experts = init_fake_experts(X, Y)
 
     kls = experts.prior_kls()
-    print(kls)
 
     dists = experts.predict_dists(X)
-    print(dists)
