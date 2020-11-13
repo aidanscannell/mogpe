@@ -94,9 +94,6 @@ class MixtureOfExperts(BayesianModel, ABC):
         """
         mixing_probs = self.predict_mixing_probs(Xnew, **kwargs)
         dists = self.predict_experts_dists(Xnew, **kwargs)
-        print('inside predict y')
-        print(mixing_probs.shape)
-        print(dists.batch_shape)
         if dists.batch_shape != tf.shape(mixing_probs):
             # mixing_probs = tf.expand_dims(mixing_probs, -2)
             mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
@@ -181,28 +178,23 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # mixing_probs = tf.reshape(
             #     mixing_probs,
             #     [self.num_inducing_samples, num_test, self.num_experts])
-            print("mixing_probs")
+            print("Mixing probs")
             print(mixing_probs.shape)
 
             with tf.name_scope('predict_experts_prob') as scope:
                 batched_dists = self.predict_experts_dists(
                     X, num_inducing_samples=self.num_inducing_samples)
 
-                print('batched dists')
-                print(batched_dists)
-                print('y')
                 Y = tf.expand_dims(Y, 0)
                 Y = tf.expand_dims(Y, -1)
-                print(Y)
                 expected_experts = batched_dists.prob(Y)
-                print('expected experts')
+                print('Expected experts')
                 print(expected_experts.shape)
                 # TODO is it correct to sum over output dimension?
                 # sum over output_dim
                 expected_experts = tf.reduce_prod(expected_experts, -2)
                 print('Experts after product over output dims')
-                # print('Experts after summing over output dims')
-                print(expected_experts.shape)
+                # print(expected_experts.shape)
                 expected_experts = tf.expand_dims(expected_experts, -2)
                 print(expected_experts.shape)
 
@@ -219,7 +211,10 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 weighted_sum_over_indicator = tf.matmul(expected_experts,
                                                         mixing_probs,
                                                         transpose_b=True)
-            print('marginalised indicator variable')
+
+                # remove last two dims as artifacts of marginalising indicator
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0, 0]
+            print('Marginalised indicator variable')
             print(weighted_sum_over_indicator.shape)
 
             # TODO where should output dimension be reduced?
@@ -234,14 +229,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             num_samples = self.num_inducing_samples**(self.num_experts + 1)
             var_exp = 1 / num_samples * tf.reduce_sum(
                 tf.math.log(weighted_sum_over_indicator), axis=0)
-            print('averaged samples')
+            print('Averaged inducing samples')
             print(var_exp.shape)
             # # TODO where should output dimension be reduced?
             # var_exp = tf.linalg.diag_part(var_exp)
             # print('Ignore covariance in output dimension')
             # print(var_exp.shape)
             var_exp = tf.reduce_sum(var_exp)
-            print('Reduce sum over num_data')
+            print('Reduced sum over mini batch')
             print(var_exp.shape)
 
             # var_exp = tf.reduce_sum(var_exp)
