@@ -1,0 +1,9 @@
+#+TITLE: Examples
+
+This document can be used to get familiar with =mogpe=.
+
+=mogpe= is used learn Mixture's of Gaussian process experts on three example data sets:
+
+1. An artificial data set,
+2. The motorcycle (mcycle) data set,
+3. A real-world 2D data set of a quadcopter flying in a room subject to spatially varying turbulence.
