@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# import json
 import toml
 import gpflow as gpf
 import tensorflow as tf
@@ -8,8 +7,7 @@ from bunch import Bunch
 from datetime import datetime
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard)
 
-from mogpe.training.model_parser import parse_model
-from mogpe.training.utils import training_tf_loop, monitored_training_tf_loop, monitored_training_loop, save_model
+from mogpe.training import parse_model, training_tf_loop, monitored_training_tf_loop, monitored_training_loop
 from mogpe.visualization.plotter import Plotter1D
 from mogpe.visualization.plotter2D import Plotter2D
 

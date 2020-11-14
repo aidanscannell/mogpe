@@ -6,9 +6,9 @@ import tensorflow as tf
 from bunch import Bunch
 from gpflow import default_float
 
-from mogpe.models.experts import SVGPExperts, SVGPExpert
-from mogpe.models.gating_network import SVGPGatingNetworkBinary, SVGPGatingNetworkMulti, SVGPGatingFunction
-from mogpe.models.mixture_model import MixtureOfSVGPExperts
+from mogpe.experts import SVGPExperts, SVGPExpert
+from mogpe.gating_networks import SVGPGatingNetworkBinary, SVGPGatingNetworkMulti, SVGPGatingFunction
+from mogpe.mixture_of_experts import MixtureOfSVGPExperts
 
 
 def parse_kernel(kernel, input_dim, output_dim):
@@ -153,12 +153,13 @@ def parse_inducing_variable(expert, input_dim, X):
     try:
         # TODO use subest of X to initiate inducing inputs
         inducing_points = Bunch(expert.inducing_points)
-        X = []
-        num_data = X.shape[0]
-        idx = np.random.choice(range(num_data),
+        if not isinstance(X, np.ndarray):
+            X = X.numpy()
+
+        idx = np.random.choice(range(X.shape[0]),
                                size=inducing_points.num_inducing,
                                replace=False)
-        inducing_inputs = X[idx, ...].reshape(inducing_points.num_inducing,
+        inducing_inputs = X[idx, :].reshape(inducing_points.num_inducing,
                                               input_dim)
         return gpf.inducing_variables.SharedIndependentInducingVariables(
             gpf.inducing_variables.InducingPoints(inducing_inputs))
@@ -167,6 +168,7 @@ def parse_inducing_variable(expert, input_dim, X):
         X = []
         for _ in range(input_dim):
             X.append(np.linspace(0, 1, inducing_points.num_inducing))
+        print('inside second inducing')
         return gpf.inducing_variables.SharedIndependentInducingVariables(
             gpf.inducing_variables.InducingPoints(np.array(X).T))
 
@@ -198,6 +200,20 @@ def parse_num_data(config):
     except:
         return None
 
+def parse_num_inducing_samples(config):
+    try:
+        return config.num_inducing_samples
+    except:
+        print("num_inducing_samples not specified in toml config so using num_inducing_samples=1")
+        return 1
+
+def parse_num_experts(config):
+    try:
+        return config.num_experts
+    except:
+        raise NotImplementedError(
+            "num_expets not specified in toml config"
+        )
 
 def parse_gating_function(gating_function, input_dim, output_dim, num_data, X):
     # TODO remove this output dim hack and fix code
@@ -239,8 +255,9 @@ def parse_multi_gating_network(config, input_dim, output_dim, num_data, X):
     return SVGPGatingNetworkMulti(gating_function_list)
 
 
-def parse_gating_network(config, num_experts, X):
-    num_data = X.shape[0]
+def parse_gating_network(config, X):
+    num_data = parse_num_data(config)
+    num_experts = parse_num_experts(config)
     if num_experts > 2:
         return parse_multi_gating_network(config, config.input_dim,
                                           config.output_dim, num_data, X)
@@ -291,15 +308,21 @@ def parse_experts(config, X):
     return SVGPExperts(experts_list)
 
 
-def parse_model(config, X):
-    # assumes X.shape = (num_data, input_dim)
-    num_inducing_samples = config.num_inducing_samples
-    num_data = X.shape[0]
-    num_experts = config.num_experts
+def parse_model(config, X=None):
+    # X.shape = (num_data, input_dim)
+    if X == None:
+        try:
+            num_data = config.num_data
+        except:
+            print("Must either specify num_data in toml config or pass input data X with shape (num_data, input_dim)")
+    else:
+        config.num_data = X.shape[0]
+            
+    num_inducing_samples = parse_num_inducing_samples(config)
     experts = parse_experts(config, X)
-    gating_network = parse_gating_network(config, num_experts, X)
+    gating_network = parse_gating_network(config, X)
 
     return MixtureOfSVGPExperts(gating_network=gating_network,
                                 experts=experts,
                                 num_inducing_samples=num_inducing_samples,
-                                num_data=num_data)
+                                num_data=config.num_data)
