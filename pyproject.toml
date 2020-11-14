@@ -16,6 +16,7 @@ bunch = "^1.0.1"
 pandas = "^1.1.4"
 palettable = "^3.3.0"
 gpflow = {path = "../../forked-repos/GPflow"}
+jupyter = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
