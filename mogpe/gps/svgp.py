@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
@@ -63,20 +64,45 @@ class SVGPModel(SVGP):
             scale_tril=self.q_sqrt,
             validate_args=False,
             allow_nan_stats=True,
-            name='MultivariateNormalQ')
+            name='InducingOutputMultivariateNormalQ')
         inducing_samples = q_dist.sample(num_samples)
         return tf.transpose(inducing_samples, [0, 2, 1])
 
     def predict_f(self,
                   Xnew: InputData,
                   num_inducing_samples: int = None,
-                  full_cov=False,
-                  full_output_cov=False) -> MeanAndVariance:
+                  full_cov: bool = False,
+                  full_output_cov: bool = False) -> MeanAndVariance:
         """"Compute mean and (co)variance of latent function at Xnew.
 
         If num_inducing_samples is not None then sample inducing points instead
         of analytically integrating them. This is required in the mixture of
-        experts lower bound."""
+        experts lower bound.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :param num_inducing_samples:
+            number of samples to draw from inducing points distribution.
+        :param full_cov:
+            If True, draw correlated samples over Xnew. Computes the Cholesky over the
+            dense covariance matrix of size [num_data, num_data].
+            If False, draw samples that are uncorrelated over the inputs.
+        :param full_output_cov:
+            If True, draw correlated samples over the outputs.
+            If False, draw samples that are uncorrelated over the outputs.
+        :returns: tuple of Tensors (mean, variance),
+            If num_inducing_samples=None,
+                means.shape == [num_test, output_dim],
+                If full_cov=True and full_output_cov=False,
+                    var.shape == [output_dim, num_test, num_test]
+                If full_cov=False,
+                    var.shape == [num_test, output_dim]
+            If num_inducing_samples is not None,
+                means.shape == [num_inducing_samples, num_test, output_dim],
+                If full_cov=True and full_output_cov=False,
+                    var.shape == [num_inducing_samples, output_dim, num_test, num_test]
+                If full_cov=False and full_output_cov=False,
+                    var.shape == [num_inducing_samples, num_test, output_dim]
+        """
         with tf.name_scope('predict_f') as scope:
             if num_inducing_samples is None:
                 q_mu = self.q_mu
@@ -95,7 +121,6 @@ class SVGPModel(SVGP):
 
                 @tf.function
                 def single_sample_conditional(q_mu):
-                    # TODO requires my hack/fix to gpflow's separate_independent_conditional
                     return conditional(Xnew,
                                        self.inducing_variable,
                                        self.kernel,
@@ -109,7 +134,6 @@ class SVGPModel(SVGP):
                                     q_mu,
                                     dtype=(default_float(), default_float()))
             return mu + self.mean_function(Xnew), var
-
 
     def predict_y(self,
                   Xnew: InputData,
@@ -157,19 +181,35 @@ def init_fake_svgp(X, Y):
 
 if __name__ == "__main__":
     # Load data set
-    from mogpe.models.utils.data import load_mixture_dataset
-    data_file = '../../data/processed/artificial-data-used-in-paper.npz'
-    data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
-                                             standardise=False)
-    X, Y = data
+    # from mogpe.models.utils.data import load_mixture_dataset
+    # data_file = '../../data/processed/artificial-data-used-in-paper.npz'
+    # data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
+    #                                          standardise=False)
+    # X, Y = data
+    X = np.linspace(0, 2, 200).reshape([100, 2])
+    Y = np.linspace(0, 20, 100).reshape([100, 1])
 
     svgp = init_fake_svgp(X, Y)
 
     # samples = svgp.predict_f_samples(X, 3)
     # mu, var = svgp.predict_y(X)
     # mu, var = svgp.predict_f(X, 10, full_cov=True)
-    mu, var = svgp.predict_f(X, 10, full_cov=True)
+    mu, var = svgp.predict_f(X, num_inducing_samples=10, full_cov=True)
+    print('full cov = true')
     print(mu.shape)
     print(var.shape)
-    # samples = svgp.sample_inducing_points(3)
-    # print(samples.shape)
+
+    mu, var = svgp.predict_f(X, num_inducing_samples=10, full_cov=False)
+    print('full cov = false')
+    print(mu.shape)
+    print(var.shape)
+
+    mu, var = svgp.predict_f(X, num_inducing_samples=None, full_cov=True)
+    print('full cov = true')
+    print(mu.shape)
+    print(var.shape)
+
+    mu, var = svgp.predict_f(X, num_inducing_samples=None, full_cov=False)
+    print('full cov = false')
+    print(mu.shape)
+    print(var.shape)
