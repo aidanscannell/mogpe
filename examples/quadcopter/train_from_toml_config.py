@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
 import tensorflow as tf
+
 from gpflow import default_float
-from mogpe.training.toml_config_parser import train_from_config_and_dataset
+from mogpe.training import train_from_config_and_dataset
 
 # Define input region (rectangle) to remove data from.
 # This is done to test the models ability to capture epistemic unc.
@@ -53,5 +54,8 @@ data_file = './data/quadcopter_data.npz'
 config_file = './configs/config_2_experts.toml'
 config_file = './configs/config_3_experts.toml'
 
+# Load mcycle data set
 dataset = load_quadcopter_dataset(data_file)
+
+# Parse the toml config file and train
 trained_model = train_from_config_and_dataset(config_file, dataset)
