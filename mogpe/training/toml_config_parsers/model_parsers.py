@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import toml
 import gpflow as gpf
 import numpy as np
 import tensorflow as tf
@@ -271,8 +272,7 @@ def parse_gating_network(config, X):
                                            config.output_dim, num_data, X)
 
 
-def parse_expert(expert, input_dim, output_dim, X):
-    num_data = X.shape[0]
+def parse_expert(expert, input_dim, output_dim, num_data, X):
     mean_function = parse_mean_function(expert)
     likelihood = parse_likelihood(Bunch(expert.likelihood))
     kernel = parse_kernel(Bunch(expert.kernel),
@@ -300,29 +300,38 @@ def parse_expert(expert, input_dim, output_dim, X):
                       num_data=num_data)
 
 
-def parse_experts(config, X):
+def parse_experts(config, num_data, X):
     experts_list = []
     for expert in config.experts:
         experts_list.append(
-            parse_expert(Bunch(expert), config.input_dim, config.output_dim, X))
+            parse_expert(Bunch(expert), config.input_dim, config.output_dim, num_data, X))
     return SVGPExperts(experts_list)
 
 
-def parse_model(config, X=None):
+def parse_mixture_of_svgp_experts_model(config, X=None):
     # X.shape = (num_data, input_dim)
-    if X == None:
+    num_data = None
+    if X is None:
         try:
             num_data = config.num_data
         except:
-            print("Must either specify num_data in toml config or pass input data X with shape (num_data, input_dim)")
+            raise NotImplementedError(
+                "Must either specify num_data in toml config or pass input data X with shape (num_data, input_dim)"
+            )
     else:
-        config.num_data = X.shape[0]
-            
+        num_data = X.shape[0]
     num_inducing_samples = parse_num_inducing_samples(config)
-    experts = parse_experts(config, X)
+    experts = parse_experts(config, num_data, X)
     gating_network = parse_gating_network(config, X)
 
     return MixtureOfSVGPExperts(gating_network=gating_network,
                                 experts=experts,
                                 num_inducing_samples=num_inducing_samples,
                                 num_data=config.num_data)
+
+
+def create_mosvgpe_model_from_config(config_file):
+    with open(config_file) as toml_config:
+        config_dict = toml.load(toml_config)
+    config = Bunch(config_dict)
+    return parse_mixture_of_svgp_experts_model(config)
