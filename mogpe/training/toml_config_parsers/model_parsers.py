@@ -327,7 +327,7 @@ def parse_mixture_of_svgp_experts_model(config, X=None):
     return MixtureOfSVGPExperts(gating_network=gating_network,
                                 experts=experts,
                                 num_inducing_samples=num_inducing_samples,
-                                num_data=config.num_data)
+                                num_data=num_data)
 
 
 def create_mosvgpe_model_from_config(config_file):
