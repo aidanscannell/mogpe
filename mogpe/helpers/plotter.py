@@ -1,13 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
 import palettable
+import tensorflow as tf
 
+from abc import ABC, abstractmethod
 from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-from mogpe.training.monitor import ImageWithCbarToTensorBoard
-from mogpe.visualization.plotter import Plotter
 
 color_1 = 'olive'
 color_2 = 'darkmagenta'
@@ -17,7 +14,207 @@ color_3 = 'lime'
 color_obs = 'red'
 
 
-class Plotter2D(Plotter):
+class PlotterBase(ABC):
+    def __init__(self, model, X, Y, num_samples=100, params=None):
+        self.num_samples = num_samples
+        self.model = model
+        self.num_experts = self.model.num_experts
+        self.X = X
+        self.Y = Y
+        self.output_dim = Y.shape[1]
+        if params is None:
+            params = {
+                # 'axes.labelsize': 30,
+                # 'font.size': 30,
+                # 'legend.fontsize': 20,
+                # 'xtick.labelsize': 30,
+                # 'ytick.labelsize': 30,
+                # 'text.usetex': True,
+            }
+        plt.rcParams.update(params)
+
+    @abstractmethod
+    def plot_gp(self, fig, ax, mean, var):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_experts_f(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_experts_y(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_gating_network(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_y(self, fig, ax):
+        raise NotImplementedError
+
+    @abstractmethod
+    def tf_monitor_task_group(self, log_dir, slow_period=500):
+        raise NotImplementedError
+
+
+class Plotter1D(PlotterBase):
+    def __init__(self,
+                 model,
+                 X,
+                 Y,
+                 test_inputs=None,
+                 num_samples=100,
+                 params=None):
+        super().__init__(model, X, Y, num_samples, params)
+        if test_inputs is None:
+            num_test = 100
+            factor = 1.2
+            self.test_inputs = tf.reshape(
+                np.linspace(
+                    tf.reduce_min(self.X) * factor,
+                    tf.reduce_max(self.X) * factor, num_test),
+                [num_test, tf.shape(X)[1]])
+        else:
+            self.test_inputs = test_inputs
+
+    def plot_gp(self, fig, ax, mean, var, label=""):
+        alpha = 0.4
+        ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
+        ax.plot(self.test_inputs, mean, "C0", lw=2, label=label)
+        ax.fill_between(
+            self.test_inputs[:, 0],
+            mean - 1.96 * np.sqrt(var),
+            mean + 1.96 * np.sqrt(var),
+            color="C0",
+            alpha=0.2,
+        )
+
+    def plot_experts_f(self, fig, axs):
+        tf.print("Plotting experts f...")
+        row = 0
+        for k, expert in enumerate(self.model.experts.experts_list):
+            mean, var = expert.predict_f(self.test_inputs)
+            for j in range(self.output_dim):
+                self.plot_gp(fig, axs[row], mean[:, j], var[:, j])
+                row += 1
+
+    def plot_experts_y(self, fig, axs):
+        tf.print("Plotting experts y...")
+        dists = self.model.predict_experts_dists(self.test_inputs)
+        mean = dists.mean()
+        var = dists.variance()
+        row = 0
+        for k, expert in enumerate(self.model.experts.experts_list):
+            for j in range(self.output_dim):
+                self.plot_gp(fig, axs[row], mean[:, j, k], var[:, j, k])
+                row += 1
+
+    def plot_gating_network(self, fig, ax):
+        tf.print("Plotting gating network mixing probabilities...")
+        mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+        num_experts = tf.shape(mixing_probs)[-1]
+        for k in range(num_experts):
+            ax.plot(self.test_inputs, mixing_probs[:, 0, k], label=str(k + 1))
+        ax.legend()
+
+    def plot_gating_gps(self, fig, axs):
+        """Plots mean and var of gating network gp
+
+        :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
+        """
+        tf.print("Plotting gating network gps...")
+        means, vars = self.model.gating_network.predict_fs(self.test_inputs)
+        for k in range(self.num_experts):
+            self.plot_gp(fig, axs[k], means[:, 0, k], vars[:, 0, k], label=str(k + 1))
+            axs[k].legend()
+
+    def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
+        ax.scatter(input_broadcast,
+                   y_samples,
+                   marker='.',
+                   s=4.9,
+                   color=color,
+                   lw=0.4,
+                   rasterized=True,
+                   alpha=0.2)
+
+    def plot_y(self, fig, ax):
+        tf.print("Plotting y...")
+        alpha = 0.4
+        ax.scatter(self.X, self.Y, marker='x', color='k', alpha=alpha)
+        y_dist = self.model.predict_y(self.test_inputs)
+        y_samples = y_dist.sample(self.num_samples)
+        ax.plot(self.test_inputs, y_dist.mean(), color='k')
+
+        self.test_inputs_broadcast = np.expand_dims(self.test_inputs, 0)
+
+        for i in range(self.num_samples):
+            self.plot_samples(fig, ax, self.test_inputs_broadcast,
+                              y_samples[i, :, :])
+
+    def plot_model(self):
+        fig, ax = plt.subplots(1, 1)
+        self.plot_gating_network(fig, ax)
+        fig, ax = plt.subplots(1, 1)
+        self.plot_gating_network_gps(fig, ax)
+        fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
+        self.plot_experts_y(fig, axs)
+        fig, ax = plt.subplots(1, 1)
+        self.plot_y(fig, ax)
+
+    def tf_monitor_task_group(self, log_dir, slow_period=500):
+        ncols = 1
+        nrows_experts = self.num_experts
+        nrows_y = self.output_dim
+        image_task_experts_f = ImageToTensorBoard(
+            log_dir,
+            self.plot_experts_f,
+            name="experts_latent_function_posterior",
+            fig_kw={'figsize': (10, 4)},
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': self.output_dim
+            })
+        image_task_experts_y = ImageToTensorBoard(
+            log_dir,
+            self.plot_experts_y,
+            name="experts_output_posterior",
+            fig_kw={'figsize': (10, 4)},
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': self.output_dim
+            })
+        image_task_gating_gps = ImageToTensorBoard(
+            log_dir,
+            self.plot_gating_gps,
+            name="gating_network_gps_posteriors",
+            subplots_kw={
+                'nrows': nrows_experts,
+                'ncols': 1
+            })
+        image_task_gating = ImageToTensorBoard(
+            log_dir,
+            self.plot_gating_network,
+            name="gating_network_mixing_probabilities",
+            subplots_kw={
+                'nrows': 1,
+                'ncols': 1
+            })
+        image_task_y = ImageToTensorBoard(log_dir,
+                                          self.plot_y,
+                                          name="predictive_posterior_samples")
+        # image_tasks = [
+        #     image_task_experts_y, image_task_experts_f, image_task_gating
+        # ]
+        image_tasks = [
+            image_task_experts_y, image_task_experts_f, image_task_gating_gps,
+            image_task_gating, image_task_y
+        ]
+        return MonitorTaskGroup(image_tasks, period=slow_period)
+
+
+class Plotter2D(PlotterBase):
     def __init__(self,
                  model,
                  X,
@@ -395,23 +592,3 @@ class Plotter2D(Plotter):
         #     image_task_experts_y, image_task_experts_f, image_task_y
         # ]
         return MonitorTaskGroup(image_tasks, period=slow_period)
-
-
-if __name__ == "__main__":
-    import json
-    from bunch import Bunch
-    from mogpe.data.utils import load_quadcopter_dataset
-    from mogpe.training.parse_config import parse_model_from_config_file
-
-    data_file = '../../data/processed/quadcopter_turbulence.npz'
-    data = load_quadcopter_dataset(filename=data_file, standardise=False)
-    X, Y = data
-
-    config_file = '../../configs/quadcopter.json'
-    model = parse_model_from_config_file(config_file)
-
-    plotter = Plotter2D(model, X=X, Y=Y)
-    plotter.plot_model()
-    # plotter.plot_experts()
-    # plotter.plot_gating_netowrk()
-    plt.show()

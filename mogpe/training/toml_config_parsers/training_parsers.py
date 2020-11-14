@@ -8,8 +8,7 @@ from datetime import datetime
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard)
 
 from mogpe.training import parse_mixture_of_svgp_experts_model, training_tf_loop, monitored_training_tf_loop, monitored_training_loop
-from mogpe.visualization.plotter import Plotter1D
-from mogpe.visualization.plotter2D import Plotter2D
+from mogpe.helpers import Plotter1D, Plotter2D
 
 
 def create_tf_dataset(dataset, num_data, batch_size):
