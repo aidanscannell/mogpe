@@ -7,7 +7,7 @@ from bunch import Bunch
 from datetime import datetime
 from gpflow.monitor import (ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard)
 
-from mogpe.training import parse_model, training_tf_loop, monitored_training_tf_loop, monitored_training_loop
+from mogpe.training import parse_mixture_of_svgp_experts_model, training_tf_loop, monitored_training_tf_loop, monitored_training_loop
 from mogpe.visualization.plotter import Plotter1D
 from mogpe.visualization.plotter2D import Plotter2D
 
@@ -36,8 +36,6 @@ def parse_fast_tasks(fast_tasks_period, training_loss, model, log_dir):
 def train_from_config_and_dataset(config_file, dataset):
     with open(config_file) as toml_config:
         config_dict = toml.load(toml_config)
-    print('config dict')
-    print(config_dict)
     config = Bunch(config_dict)
     log_dir = config.log_dir + '/' + datetime.now().strftime("%m-%d-%H%M%S")
 
@@ -46,7 +44,7 @@ def train_from_config_and_dataset(config_file, dataset):
     num_data = X.shape[0]
     train_dataset, num_batches_per_epoch = create_tf_dataset(dataset, num_data, config.batch_size)
 
-    model = parse_model(config, X)
+    model = parse_mixture_of_svgp_experts_model(config, X)
     gpf.utilities.print_summary(model)
 
     if input_dim == 1:
