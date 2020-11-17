@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-from abc import ABC, abstractmethod
-from typing import Optional, Tuple
-
-import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+
+import gpflow as gpf
 from gpflow import kullback_leiblers
 from gpflow.conditionals import conditional
 from gpflow.conditionals.util import sample_mvn
@@ -18,7 +16,6 @@ from gpflow.models.model import InputData, MeanAndVariance
 from gpflow.models.training_mixins import InputData, RegressionData
 
 tfd = tfp.distributions
-kl = tfd.kullback_leibler
 
 
 class SVGPModel(SVGP):
@@ -177,39 +174,3 @@ def init_fake_svgp(X, Y):
                      likelihood,
                      mean_function=mean_function,
                      inducing_variable=inducing_variable)
-
-
-if __name__ == "__main__":
-    # Load data set
-    # from mogpe.models.utils.data import load_mixture_dataset
-    # data_file = '../../data/processed/artificial-data-used-in-paper.npz'
-    # data, F, prob_a_0 = load_mixture_dataset(filename=data_file,
-    #                                          standardise=False)
-    # X, Y = data
-    X = np.linspace(0, 2, 200).reshape([100, 2])
-    Y = np.linspace(0, 20, 100).reshape([100, 1])
-
-    svgp = init_fake_svgp(X, Y)
-
-    # samples = svgp.predict_f_samples(X, 3)
-    # mu, var = svgp.predict_y(X)
-    # mu, var = svgp.predict_f(X, 10, full_cov=True)
-    mu, var = svgp.predict_f(X, num_inducing_samples=10, full_cov=True)
-    print('full cov = true')
-    print(mu.shape)
-    print(var.shape)
-
-    mu, var = svgp.predict_f(X, num_inducing_samples=10, full_cov=False)
-    print('full cov = false')
-    print(mu.shape)
-    print(var.shape)
-
-    mu, var = svgp.predict_f(X, num_inducing_samples=None, full_cov=True)
-    print('full cov = true')
-    print(mu.shape)
-    print(var.shape)
-
-    mu, var = svgp.predict_f(X, num_inducing_samples=None, full_cov=False)
-    print('full cov = false')
-    print(mu.shape)
-    print(var.shape)
