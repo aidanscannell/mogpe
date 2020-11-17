@@ -330,8 +330,8 @@ def parse_mixture_of_svgp_experts_model(config, X=None):
                                 num_data=num_data)
 
 
-def create_mosvgpe_model_from_config(config_file):
+def create_mosvgpe_model_from_config(config_file, X=None):
     with open(config_file) as toml_config:
         config_dict = toml.load(toml_config)
     config = Bunch(config_dict)
-    return parse_mixture_of_svgp_experts_model(config)
+    return parse_mixture_of_svgp_experts_model(config, X)
