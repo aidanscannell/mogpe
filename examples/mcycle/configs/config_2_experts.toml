@@ -1,3 +1,4 @@
+num_data = 133
 input_dim = 1
 output_dim = 1
 epochs = 8000
@@ -7,7 +8,8 @@ num_experts = 2
 fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
 slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 100 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
-log_dir = "../logs/mcycle/two_experts"
+log_dir = "../logs/mcycle/two_experts" # directory to store tensorboard logs and models param_dict
+num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
 
 [[experts]]
     name = "expert_1" # specify a name
