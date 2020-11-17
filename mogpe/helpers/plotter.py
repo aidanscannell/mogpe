@@ -5,6 +5,8 @@ import tensorflow as tf
 
 from abc import ABC, abstractmethod
 from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mogpe.training.monitor import ImageWithCbarToTensorBoard
 
 color_1 = 'olive'
 color_2 = 'darkmagenta'
