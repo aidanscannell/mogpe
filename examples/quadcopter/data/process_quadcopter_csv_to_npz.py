@@ -217,12 +217,13 @@ def calc_error(data_dict, step, tello_x, tello_y):
 
 
 if __name__ == "__main__":
-    path_to_csv_folder = '../../data/raw/quadcopter/27-feb/half-lengthscale'
+    path_to_csv_folder = './27-feb/half-lengthscale'
     # save_npz_filename = '../../data/processed/quadcopter_turbulence_single_direction.npz'
-    save_npz_filename = '../../data/processed/quadcopter_turbulence_single_direction_with_reversed.npz'
-    step = 20
-    # step = 40
-    step = 10
+    save_npz_filename = './quadcopter_data_step_20.npz'
+    # step = 20
+    save_npz_filename = './quadcopter_data_step_40.npz'
+    step = 40
+    # step = 10
     # step = 50
     plot_each_csv = False
     # plot_each_csv = True
@@ -239,18 +240,17 @@ if __name__ == "__main__":
     Y = data['y']
 
     fig = plt.figure(figsize=(12, 12))
-    plt.quiver(
-        X[:, 0],
-        X[:, 1],
-        Y[:, 0],
-        Y[:, 1],
-        # np.zeros([*Y[:, 0].shape]),
-        angles='xy',
-        scale_units='xy',
-        width=0.001,
-        scale=1,
-        zorder=10)
+    plt.scatter(X[:, 0], X[:, 1])
+    # plt.quiver(
+    #     X[:, 0],
+    #     X[:, 1],
+    #     Y[:, 0],
+    #     Y[:, 1],
+    #     # np.zeros([*Y[:, 0].shape]),
+    #     angles='xy',
+    #     scale_units='xy',
+    #     width=0.001,
+    #     scale=1,
+    #     zorder=10)
     plt.axis('off')
-    save_name = '../features/data/quadcopter/quiver.png'
-    plt.savefig(save_name, transparent=True, bbox_inches='tight')
     plt.show()

@@ -16,7 +16,8 @@ x2_high = 3.
 def load_quadcopter_dataset(filename, standardise=False):
     data = np.load(filename)
     X = data['x']
-    Y = data['y'][:, 0:2]
+    # Y = data['y'][:, 0:2]
+    Y = data['y'][:, 0:1]
     print("Input data shape: ", X.shape)
     print("Output data shape: ", Y.shape)
 
@@ -49,10 +50,12 @@ def load_quadcopter_dataset(filename, standardise=False):
 
 # Set path to data set npz file
 data_file = './data/quadcopter_data.npz'
+data_file = './data/quadcopter_data_step_20.npz'
+data_file = './data/quadcopter_data_step_40.npz'
 
 # Set path to training config
 config_file = './configs/config_2_experts.toml'
-config_file = './configs/config_3_experts.toml'
+# config_file = './configs/config_3_experts.toml'
 
 # Load mcycle data set
 dataset = load_quadcopter_dataset(data_file)
