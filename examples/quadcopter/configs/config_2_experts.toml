@@ -1,6 +1,6 @@
 input_dim = 2
-output_dim = 2
-epochs = 3000
+output_dim = 1
+epochs = 8000
 batch_size = 300
 num_inducing_samples = 1 # num samples to integrate inducing outputs variational dists in ELBO
 num_experts = 2
@@ -8,6 +8,7 @@ fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num
 slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 50 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
 log_dir = "../logs/quadcopter/two_experts"
+num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
 
 [[experts]]
     name = "expert_1" # specify a name
@@ -55,7 +56,8 @@ log_dir = "../logs/quadcopter/two_experts"
     [gating_functions.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product" 
         [gating_functions.kernel.params] # set required parameters for the kernel type
-            lengthscale = 0.5 # RBF lengthscale 
+            # lengthscale = 0.5 # RBF lengthscale 
+            lengthscale = 5.0 # RBF lengthscale 
             variance = 3.0 # RBF signal variance
     [gating_functions.inducing_points]
         num_inducing = 150
