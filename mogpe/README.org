@@ -1,40 +1,12 @@
-* Source Code
+* mogpe
 This directory contains all of the source code.
-The [[./models][models]] directory contains the model (built in GPflow/TensorFlow) and training scripts.
-The [[./visualization][visualization]] directory contains the =Plotter= class that can be used to plot
-the model. It also contains scripts for plotting a saved model.
 
-** Training
-The =Trainer= class in [[./models/trainer.py][models/trainer.py]] contains several training methods,
-1. A simple TensorFlow training loop,
-2. A checkpointing training loop,
-3. A monitoring tf training loop - a TensorFlow training loop with monitoring within tf.function().
-   This method only monitors the model parameters and loss (elbo) and does not generate images.
-4. A monitoring training loop - this loop generates images during training. The matplotlib functions
-   cannot be inside the tf.function so this training loop should be slower but provide more insights.
-5. A monitor and checkpoint loop - this loop only monitors model parameters and elbo (no images)
-   but also saves checkpoints of the model.
-
-Note that he =Trainer= class defines its own simple plotting methods.
-
-*** Monitored Training
-The monitored training uses Tensorboard and is logged in [[../models/logs][../models/logs]].
-To use Tensorboard cd to the logs directory and start Tensorboard,
-#+BEGIN_SRC
-cd /path-to-this-repo/models/logs
-tensorboard --logdir . --reload_multifile=true
-#+END_SRC
-Tensorboard can then be found by visiting [[http://localhost:6006/]] in your browser.
-
-**** Configure Monitoring
-In the config files (e.g. [[../configs/figure-3a.json][../configs/figure-3a.json]]) the =fast_period= variable
-refers to how frequently the trainer should log the model parameters
-(kernel parameters, noise variances, elbo) and the =slow_period= variable
-refers to how frequently the trainer should generate images of the model (in number of iterations).
-
-** Model
-The [[./models/experts.py][models/experts.py]] file contains the base experts and two instantiations,
-1. =ExpertsSeparate= - this class creates separate inducing points for each expert.
-2. =ExpertsShared= - this class creates one set of inducing points shared by all experts.
-The [[./models/gating_network.py][models/gating_network.py]] file contains the gating network and the [[./models/svmogpe.py][models/svmogpe.py]] file
-contains the main mixture of two GP experts class (svmogpe - Stochastic Variational Mixture of GP Experts).
+The [[./mixture_of_experts][mixture_of_experts]] directory contains an abstract base class for mixture of experts models
+as well as the main =MixtureOfSVGPExperts= class.
+The =MixtureOfSVGPExperts= class implements a variational lower bound for a mixture of 
+Gaussian processes experts with a GP-based gating network.
+The =MixtureOfExperts= base class relies on composition and its constructor requires
+an instance of the =GatingNetworkBase= class and an instance of the =ExpertsBase= class
+(defined in [[./gating_networks][gating_networks]] and [[./experts][experts]] respectively).
+The abstract base classes outline what methods must be implemented for gating networks
+and experts to be valid; so that they can be used with a child of =MixtureOfExperts=.

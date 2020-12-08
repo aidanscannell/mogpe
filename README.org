@@ -1,22 +1,103 @@
-* =mogpe= - Mixture of Gaussian Process Experts in TensorFlow 
+* =mogpe= - Mixtures of Gaussian Process Experts in TensorFlow 
 [[https://mogpe.readthedocs.io/en/latest/][Documentation]]
 
-This package implements a modern mixture of Gaussian process
-experts (MoGPE) inference for GP based gating networks.
-=mogpe= uses [[https://github.com/GPflow/GPflow.git][GPflow 2.0]]/[[https://github.com/tensorflow/tensorflow.git][TensorFlow 2.1+]] for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
-
+This package implements a Mixtures of Gaussian Process
+Experts (MoGPE) model with a GP-based gating network. 
 Inference exploits factorization through sparse GPs and trains a variational lower bound stochastically.
-More details on the source code can be found in [[./src/README.org][README.org]].
+It also provides the building blocks for implementing other Mixtures of Gaussian Process Experts models.
+=mogpe= uses [[https://github.com/GPflow/GPflow.git][GPflow 2.0]]/[[https://github.com/tensorflow/tensorflow.git][TensorFlow 2.1+]] for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
+It was originally created by Aidan Scannell.
 
 
 ** Install
 This is a Python package that should be installed into a python virtualenv.
+*** Install with Pip
 Create a new virtualenv and activate it, for example,
-#+BEGIN_SRC
+#+BEGIN_SRC shell
 mkvirtualenv --python=python3 mogpe-env
 workon mogpe-env
 #+END_SRC
 cd into the root of this package and install it and its dependencies with,
-#+BEGIN_SRC
+#+BEGIN_SRC shell
 pip install -r requirements.txt
 #+END_SRC
+*** Install with Poetry
+I am managing the project's dependencies and packaging with [[https://python-poetry.org/docs/][Poetry]], instead of other tools such as Pipenv.
+#+begin_src shell
+poetry install
+#+end_src
+If you do not require the development packages then you can opt to install without them with,
+#+begin_src shell
+poetry install --no-dev
+#+end_src
+There are multiple ways to run code with [[https://python-poetry.org/docs/][Poetry]] and I advise checking out the documentation.
+My favourite option is to spawn a shell within the virtual environment,
+#+begin_src shell
+poetry shell
+#+end_src
+and then python can simply be run with,
+#+begin_src shell
+python codey_mc_code_face.py
+#+end_src
+Alternatively, you can run scripts without spawning an instance of the virtual environment with the
+following command,
+#+begin_src shell
+poetry run python codey_mc_code_face.py
+#+end_src
+#+begin_quote
+I am much preferring using Poetry, however, it does feel quite slow doing some things and annoyingly doesn't 
+integrate that well with [[https://readthedocs.org/][Read the Docs]].
+A =setup.py= file is still needed for building the docs on [[https://readthedocs.org/][Read the Docs]], so
+I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml=.
+#+end_quote
+** Usage
+For example use see the [[./examples][examples]] directory
+
+or [[https://mogpe.readthedocs.io/en/latest/][docs]].
+
+
+*** mogpe.mixture_of_experts
+[[./mogpe/mixture_of_experts][mogpe.mixture_of_experts]] contains an abstract base class for mixture of experts models
+as well as the main =MixtureOfSVGPExperts= class.
+The =MixtureOfSVGPExperts= class implements a variational lower bound for a mixture of 
+Gaussian processes experts with a GP-based gating network.
+The =MixtureOfExperts= base class relies on composition and its constructor requires
+an instance of the =GatingNetworkBase= class and an instance of the =ExpertsBase= class
+(defined in [[./gating_networks][gating_networks]] and [[./experts][experts]] respectively).
+
+The abstract base classes outline what methods must be implemented for gating networks
+and experts to be valid; so that they can be used with a child of =MixtureOfExperts=.
+
+*** mogpe.gating_networks
+*** mogpe.experts
+*** mogpe.training
+The training directory contains methods for initialising the model and training from TOML config files,
+three different training loops 
+
+**** Training Loops
+The [[./training/training_loops][mogpe.training.training_loops]] directory contains three different training loops,
+1. A simple TensorFlow training loop,
+2. A monitoring tf training loop - a TensorFlow training loop with monitoring within tf.function().
+   This method only monitors the model parameters and loss (elbo) and does not generate images.
+3. A monitoring training loop - this loop generates images during training. The matplotlib functions
+   cannot be inside the tf.function so this training loop should be slower but provide more insights.
+   
+To use Tensorboard cd to the logs directory and start Tensorboard,
+#+BEGIN_SRC
+cd /path-to-log-dir
+tensorboard --logdir . --reload_multifile=true
+#+END_SRC
+Tensorboard can then be found by visiting [[http://localhost:6006/]] in your browser.
+
+**** Saving/Loading
+[[./utils.py][mogpe.training.utils]] contains methods for loading and saving the model.
+See the [[../examples][examples]] for how to use.
+
+**** TOML Config Parsers
+[[./toml_config_parsers][mogpe.training.toml_config_parsers]] contains methods for 1) initialising the =MixtureOfSVGPExperts=
+class and 2) training it from a TOML config file. See the [[../examples][examples]] for how to use the TOML config
+parsers.
+
+*** mogpe.helpers
+The helpers directory contains classes to aid plotting models with 1D and 2D inputs.
+These are exploited by the monitored training loops.
