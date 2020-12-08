@@ -9,9 +9,9 @@ It also provides the building blocks for implementing other Mixtures of Gaussian
 It was originally created by Aidan Scannell.
 
 
-** Install
-This is a Python package that should be installed into a python virtualenv.
-*** Install with Pip
+** Install mogpe
+This is a Python package that should be installed into a python virtual environment.
+*** Install with pip
 Create a new virtualenv and activate it, for example,
 #+BEGIN_SRC shell
 mkvirtualenv --python=python3 mogpe-env
@@ -23,10 +23,11 @@ pip install -r requirements.txt
 #+END_SRC
 *** Install with Poetry
 I am managing the project's dependencies and packaging with [[https://python-poetry.org/docs/][Poetry]], instead of other tools such as Pipenv.
+The dependencies in =pyproject.toml= are resolved and installed with,
 #+begin_src shell
 poetry install
 #+end_src
-If you do not require the development packages then you can opt to install without them with,
+If you do not require the development packages then you can opt to install without them,
 #+begin_src shell
 poetry install --no-dev
 #+end_src
@@ -35,7 +36,7 @@ My favourite option is to spawn a shell within the virtual environment,
 #+begin_src shell
 poetry shell
 #+end_src
-and then python can simply be run with,
+and then python scripts can simply be run with,
 #+begin_src shell
 python codey_mc_code_face.py
 #+end_src
@@ -51,10 +52,7 @@ A =setup.py= file is still needed for building the docs on [[https://readthedocs
 I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml=.
 #+end_quote
 ** Usage
-For example use see the [[./examples][examples]] directory
-
-or [[https://mogpe.readthedocs.io/en/latest/][docs]].
-
+Please see the examples in the [[./examples][examples]] directory.
 
 *** mogpe.mixture_of_experts
 [[./mogpe/mixture_of_experts][mogpe.mixture_of_experts]] contains an abstract base class for mixture of experts models
@@ -67,12 +65,12 @@ an instance of the =GatingNetworkBase= class and an instance of the =ExpertsBase
 
 The abstract base classes outline what methods must be implemented for gating networks
 and experts to be valid; so that they can be used with a child of =MixtureOfExperts=.
+Please see the [[https://mogpe.readthedocs.io/en/latest/][docs]] for more details on the gating_networks and experts.
 
-*** mogpe.gating_networks
-*** mogpe.experts
 *** mogpe.training
-The training directory contains methods for initialising the model and training from TOML config files,
-three different training loops 
+The training directory contains methods for 
+three different training loops, saving and loading the model, and
+initialising the model (and training) from TOML config files.
 
 **** Training Loops
 The [[./training/training_loops][mogpe.training.training_loops]] directory contains three different training loops,
