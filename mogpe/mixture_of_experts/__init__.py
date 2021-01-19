@@ -1,3 +1,3 @@
 #!/usr/bin/env python3
-from .base import MixtureOfExperts
-from .svgp import MixtureOfSVGPExperts
+from mogpe.mixture_of_experts.base import MixtureOfExperts
+from mogpe.mixture_of_experts.svgp import MixtureOfSVGPExperts
