@@ -121,8 +121,7 @@ class SVGPGatingNetworkMulti(SVGPGatingNetworkBase):
             Fmu = tf.transpose(Fmu, [2, 0, 1, 3])
             Fvar = tf.transpose(Fvar, [2, 0, 1, 3])
 
-        # TODO map over output dimension
-
+        # TODO output dimension is always 1 so delete this
         def single_output_predict_mean(args):
             Fmu, Fvar = args
 
