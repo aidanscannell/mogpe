@@ -31,11 +31,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                                  inducing point distributions during training.
     :param num_data: the number of data points.
     """
-    def __init__(self,
-                 gating_network: SVGPGatingNetworkBase,
-                 experts: SVGPExperts,
-                 num_inducing_samples: int = 1,
-                 num_data: int = None):
+
+    def __init__(
+        self,
+        gating_network: SVGPGatingNetworkBase,
+        experts: SVGPExperts,
+        num_inducing_samples: int,
+        num_data: int,
+    ):
         assert isinstance(gating_network, SVGPGatingNetworkBase)
         assert isinstance(experts, SVGPExperts)
         super().__init__(gating_network, experts)
@@ -245,13 +248,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         # return self.maximum_log_likelihood_objective_stochastic(data)
         return self.maximum_log_likelihood_objective(data)
 
-    def predict_experts_fs(self,
-                           Xnew: InputData,
-                           num_inducing_samples: int = None,
-                           full_cov=False,
-                           full_output_cov=False
-                           ) -> Tuple[tf.Tensor, tf.Tensor]:
-        """"Compute mean and (co)variance of experts latent functions at Xnew.
+    def predict_experts_fs(
+        self,
+        Xnew: InputData,
+        num_inducing_samples: int = None,
+        full_cov=False,
+        full_output_cov=False,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
+        """ "Compute mean and (co)variance of experts latent functions at Xnew.
 
         If num_inducing_samples is not None then sample inducing points instead
         of analytically integrating them. This is required in the mixture of
@@ -262,5 +266,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                                     inducing point distributions during training.
         :returns: a tuple of (mean, (co)var) each with shape [..., num_test, output_dim, num_experts]
         """
-        return self.experts.predict_fs(Xnew, num_inducing_samples, full_cov,
-                                       full_output_cov)
+        return self.experts.predict_fs(
+            Xnew, num_inducing_samples, full_cov, full_output_cov
+        )
