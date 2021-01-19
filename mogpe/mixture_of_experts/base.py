@@ -39,8 +39,10 @@ class MixtureOfExperts(BayesianModel, ABC):
     :param experts: an instance of the ExpertsBase class with the
                     predict_dists(Xnew) method implemented.
     """
-    def __init__(self, gating_network: GatingNetworkBase,
-                 experts: ExpertsBase):
+
+    def __init__(
+        self, gating_network: GatingNetworkBase, experts: ExpertsBase
+    ):
         """
         :param gating_network: an instance of the GatingNetworkBase class with
                                 the predict_mixing_probs(Xnew) method implemented.
@@ -61,7 +63,10 @@ class MixtureOfExperts(BayesianModel, ABC):
                        predict_mixing_probs() method.
         :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
         """
-        mixing_probs = self.gating_network.predict_mixing_probs(Xnew, **kwargs)
+        with tf.name_scope("predict_mixing_probs") as scope:
+            mixing_probs = self.gating_network.predict_mixing_probs(
+                Xnew, **kwargs
+            )
         # shape_constraints = [
         #     (mixing_probs, ["...", "num_data", "1",
         #                     self.num_experts]),
@@ -81,7 +86,8 @@ class MixtureOfExperts(BayesianModel, ABC):
                        predict_dists() method.
         :returns: a batched Tensor with shape [..., num_test, output_dim, num_experts]
         """
-        dists = self.experts.predict_dists(Xnew, **kwargs)
+        with tf.name_scope("predict_experts_dists") as scope:
+            dists = self.experts.predict_dists(Xnew, **kwargs)
         return dists
 
     def predict_y(self, Xnew: InputData, **kwargs) -> tfd.Distribution:
@@ -94,7 +100,11 @@ class MixtureOfExperts(BayesianModel, ABC):
         :returns: The prediction as a TensorFlow MixtureSameFamily distribution
         """
         mixing_probs = self.predict_mixing_probs(Xnew, **kwargs)
+        print("mixing probs shape")
+        print(mixing_probs.shape)
         dists = self.predict_experts_dists(Xnew, **kwargs)
+        print("experts dists shape")
+        print(dists.batch_shape)
         if dists.batch_shape != tf.shape(mixing_probs):
             # mixing_probs = tf.expand_dims(mixing_probs, -2)
             mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
@@ -102,17 +112,16 @@ class MixtureOfExperts(BayesianModel, ABC):
         tf.debugging.assert_equal(
             dists.batch_shape_tensor(),
             tf.shape(mixing_probs),
-            message=
-            "Gating networks predict_mixing_probs(Xnew,...) and experts predict_dists(Xnew,...) dimensions do not match"
+            message="Gating networks predict_mixing_probs(Xnew,...) and experts predict_dists(Xnew,...) dimensions do not match",
         )
         return tfd.MixtureSameFamily(
             mixture_distribution=tfd.Categorical(probs=mixing_probs),
-            components_distribution=dists)
+            components_distribution=dists,
+        )
 
-    def predict_y_samples(self,
-                          Xnew: InputData,
-                          num_samples: int = 1,
-                          **kwargs) -> tf.Tensor:
+    def predict_y_samples(
+        self, Xnew: InputData, num_samples: int = 1, **kwargs
+    ) -> tf.Tensor:
         """Returns samples from the predictive mixture distribution at Xnew.
 
         :param Xnew: inputs with shape [num_test, input_dim]
