@@ -201,9 +201,16 @@ log marginal likelihood,
    \begin{align*} \label{eq-lower-bound-fact}
    \text{log} p(\mathbf{Y} \mid \mathbf{X})
    & \geq \sum_{n=1}^N \left\langle \text{log} \sum_{k=1}^K p(\mathbf{y}_n \mid \alpha_n=k, \mathbf{U}_f^{(k)}, \mathbf{x}_n) \Pr(\alpha_n=k \mid \mathbf{U}_h, \mathbf{x}_n) \right\rangle_{q(\mathbf{U}_h)\prod_{k=1}^K q(\mathbf{U}_f^{(k)})} \\
-   & - \sum_{k=1}^K \text{KL}\left( q(\mathbf{U}_f^{(k)}) \mid\mid p(\mathbf{U}_f^{(k)} \mid \mathbf{Z}_f^{(k)}) \right) - \text{KL} \left( q(\mathbf{U}_h) \mid\mid p(\mathbf{U}_h \mid \mathbf{Z}_h) \right).
+   & - \sum_{k=1}^K \text{KL}\left( q(\mathbf{U}_f^{(k)}) \mid\mid p(\mathbf{U}_f^{(k)} \mid \mathbf{Z}_f^{(k)}) \right) \\
+   & - \text{KL} \left( q(\mathbf{U}_h) \mid\mid p(\mathbf{U}_h \mid \mathbf{Z}_h) \right).
    \end{align*}
 
 The key property of this lower bound is that it can be written as a sum of :math:`N` terms, each
 corresponding to one observation :math:`(\mathbf{x}_n, \mathbf{y}_n)`.
 We have induced the necessary factorization to perform stochastic gradient methods on the bound.
+
+K Experts
+^^^^^^^^^^^
+The extension to K experts requires K gating functions in the gating network and a method for normalising their
+output to get the mixing probabilities. Our inference introduces inducing points for each gating function and the
+derivation of the bound is trivial given the two expert case (so we do not detail it here). 

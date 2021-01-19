@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# mixture-of-gp-experts documentation build configuration file, created by
+# mogpe documentation build configuration file, created by
 # sphinx-quickstart.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -18,6 +18,8 @@ import sphinx_rtd_theme
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('~/Developer/python-projects/mogpe/mogpe'))
 
 # -- General configuration -----------------------------------------------------
 
@@ -50,7 +52,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'mixture-of-gp-experts'
+project = u'mogpe'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -173,7 +175,7 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'mixture-of-gp-experts-doc'
+htmlhelp_basename = 'mogpe-doc'
 
 # -- Options for LaTeX output --------------------------------------------------
 
@@ -191,8 +193,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('index', 'mixture-of-gp-experts.tex',
-     u'mixture-of-gp-experts Documentation', u"Aidan Scannell", 'manual'),
+    ('index', 'mogpe.tex',
+     u'mogpe Documentation', u"Aidan Scannell", 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -219,8 +221,8 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', 'mixtures-of-gp-experts',
-              u'mixtures-of-gp-experts Documentation', [u"Aidan Scannell"], 1)]
+man_pages = [('index', 'mogpe',
+              u'mogpe Documentation', [u"Aidan Scannell"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -231,9 +233,9 @@ man_pages = [('index', 'mixtures-of-gp-experts',
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'mixture-of-gp-experts', u'mixture-of-gp-experts Documentation',
-     u"Aidan Scannell", 'mixture-of-gp-experts',
-     'A short description of the project.', 'Miscellaneous'),
+    ('index', 'mogpe', u'mogpe Documentation',
+     u"Aidan Scannell", 'mogpe',
+     'Mixtures of Gaussian Process Experts in GPflow/TensorFlow.', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
