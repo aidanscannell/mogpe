@@ -86,3 +86,7 @@ target/
 .mypy_cache/
 
 examples/logs
+
+*~
+.envrc
+superseded
