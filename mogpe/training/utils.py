@@ -4,21 +4,22 @@ import numpy as np
 import pathlib
 import pickle
 import tensorflow as tf
+from .toml_config_parsers.model_parsers import create_mosvgpe_model_from_config
 
 
 def update_model_from_checkpoint(model, ckpt_dir):
     ckpt = tf.train.Checkpoint(model=model)
     manager = tf.train.CheckpointManager(ckpt, ckpt_dir, max_to_keep=5)
-    final_checkpoint = manager.checkpoints[-1]
-    ckpt.restore(final_checkpoint)
-    print('Restored Model')
+    ckpt.restore(manager.latest_checkpoint)
+    print("Restored Model")
     gpf.utilities.print_summary(model)
     return model
 
 
 def load_model_from_config_and_checkpoint(config_file, ckpt_dir, X=None):
-    from mogpe.training import create_mosvgpe_model_from_config
     model = create_mosvgpe_model_from_config(config_file, X)
+    # print("Initial Model from config_file")
+    # gpf.utilities.print_summary(model)
     return update_model_from_checkpoint(model, ckpt_dir)
 
 
@@ -74,7 +75,7 @@ def save_model(model, save_dir=None):
 def save_models_param_dict(model, save_dir):
     save_model_dir = save_dir + "/param_dict.pickle"
     param_dict = gpf.utilities.parameter_dict(model)
-    print('param dict')
+    print("param dict")
     print(param_dict)
     f = open(save_model_dir, "wb")
     pickle.dump(param_dict, f)
@@ -83,7 +84,7 @@ def save_models_param_dict(model, save_dir):
 
 if __name__ == "__main__":
 
-    config_file = '../../examples/mcycle/configs/config_2_experts.toml'
+    config_file = "../../examples/mcycle/configs/config_2_experts.toml"
     ckpt_dir = "../../examples/logs/mcycle/two_experts/11-14-164351"
 
     model = load_model_from_config_and_checkpoint(config_file, ckpt_dir)
@@ -92,5 +93,6 @@ if __name__ == "__main__":
     y_dist = model.predict_y(Xnew)
     ymu = y_dist.mean()
     import matplotlib.pyplot as plt
+
     plt.plot(Xnew, ymu)
     plt.show()
