@@ -3,21 +3,24 @@ import numpy as np
 import tensorflow as tf
 
 from gpflow import default_float
-from mogpe.training import train_from_config_and_dataset, train_from_config_and_checkpoint
+from mogpe.training import (
+    train_from_config_and_dataset,
+    train_from_config_and_checkpoint,
+)
 from mogpe.training.utils import load_model_from_config_and_checkpoint
 
 # Define input region (rectangle) to remove data from.
 # This is done to test the models ability to capture epistemic unc.
-x1_low = -1.
-x1_high = 1.
-x2_low = -1.
-x2_high = 3.
+x1_low = -1.0
+x1_high = 1.0
+x2_low = -1.0
+x2_high = 3.0
 
 
 def load_quadcopter_dataset(filename, standardise=False):
     data = np.load(filename)
-    X = data['x']
-    Y = data['y'][:, 0:2]
+    X = data["x"]
+    Y = data["y"][:, 0:2]
     print("Input data shape: ", X.shape)
     print("Output data shape: ", Y.shape)
 
@@ -32,7 +35,7 @@ def load_quadcopter_dataset(filename, standardise=False):
         Y_partial = Y[mask, :]
         return X_partial, Y_partial
 
-    X, Y = trim_dataset(X, Y, x1_low=-1., x2_low=-1., x1_high=1., x2_high=3.)
+    X, Y = trim_dataset(X, Y, x1_low=-1.0, x2_low=-1.0, x1_high=1.0, x2_high=3.0)
 
     X = tf.convert_to_tensor(X, dtype=default_float())
     Y = tf.convert_to_tensor(Y, dtype=default_float())
@@ -49,11 +52,11 @@ def load_quadcopter_dataset(filename, standardise=False):
 
 
 # Set path to data set npz file
-data_file = './data/quadcopter_data.npz'
+data_file = "./data/quadcopter_data.npz"
 
 # Set path to training config
-config_file = './configs/config_2_experts.toml'
-ckpt_dir = '../logs/quadcopter/two_experts/11-14-232512'
+config_file = "./configs/config_2_experts.toml"
+ckpt_dir = "../logs/quadcopter/two_experts/11-14-232512"
 # config_file = './configs/config_3_experts.toml'
 
 # Load mcycle data set
