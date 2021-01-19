@@ -45,89 +45,145 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self.num_inducing_samples = num_inducing_samples
         self.num_data = num_data
 
-    def maximum_log_likelihood_objective(self,
-                                         data: Tuple[tf.Tensor, tf.Tensor]
-                                         ) -> tf.Tensor:
-        return self.maximum_log_likelihood_objective_analytic(data)
-        # return self.maximum_log_likelihood_objective_stochastic(data)
+    def maximum_log_likelihood_objective(
+        self, data: Tuple[tf.Tensor, tf.Tensor]
+    ) -> tf.Tensor:
+        # return self.lower_bound_analytic_simple(data)
+        return self.lower_bound_analytic(data)
+        # return self.lower_bound_stochastic(data)
+        # return self.lower_bound_dagp(data)
 
-    def maximum_log_likelihood_objective_analytic(self,
-                                         data: Tuple[tf.Tensor, tf.Tensor]
-                                         ) -> tf.Tensor:
-        """Objective for maximum likelihood estimation.
+    def lower_bound_analytic_simple(
+        self, data: Tuple[tf.Tensor, tf.Tensor]
+    ) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
 
-        Lower bound to the log-marginal likelihood (ELBO).
+        This bound calculates log p(y_d|x) (for each output dimension) and sums
+        over them outside of the log to achieve independence.
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
         :returns: loss - a Tensor with shape ()
         """
-        with tf.name_scope('ELBO') as scope:
+        with tf.name_scope("ELBO") as scope:
             X, Y = data
             num_test = X.shape[0]
 
-            # kl_gating = self.gating_network.prior_kl()
-            # kls_gatings = self.gating_network.prior_kls()
             kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
             kl_experts = tf.reduce_sum(self.experts.prior_kls())
 
-            with tf.name_scope('predict_mixing_probs') as scope:
-                mixing_probs = self.predict_mixing_probs(X)
-            # TODO move this reshape into gating function
-            # mixing_probs = tf.reshape(
-            #     mixing_probs,
-            #     [self.num_inducing_samples, num_test, self.num_experts])
+            print("Y shape")
+            print(Y.shape)
+            # Y = tf.expand_dims(Y, -1)
+            # print(Y.shape)
+            y_dist = self.predict_y(X)
+            print("y_dist (expert indicator variable marginalised)")
+            print(y_dist.batch_shape)
+            print(y_dist)
+
+            log_prob_y = y_dist.log_prob(Y)
+            print("log_prob_y shape")
+            print(log_prob_y.shape)
+
+            # Assume output dimensions are independent so sum over them
+            # as we've moved outside of the log
+            var_exp = tf.reduce_sum(log_prob_y, -1)
+            print("Shape after reducing sum over output dimension")
+            print(var_exp.shape)
+
+            var_exp = tf.reduce_sum(var_exp)
+            print("Reduced sum over mini batch")
+            print(var_exp.shape)
+            print(var_exp)
+
+            print("num data")
+            print(self.num_data)
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                print("minibatch_size")
+                print(minibatch_size)
+                scale = num_data / minibatch_size
+                print(scale)
+            else:
+                scale = tf.cast(1.0, default_float())
+            print("kl")
+            print(kl_gating)
+            print(kl_experts)
+
+            return var_exp * scale - kl_gating - kl_experts
+
+    def lower_bound_dagp(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Lower bound used in Data Association with GPs (DAGP).
+
+        This bound doesn't marginalise the expert indicator variable.
+
+        TODO check I've implemented this correctlyy. It's definitely slower thatn it should be.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+            Y = tf.expand_dims(Y, -1)
+            num_test = X.shape[0]
+
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            h_means, h_vars = self.gating_network.predict_fs(X)
+            # prob_a_0 = self.likelihood.predict_mean_and_var(h_means, h_var)[0]
+            # TODO remove duplicate call of h_means, h_vars
+
+            mixing_probs = self.predict_mixing_probs(X)
             print("Mixing probs")
             print(mixing_probs.shape)
+            assignments = tf.where(
+                mixing_probs > 0.5,
+                tf.ones(mixing_probs.shape),
+                tf.zeros(mixing_probs.shape),
+            )
+            print("Assignments")
+            print(assignments.shape)
 
-            with tf.name_scope('predict_experts_prob') as scope:
-                batched_dists = self.predict_experts_dists(X)
+            log_expected_gating_fs = (
+                self.gating_network.likelihood.predict_log_density(
+                    h_means[:, 0, :], h_vars[:, 0, :], assignments[:, 0, :]
+                )
+                # self.gating_network.likelihood.predict_log_density(
+                #     h_means[:, :, 0], h_vars[:, :, 0], assignments[:, :, 0]
+                # )
+            )
+            print("log expected gating fs")
+            print(log_expected_gating_fs.shape)
+            var_exp_gating_fs = tf.reduce_sum(log_expected_gating_fs)
+            print(var_exp_gating_fs.shape)
 
-                # Y = tf.expand_dims(Y, 0)
-                Y = tf.expand_dims(Y, -1)
-                expected_experts = batched_dists.prob(Y)
-                print('Expected experts')
-                print(expected_experts.shape)
-                # TODO is it correct to sum over output dimension?
-                # sum over output_dim
-                expected_experts = tf.reduce_prod(expected_experts, -2)
-                print('Experts after product over output dims')
-                # print(expected_experts.shape)
-                expected_experts = tf.expand_dims(expected_experts, -2)
-                print(expected_experts.shape)
+            batched_dists = self.predict_experts_dists(X)
+            print("Experts dists")
+            print(batched_dists)
 
-            shape_constraints = [
-                (expected_experts,
-                 ["num_data", "1", "num_experts"]),
-                (mixing_probs,
-                 ["num_data", "1", "num_experts"]),
-            ]
-            tf.debugging.assert_shapes(
-                shape_constraints,
-                message="Gating network and experts dimensions do not match")
-            with tf.name_scope('marginalise_indicator_variable') as scope:
-                weighted_sum_over_indicator = tf.matmul(expected_experts,
-                                                        mixing_probs,
-                                                        transpose_b=True)
+            log_expected_experts = batched_dists.log_prob(Y)
+            print("Log expected experts")
+            print(log_expected_experts.shape)
 
-                # remove last two dims as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[:, 0, 0]
-            print('Marginalised indicator variable')
-            print(weighted_sum_over_indicator.shape)
+            log_expected_experts = tf.reduce_sum(log_expected_experts, -2)
+            print("Experts after sum over output dims")
+            print(log_expected_experts.shape)
 
-            # TODO where should output dimension be reduced?
-            # weighted_sum_over_indicator = tf.reduce_sum(
-            #     weighted_sum_over_indicator, (-2, -1))
-            # weighted_sum_over_indicator = tf.reduce_sum(
-            #     weighted_sum_over_indicator, (-2, -1))
-            # print('Reduce sum over output dimension')
-            # print(weighted_sum_over_indicator.shape)
+            # TODO this only works for 2 experts case
+            var_exp_experts = tf.where(
+                assignments[:, 0, 0] == 1,
+                log_expected_experts[:, 0],
+                log_expected_experts[:, 1],
+            )
+            print("Experts after selecting mode")
+            print(var_exp_experts.shape)
 
-            # TODO correct num samples for K experts. This assumes 2 experts
-            # num_samples = self.num_inducing_samples**(self.num_experts + 1)
-            var_exp = tf.reduce_sum(tf.math.log(weighted_sum_over_indicator), axis=0)
-            print('Reduced sum over mini batch')
-            print(var_exp.shape)
+            var_exp_experts = tf.reduce_sum(var_exp_experts)
+            print("Reduced sum over mini batch")
+            print(var_exp_experts.shape)
 
             if self.num_data is not None:
                 num_data = tf.cast(self.num_data, default_float())
@@ -136,20 +192,27 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             else:
                 scale = tf.cast(1.0, default_float())
 
-            return var_exp * scale - kl_gating - kl_experts
+            return (
+                var_exp_gating_fs * scale
+                + var_exp_experts * scale
+                - kl_gating
+                - kl_experts
+            )
 
-    def maximum_log_likelihood_objective_stochastic(self,
-                                         data: Tuple[tf.Tensor, tf.Tensor]
-                                         ) -> tf.Tensor:
-        """Objective for maximum likelihood estimation.
+    def lower_bound_analytic(
+        self, data: Tuple[tf.Tensor, tf.Tensor]
+    ) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
 
-        Lower bound to the log-marginal likelihood (ELBO).
+        This bound assumes each output dimension is independent and takes
+        the product over them within the logarithm (and before the expert
+        indicator variable is marginalised).
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
         :returns: loss - a Tensor with shape ()
         """
-        with tf.name_scope('ELBO') as scope:
+        with tf.name_scope("ELBO") as scope:
             X, Y = data
             num_test = X.shape[0]
 
@@ -158,9 +221,88 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
             kl_experts = tf.reduce_sum(self.experts.prior_kls())
 
-            with tf.name_scope('predict_mixing_probs') as scope:
+            mixing_probs = self.predict_mixing_probs(X)
+            print("Mixing probs")
+            print(mixing_probs.shape)
+
+            batched_dists = self.predict_experts_dists(X)
+
+            Y = tf.expand_dims(Y, -1)
+            expected_experts = batched_dists.prob(Y)
+            print("Expected experts")
+            print(expected_experts.shape)
+            # product over output dimensions (assumed independent)
+            expected_experts = tf.reduce_prod(expected_experts, -2)
+            print("Experts after product over output dims")
+            # print(expected_experts.shape)
+            expected_experts = tf.expand_dims(expected_experts, -2)
+            print(expected_experts.shape)
+
+            shape_constraints = [
+                (expected_experts, ["num_data", "1", "num_experts"]),
+                (mixing_probs, ["num_data", "1", "num_experts"]),
+            ]
+            tf.debugging.assert_shapes(
+                shape_constraints,
+                message="Gating network and experts dimensions do not match",
+            )
+            with tf.name_scope("marginalise_indicator_variable") as scope:
+                weighted_sum_over_indicator = tf.matmul(
+                    expected_experts, mixing_probs, transpose_b=True
+                )
+
+                # remove last two dims as artifacts of marginalising indicator
+                weighted_sum_over_indicator = weighted_sum_over_indicator[
+                    :, 0, 0
+                ]
+            print("Marginalised indicator variable")
+            print(weighted_sum_over_indicator.shape)
+
+            # TODO where should output dimension be reduced?
+
+            # TODO correct num samples for K experts. This assumes 2 experts
+            # num_samples = self.num_inducing_samples**(self.num_experts + 1)
+            var_exp = tf.reduce_sum(
+                tf.math.log(weighted_sum_over_indicator), axis=0
+            )
+            print("Reduced sum over mini batch")
+            print(var_exp.shape)
+
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                scale = num_data / minibatch_size
+            else:
+                scale = tf.cast(1.0, default_float())
+            return var_exp * scale - kl_gating - kl_experts
+
+    def lower_bound_stochastic(
+        self, data: Tuple[tf.Tensor, tf.Tensor]
+    ) -> tf.Tensor:
+        """Objective for maximum likelihood estimation.
+
+        Lower bound to the log-marginal likelihood (ELBO).
+
+        Same as lower_bound_analytic except that the inducing point dists
+        q(f, h) are marginalised via Gibbs sampling.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+            num_test = X.shape[0]
+
+            # kl_gating = self.gating_network.prior_kl()
+            # kls_gatings = self.gating_network.prior_kls()
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            with tf.name_scope("predict_mixing_probs") as scope:
                 mixing_probs = self.predict_mixing_probs(
-                    X, num_inducing_samples=self.num_inducing_samples)
+                    X, num_inducing_samples=self.num_inducing_samples
+                )
             # TODO move this reshape into gating function
             # mixing_probs = tf.reshape(
             #     mixing_probs,
@@ -168,40 +310,48 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print("Mixing probs")
             print(mixing_probs.shape)
 
-            with tf.name_scope('predict_experts_prob') as scope:
+            with tf.name_scope("predict_experts_prob") as scope:
                 batched_dists = self.predict_experts_dists(
-                    X, num_inducing_samples=self.num_inducing_samples)
+                    X, num_inducing_samples=self.num_inducing_samples
+                )
 
                 Y = tf.expand_dims(Y, 0)
                 Y = tf.expand_dims(Y, -1)
                 expected_experts = batched_dists.prob(Y)
-                print('Expected experts')
+                print("Expected experts")
                 print(expected_experts.shape)
                 # TODO is it correct to sum over output dimension?
                 # sum over output_dim
                 expected_experts = tf.reduce_prod(expected_experts, -2)
-                print('Experts after product over output dims')
+                print("Experts after product over output dims")
                 # print(expected_experts.shape)
                 expected_experts = tf.expand_dims(expected_experts, -2)
                 print(expected_experts.shape)
 
             shape_constraints = [
-                (expected_experts,
-                 ["num_inducing_samples", "num_data", "1", "num_experts"]),
-                (mixing_probs,
-                 ["num_inducing_samples", "num_data", "1", "num_experts"]),
+                (
+                    expected_experts,
+                    ["num_inducing_samples", "num_data", "1", "num_experts"],
+                ),
+                (
+                    mixing_probs,
+                    ["num_inducing_samples", "num_data", "1", "num_experts"],
+                ),
             ]
             tf.debugging.assert_shapes(
                 shape_constraints,
-                message="Gating network and experts dimensions do not match")
-            with tf.name_scope('marginalise_indicator_variable') as scope:
-                weighted_sum_over_indicator = tf.matmul(expected_experts,
-                                                        mixing_probs,
-                                                        transpose_b=True)
+                message="Gating network and experts dimensions do not match",
+            )
+            with tf.name_scope("marginalise_indicator_variable") as scope:
+                weighted_sum_over_indicator = tf.matmul(
+                    expected_experts, mixing_probs, transpose_b=True
+                )
 
                 # remove last two dims as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0, 0]
-            print('Marginalised indicator variable')
+                weighted_sum_over_indicator = weighted_sum_over_indicator[
+                    :, :, 0, 0
+                ]
+            print("Marginalised indicator variable")
             print(weighted_sum_over_indicator.shape)
 
             # TODO where should output dimension be reduced?
@@ -213,17 +363,22 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # print(weighted_sum_over_indicator.shape)
 
             # TODO correct num samples for K experts. This assumes 2 experts
-            num_samples = self.num_inducing_samples**(self.num_experts + 1)
-            var_exp = 1 / num_samples * tf.reduce_sum(
-                tf.math.log(weighted_sum_over_indicator), axis=0)
-            print('Averaged inducing samples')
+            num_samples = self.num_inducing_samples ** (self.num_experts + 1)
+            var_exp = (
+                1
+                / num_samples
+                * tf.reduce_sum(
+                    tf.math.log(weighted_sum_over_indicator), axis=0
+                )
+            )
+            print("Averaged inducing samples")
             print(var_exp.shape)
             # # TODO where should output dimension be reduced?
             # var_exp = tf.linalg.diag_part(var_exp)
             # print('Ignore covariance in output dimension')
             # print(var_exp.shape)
             var_exp = tf.reduce_sum(var_exp)
-            print('Reduced sum over mini batch')
+            print("Reduced sum over mini batch")
             print(var_exp.shape)
 
             # var_exp = tf.reduce_sum(var_exp)
