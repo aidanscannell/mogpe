@@ -6,9 +6,8 @@ import gpflow as gpf
 import tensorflow as tf
 import tensorflow_probability as tfp
 from gpflow import default_float
-from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
+from gpflow.models import ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
-
 from mogpe.experts import SVGPExperts
 from mogpe.gating_networks import SVGPGatingNetworkBase
 from mogpe.mixture_of_experts import MixtureOfExperts
