@@ -1,12 +1,12 @@
+from abc import ABC, abstractmethod
+
 import matplotlib.pyplot as plt
 import numpy as np
 import palettable
 import tensorflow as tf
-
-from abc import ABC, abstractmethod
 from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mogpe.training.monitor import ImageWithCbarToTensorBoard
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 color_1 = 'olive'
 color_2 = 'darkmagenta'
@@ -158,8 +158,9 @@ class Plotter1D(PlotterBase):
     def plot_model(self):
         fig, ax = plt.subplots(1, 1)
         self.plot_gating_network(fig, ax)
-        fig, ax = plt.subplots(1, 1)
-        self.plot_gating_network_gps(fig, ax)
+        # fig, ax = plt.subplots(1, 1)
+        # fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
+        # self.plot_gating_gps(fig, ax)
         fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
         self.plot_experts_y(fig, axs)
         fig, ax = plt.subplots(1, 1)
