@@ -1,7 +1,7 @@
-=========================
-The Maths
-=========================
-Let's recap the maths underpinning mixture of expert models as well as the extension to
+================================
+Hit me up with some sweet maths!
+================================
+Let's recap the maths underpinning mixture of experts models as well as the extension to
 Gaussian process experts (for regression).
 We detail the models from a probabilistic perspective and then detail our approach to inference for
 models with both the experts and gating networks based on sparse GPs (variational inference).
@@ -184,7 +184,7 @@ the new expanded marginal likelihood can be written as,
 
 which has the same factorization within the expectation as in the original
 ME marginal likelihood.
-Let's assume that each GPs inducing points are independent and introduce
+Let's assume that each GP's inducing points are independent and introduce
 the variational distribution,
 
 .. math::

@@ -4,42 +4,61 @@ mogpe documentation!
 This package implements a Mixtures of Gaussian Process Experts (MoGPE) model with a GP-based gating network.
 Inference exploits factorization through sparse GPs and trains a variational lower bound stochastically.
 It also provides the building blocks for implementing other Mixtures of Gaussian Process Experts models.
-mogpe uses GPflow 2.0/TensorFlow 2.1+ for running computations, which allows fast execution on GPUs,
-and uses Python ≥ 3.6. It was originally created by Aidan Scannell.
+:mod:`mogpe` uses
+`GPflow 2.0 <https://github.com/GPflow/GPflow.git>`_\/`TensorFlow 2.1+ <https://github.com/tensorflow/tensorflow.git>`_
+for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
+It was originally created by `Aidan Scannell <https://www.aidanscannell.com>`_.
 
 Getting Started
-^^^^^^^^^^^^^^^
-Please see :ref:`understanding_code:The Code` and the :ref:`api:mogpe API` for details on the implementation and see
-:ref:`understanding_math:The Maths` to get an understanding of the underlying mathematics.
-For example usage see the `examples directory <https://github.com/aidanscannell/mogpe/tree/master/examples>`_
-and the notebooks.
+---------------
+To get started please see the :ref:`getting_started:Install` instructions.
+Notes on using :mod:`mogpe` can be found in :ref:`getting_started:Usage` and
+the `examples directory <https://github.com/aidanscannell/mogpe/tree/master/examples>`_
+and notebooks show how the model can be configured and trained.
+Details on the implementation can be found in
+:ref:`understanding_code:What's going on with this code?!` and the :ref:`api:mogpe API`.
+The underlying mathematics of the model and inference is detailed in
+:ref:`understanding_math:Hit me up with some sweet maths!`.
+
 
 .. toctree::
    :maxdepth: 1
-   :caption: Understanding:
+   :caption: Getting Started
+   :hidden:
+
+   getting_started
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Notebooks
+   :hidden:
+
+   notebooks/train_mcycle_with_2_experts
+   notebooks/train_mcycle_with_3_experts
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Understanding
+   :hidden:
 
    understanding_code
    understanding_math
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Examples:
-
-   notebooks/mixture-of-two-gp-experts
-   notebooks/mixture-of-k-gp-experts
 
 .. toctree::
    :maxdepth: 1
-   :caption: API:
+   :caption: API
+   :hidden:
 
    api
 
 
 
 
-Indices and tables
-==================
+..
+   Indices and tables
+   ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

@@ -1,6 +1,6 @@
-########
-The Code
-########
+################################
+What's going on with this code?!
+################################
 In this section we provide details on the Mixtures of Gaussian Process Experts code (:mod:`mogpe`).
 The implementation is motivated by making it easy to implement different Mixtures of Gaussian Process 
 Experts models and inference algorithms.
@@ -27,7 +27,7 @@ Mixture of Experts Base
 At the heart of this package is the :class:`~mogpe.mixture_of_experts.MixtureOfExperts` base class
 that extends GPflow's :class:`BayesianModel` class
 (any instantiation requires the :func:`maximum_log_likelihood_objective` method to be implemented).
-It defines the basic methods of a mixture of experts models, namely,
+It defines the basic methods of a mixture of experts model, namely,
 
 1. A method to predict the mixing probabilities at a set of input locations :meth:`.MixtureOfExperts.predict_mixing_probs`,
 2. A method to predict the set of expert predictions at a set of input locations :meth:`.MixtureOfExperts.predict_experts_dists`,
@@ -50,7 +50,8 @@ in the lower bound.
 It also extends the :class:`~mogpe.gating_networks.GatingNetworkBase` class creating the
 :class:`~mogpe.gating_networks.SVGPGatingNetworkBinary` and
 :class:`~mogpe.gating_networks.SVGPGatingNetworkMulti` classes.
-These classes implement gating networks based on spares GPs for the two and K expert cases.
+These classes implement gating networks based on spares GPs for the special *two* expert case and
+the general *k* expert case.
 Let's now detail the base classes for the experts and gating network.
 
 
@@ -92,7 +93,7 @@ lower bound.
 
 The package implements two variants of :class:`~.SVGPGatingNetworkBase`,
 
-1. :class:`~.SVGPGatingNetworkBinary` - This class represents the special case of two experts. In this scenario only a single gating function is required as we know :math:`\Pr(\alpha=0 | x) = 1 - \Pr(\alpha=1 | x)`.
-2. :class:`~.SVGPGatingNetworkMulti` - This is the general Mixture of GP Experts that can use K experts and K gating functions. Its constructor requires a :class:`Likelihood` whose role is to map the gating functions outputs to expert mixing probabilities e.g. softmax.
+1. :class:`~.SVGPGatingNetworkBinary` - This class represents the special case of two experts. In this scenario only a single gating function is required as we know :math:`\Pr(\alpha=2 | x) = 1 - \Pr(\alpha=1 | x)`.
+2. :class:`~.SVGPGatingNetworkMulti` - This is the for the general case of *k* experts and *k* gating functions. Its constructor requires a :class:`Likelihood` whose role is to map the gating functions outputs to expert mixing probabilities e.g. softmax.
 
 
