@@ -1,6 +1,9 @@
 * =mogpe= - Mixtures of Gaussian Process Experts in TensorFlow 
 [[https://mogpe.readthedocs.io/en/latest/][Documentation]]
-[![Documentation Status](https://readthedocs.org/projects/mogpe/badge/?version=latest)](https://mogpe.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status]
+(https://readthedocs.org/projects/mogpe/badge/?version=latest)](https://mogpe.readthedocs.io/en/latest/?badge=latest)
+
+[[file:https://readthedocs.org/projects/mogpe/badge/?version=latest]]
 
 This package implements a Mixtures of Gaussian Process
 Experts (MoGPE) model with a GP-based gating network. 
