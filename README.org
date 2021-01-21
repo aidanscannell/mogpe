@@ -54,12 +54,16 @@ following command:
 #+begin_src shell
 poetry run python codey_mc_code_face.py
 #+end_src
-#+begin_quote
 I am much preferring using Poetry, however, it does feel quite slow doing some things and annoyingly doesn't 
 integrate that well with [[https://readthedocs.org/][Read the Docs]].
 A =setup.py= file is still needed for building the docs on [[https://readthedocs.org/][Read the Docs]], so
-I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml=.
-#+end_quote
+I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml= with:
+#+begin_src shell
+dephell deps convert --from=pyproject.toml --to=requirements.txt
+#+end_src
+#+begin_src shell
+dephell deps convert --from=pyproject.toml --to=setup.py
+#+end_src
 
 *** Install with pip
 Create a new virtualenv and activate it, for example,
