@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
 import tensorflow as tf
-
 from gpflow import default_float
 from mogpe.training import train_from_config_and_dataset
 
@@ -16,8 +15,9 @@ x2_high = 3.
 def load_quadcopter_dataset(filename, standardise=False):
     data = np.load(filename)
     X = data['x']
-    # Y = data['y'][:, 0:2]
-    Y = data['y'][:, 0:1]
+    Y = data['y'][:, 0:2]
+    # Y = data['y'][:, 0:1]
+    # Y = data['y'][:, 0:3]
     print("Input data shape: ", X.shape)
     print("Output data shape: ", Y.shape)
 
@@ -49,9 +49,10 @@ def load_quadcopter_dataset(filename, standardise=False):
 
 
 # Set path to data set npz file
+# # data_file = './data/quadcopter_data.npz'
 data_file = './data/quadcopter_data.npz'
-data_file = './data/quadcopter_data_step_20.npz'
-data_file = './data/quadcopter_data_step_40.npz'
+# data_file = './data/quadcopter_data_step_20.npz'
+# data_file = './data/quadcopter_data_step_40.npz'
 
 # Set path to training config
 config_file = './configs/config_2_experts.toml'
