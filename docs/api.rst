@@ -29,7 +29,7 @@ SVGP Classes
 ------------
 
 Mixture of SVGP Experts
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: mogpe.mixture_of_experts.MixtureOfSVGPExperts
    :members:
