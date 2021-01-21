@@ -76,11 +76,10 @@ If you want to develop the =mogpe= codebase then install it in "editable" or "de
 pip install -e .
 #+END_SRC
 ** Usage
-Please see the examples in the [[./examples][examples]] directory.
 The model (and training with optional logging and checkpointing) can be configured using a TOML file. 
 Please see the  [[./examples][examples]] directory showing
 how to configure and train =MixtureOfSVGPExperts= on multiple data sets.
-See the notebooks ([[examples/mcylce/notebooks/train_mcycle_with_2_experts.ipynb][two experts]] and [[./examples/notebooks/train_mcycle_with_3_experts.ipynb][three experts]])
+See the notebooks ([[./examples/mcycle/notebooks/train_mcycle_with_2_experts.ipynb][two experts]] and [[./examples/mcycle/notebooks/train_mcycle_with_3_experts.ipynb][three experts]])
 for how to define and train an instance of =MixtureOfSVGPExperts= without configuration files.
 
 *** mogpe.mixture_of_experts
