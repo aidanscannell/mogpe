@@ -5,8 +5,8 @@ This package implements a Mixtures of Gaussian Process Experts (MoGPE) model wit
 Inference exploits factorization through sparse GPs and trains a variational lower bound stochastically.
 It also provides the building blocks for implementing other Mixtures of Gaussian Process Experts models.
 :mod:`mogpe` uses
-`GPflow 2.0 <https://github.com/GPflow/GPflow.git>`_\/`TensorFlow 2.1+ <https://github.com/tensorflow/tensorflow.git>`_
-for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
+`GPflow 2.1 <https://github.com/GPflow/GPflow.git>`_\/`TensorFlow 2.4+ <https://github.com/tensorflow/tensorflow.git>`_
+for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.8.
 It was originally created by `Aidan Scannell <https://www.aidanscannell.com>`_.
 
 Getting Started
