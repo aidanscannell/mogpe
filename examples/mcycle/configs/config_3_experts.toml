@@ -1,8 +1,8 @@
 input_dim = 1
 output_dim = 1
-epochs = 8000
+epochs = 25000
 batch_size = 30
-num_inducing_samples = 4 # num samples to integrate inducing outputs variational dists in ELBO
+num_inducing_samples = 1 # num samples to integrate inducing outputs variational dists in ELBO
 num_experts = 3
 fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
 slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
@@ -17,12 +17,12 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
     [experts.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product" 
         [experts.kernel.params] # set required parameters for the kernel type
-            lengthscale = 10.0 # RBF lengthscale 
-            variance = 0.1 # RBF signal variance
+            lengthscale = 20.0 # RBF lengthscale 
+            variance = 0.05 # RBF signal variance
     [experts.likelihood]
         name = "gaussian" # likelihood type, "gaussian" is only valid option
         [experts.likelihood.params] # set required parameters for the likelihood type
-            variance = 0.0011 # Guassian noise variance
+            variance = 0.001 # Guassian noise variance
     [experts.inducing_points]
         num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
@@ -37,12 +37,12 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
     [experts.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product" 
         [experts.kernel.params] # set required parameters for the kernel type
-            lengthscale = 0.5 # RBF lengthscale 
-            variance = 20.0 # RBF signal variance
+            lengthscale = 10.0 # RBF lengthscale 
+            variance = 0.00005 # RBF signal variance
     [experts.likelihood]
         name = "gaussian" # likelihood type, "gaussian" is only valid option
         [experts.likelihood.params] # set required parameters for the likelihood type
-            variance = 0.9 # Guassian noise variance
+            variance = 0.2 # Guassian noise variance
     [experts.inducing_points]
         num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
@@ -58,11 +58,11 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product" 
         [experts.kernel.params] # set required parameters for the kernel type
             lengthscale = 0.5 # RBF lengthscale 
-            variance = 20.0 # RBF signal variance
+            variance = 14.0 # RBF signal variance
     [experts.likelihood]
         name = "gaussian" # likelihood type, "gaussian" is only valid option
         [experts.likelihood.params] # set required parameters for the likelihood type
-            variance = 0.9 # Guassian noise variance
+            variance = 0.2 # Guassian noise variance
     [experts.inducing_points]
         num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
