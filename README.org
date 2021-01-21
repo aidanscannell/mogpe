@@ -1,16 +1,14 @@
 * =mogpe= - Mixtures of Gaussian Process Experts in TensorFlow 
 [[https://mogpe.readthedocs.io/en/latest/][Documentation]]
-/FYI This is research code that I have rewritten/documented/packaged as a learning experience. It is currently lacking tests./
 
-#+ATTR_HTML: :alt Documentation Status
-[[https://mogpe.readthedocs.io/en/latest/?badge=latest][file:https://readthedocs.org/projects/mogpe/badge/?version=latest]]
+/Disclaimer: This is research code that I have rewritten/documented/packaged as a learning experience and it is currently lacking tests./
 
 This package implements a Mixtures of Gaussian Process
 Experts (MoGPE) model with a GP-based gating network. 
 Inference exploits factorization through sparse GPs and trains a variational lower bound stochastically.
 It also provides the building blocks for implementing other Mixtures of Gaussian Process Experts models.
 =mogpe= uses [[https://github.com/GPflow/GPflow.git][GPflow 2.0]]/[[https://github.com/tensorflow/tensorflow.git][TensorFlow 2.1+]] for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.6.
-It was originally created by Aidan Scannell.
+It was originally created by [[https://www.aidanscannell.com/][Aidan Scannell]].
 
 
 ** Install mogpe
