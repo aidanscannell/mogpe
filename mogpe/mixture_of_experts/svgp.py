@@ -36,8 +36,8 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self,
         gating_network: SVGPGatingNetworkBase,
         experts: SVGPExperts,
-        num_inducing_samples: int,
         num_data: int,
+        num_inducing_samples: int = 0,
     ):
         assert isinstance(gating_network, SVGPGatingNetworkBase)
         assert isinstance(experts, SVGPExperts)
