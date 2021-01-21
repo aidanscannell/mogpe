@@ -38,7 +38,7 @@ autodoc_mock_imports = ["tensorflow", "tensorflow_probability"]
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     "sphinx_rtd_theme", 'sphinx.ext.autodoc', 'recommonmark',
-    'sphinx.ext.mathjax', "nbsphinx", "sphinx_autodoc_typehints",
+    'sphinx.ext.mathjax', "nbsphinx", "nbsphinx_link", "sphinx_autodoc_typehints",
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx.ext.autosectionlabel"
 ]

@@ -34,7 +34,6 @@ The underlying mathematics of the model and inference is detailed in
    :hidden:
 
    notebooks/train_mcycle_with_2_experts
-   notebooks/train_mcycle_with_3_experts
 
 .. toctree::
    :maxdepth: 1
