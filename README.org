@@ -1,10 +1,5 @@
 * =mogpe= - Mixtures of Gaussian Process Experts in TensorFlow 
 [[https://mogpe.readthedocs.io/en/latest/][Documentation]]
-[![Documentation Status]
-(https://readthedocs.org/projects/mogpe/badge/?version=latest)](https://mogpe.readthedocs.io/en/latest/?badge=latest)
-
-[[https://mogpe.readthedocs.io/en/latest/?badge=latest][https://readthedocs.org/projects/mogpe/badge/?version=latest]]
-[[https://readthedocs.org/projects/mogpe/badge/?version=latest][https://mogpe.readthedocs.io/en/latest/?badge=latest]]
 
 This package implements a Mixtures of Gaussian Process
 Experts (MoGPE) model with a GP-based gating network. 
@@ -15,7 +10,55 @@ It was originally created by Aidan Scannell.
 
 
 ** Install mogpe
-This is a Python package that should be installed into a python virtual environment.
+This is a Python package that should be installed into a virtual environment.
+Start by cloning the repo from Github:
+#+begin_src shell
+git clone https://github.com/aidanscannell/mogpe.git
+#+end_src
+The package can then be installed into a virutal environment by adding it as a local dependency.
+*** Install with Poetry
+=mogpe='s dependencies and packaging are being managed with [[https://python-poetry.org/docs/][Poetry]], instead of other tools such as Pipenv.
+To install =mogpe= into an existing poetry environment add it as a dependency under
+=[tool.poetry.dependencies]= (in the [[./pyproject.toml]] configuration file) with the following line:
+#+begin_src toml
+mogpe = {path = "/path/to/mogpe"}
+#+end_src
+If you want to develop the =mogpe= codebase then set =develop=true=:
+#+begin_src toml
+mogpe = {path = "/path/to/mogpe", develop=true}
+#+end_src
+The dependencies in a [[./pyproject.toml]] file are resolved and installed with:
+#+begin_src shell
+poetry install
+#+end_src
+If you do not require the development packages then you can opt to install without them,
+#+begin_src shell
+poetry install --no-dev
+#+end_src
+
+**** Running Python scripts inside Poetry Environments
+
+There are multiple ways to run code with [[https://python-poetry.org/docs/][Poetry]] and I advise checking out the documentation.
+My favourite option is to spawn a shell within the virtual environment:
+#+begin_src shell
+poetry shell
+#+end_src
+and then python scripts can simply be run with:
+#+begin_src shell
+python codey_mc_code_face.py
+#+end_src
+Alternatively, you can run scripts without spawning an instance of the virtual environment with the
+following command:
+#+begin_src shell
+poetry run python codey_mc_code_face.py
+#+end_src
+#+begin_quote
+I am much preferring using Poetry, however, it does feel quite slow doing some things and annoyingly doesn't 
+integrate that well with [[https://readthedocs.org/][Read the Docs]].
+A =setup.py= file is still needed for building the docs on [[https://readthedocs.org/][Read the Docs]], so
+I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml=.
+#+end_quote
+
 *** Install with pip
 Create a new virtualenv and activate it, for example,
 #+BEGIN_SRC shell
@@ -26,38 +69,13 @@ cd into the root of this package and install it and its dependencies with,
 #+BEGIN_SRC shell
 pip install -r requirements.txt
 #+END_SRC
-*** Install with Poetry
-I am managing the project's dependencies and packaging with [[https://python-poetry.org/docs/][Poetry]], instead of other tools such as Pipenv.
-The dependencies in =pyproject.toml= are resolved and installed with,
-#+begin_src shell
-poetry install
-#+end_src
-If you do not require the development packages then you can opt to install without them,
-#+begin_src shell
-poetry install --no-dev
-#+end_src
-There are multiple ways to run code with [[https://python-poetry.org/docs/][Poetry]] and I advise checking out the documentation.
-My favourite option is to spawn a shell within the virtual environment,
-#+begin_src shell
-poetry shell
-#+end_src
-and then python scripts can simply be run with,
-#+begin_src shell
-python codey_mc_code_face.py
-#+end_src
-Alternatively, you can run scripts without spawning an instance of the virtual environment with the
-following command,
-#+begin_src shell
-poetry run python codey_mc_code_face.py
-#+end_src
-#+begin_quote
-I am much preferring using Poetry, however, it does feel quite slow doing some things and annoyingly doesn't 
-integrate that well with [[https://readthedocs.org/][Read the Docs]].
-A =setup.py= file is still needed for building the docs on [[https://readthedocs.org/][Read the Docs]], so
-I use [[https://github.com/dephell/dephell][Dephell]] to generate the =requirements.txt= and =setup.py= files from =pyproject.toml=.
-#+end_quote
 ** Usage
 Please see the examples in the [[./examples][examples]] directory.
+The model (and training with optional logging and checkpointing) can be configured using a TOML file. 
+Please see the  [[./examples][examples]] directory showing
+how to configure and train =MixtureOfSVGPExperts= on multiple data sets.
+See the notebooks ([[examples/mcylce/notebooks/train_mcycle_with_2_experts.ipynb][two experts]] and [[./examples/notebooks/train_mcycle_with_3_experts.ipynb][three experts]])
+for how to define and train an instance of =MixtureOfSVGPExperts= without configuration files.
 
 *** mogpe.mixture_of_experts
 [[./mogpe/mixture_of_experts][mogpe.mixture_of_experts]] contains an abstract base class for mixture of experts models
