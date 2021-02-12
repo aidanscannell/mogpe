@@ -150,3 +150,15 @@ class SVGPExperts(ExpertsBase):
         mus = tf.stack(mus, -1)
         vars = tf.stack(vars, -1)
         return mus, vars
+
+    def likelihoods(self) -> List[Likelihood]:
+        likelihoods = []
+        for expert in self.experts_list:
+            likelihoods.append(expert.likelihood)
+        return likelihoods
+
+    def noise_variances(self) -> List[tf.Tensor]:
+        variances = []
+        for expert in self.experts_list:
+            variances.append(expert.likelihood.variance)
+        return variances
