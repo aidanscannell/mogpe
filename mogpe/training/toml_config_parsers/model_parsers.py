@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-import toml
 import gpflow as gpf
 import numpy as np
 import tensorflow as tf
-
+import toml
 from bunch import Bunch
 from gpflow import default_float
-
-from mogpe.experts import SVGPExperts, SVGPExpert
-from mogpe.gating_networks import SVGPGatingNetworkBinary, SVGPGatingNetworkMulti, SVGPGatingFunction
+from mogpe.experts import SVGPExpert, SVGPExperts
+from mogpe.gating_networks import (SVGPGatingFunction, SVGPGatingNetworkBinary,
+                                   SVGPGatingNetworkMulti)
 from mogpe.mixture_of_experts import MixtureOfSVGPExperts
 
 
@@ -169,7 +168,6 @@ def parse_inducing_variable(expert, input_dim, X):
         X = []
         for _ in range(input_dim):
             X.append(np.linspace(0, 1, inducing_points.num_inducing))
-        print('inside second inducing')
         return gpf.inducing_variables.SharedIndependentInducingVariables(
             gpf.inducing_variables.InducingPoints(np.array(X).T))
 
