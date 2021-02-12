@@ -49,7 +49,8 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self, data: Tuple[tf.Tensor, tf.Tensor]
     ) -> tf.Tensor:
         # return self.lower_bound_analytic_simple(data)
-        return self.lower_bound_analytic(data)
+        # return self.lower_bound_analytic(data)
+        return self.lower_bound_analytic_2(data)
         # return self.lower_bound_stochastic(data)
         # return self.lower_bound_dagp(data)
 
@@ -199,9 +200,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 - kl_experts
             )
 
-    def lower_bound_analytic(
-        self, data: Tuple[tf.Tensor, tf.Tensor]
-    ) -> tf.Tensor:
+    def lower_bound_analytic(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
         This bound assumes each output dimension is independent and takes
@@ -252,9 +251,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 )
 
                 # remove last two dims as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[
-                    :, 0, 0
-                ]
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, 0, 0]
             print("Marginalised indicator variable")
             print(weighted_sum_over_indicator.shape)
 
@@ -262,9 +259,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
             # TODO correct num samples for K experts. This assumes 2 experts
             # num_samples = self.num_inducing_samples**(self.num_experts + 1)
-            var_exp = tf.reduce_sum(
-                tf.math.log(weighted_sum_over_indicator), axis=0
-            )
+            var_exp = tf.reduce_sum(tf.math.log(weighted_sum_over_indicator), axis=0)
             print("Reduced sum over mini batch")
             print(var_exp.shape)
 
@@ -276,9 +271,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
             return var_exp * scale - kl_gating - kl_experts
 
-    def lower_bound_stochastic(
-        self, data: Tuple[tf.Tensor, tf.Tensor]
-    ) -> tf.Tensor:
     def lower_bound_analytic_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
@@ -382,6 +374,8 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             else:
                 scale = tf.cast(1.0, default_float())
             return sum_variational_expectation * scale - kl_gating - kl_experts
+
+    def lower_bound_stochastic(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Objective for maximum likelihood estimation.
 
         Lower bound to the log-marginal likelihood (ELBO).
@@ -451,9 +445,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 )
 
                 # remove last two dims as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[
-                    :, :, 0, 0
-                ]
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0, 0]
             print("Marginalised indicator variable")
             print(weighted_sum_over_indicator.shape)
 
@@ -470,9 +462,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             var_exp = (
                 1
                 / num_samples
-                * tf.reduce_sum(
-                    tf.math.log(weighted_sum_over_indicator), axis=0
-                )
+                * tf.reduce_sum(tf.math.log(weighted_sum_over_indicator), axis=0)
             )
             print("Averaged inducing samples")
             print(var_exp.shape)
