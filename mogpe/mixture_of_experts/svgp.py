@@ -279,6 +279,109 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     def lower_bound_stochastic(
         self, data: Tuple[tf.Tensor, tf.Tensor]
     ) -> tf.Tensor:
+    def lower_bound_analytic_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
+
+        This bound assumes each output dimension is independent and takes
+        the product over them within the logarithm (and before the expert
+        indicator variable is marginalised).
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+            num_test = X.shape[0]
+
+            # kl_gating = self.gating_network.prior_kl()
+            # kls_gatings = self.gating_network.prior_kls()
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            mixing_probs = self.predict_mixing_probs(X)
+            print("Mixing probs")
+            print(mixing_probs.shape)
+
+            # likelihoods = self.experts.likelihoods()
+            # print("likelihoods")
+            # print(likelihoods)
+            noise_variances = self.experts.noise_variances()
+            print("noise_variances")
+            print(noise_variances)
+
+            fmeans, fvars = self.experts.predict_fs(X, full_cov=False)
+            print("here")
+            print(fmeans.shape)
+            print(fvars.shape)
+            f_dist = tfp.distributions.Normal(
+                loc=fmeans,
+                scale=fvars,
+            )
+            print("f_dist")
+            print(f_dist)
+            # num_samples = 5
+            num_samples = 1
+            f_dist_samples = f_dist.sample(num_samples)
+            print(f_dist_samples.shape)
+
+            components = []
+            for expert_k in range(self.num_experts):
+                locs = f_dist_samples[..., expert_k]
+                print("locs")
+                print(locs.shape)
+                component = tfd.Normal(
+                    loc=f_dist_samples[..., expert_k], scale=noise_variances[expert_k]
+                )
+                print("component")
+                print(component)
+                components.append(component)
+                # mixing_probs_list = mixing_probs[..., expert_k]
+                # print("mixing_probs_list")
+                # print(mixing_probs_list)
+            print("components")
+            print(components)
+            mixing_probs_broadcast = tf.expand_dims(mixing_probs, 0)
+            mixing_probs_broadcast = tf.broadcast_to(
+                mixing_probs_broadcast, f_dist_samples.shape
+            )
+            print("mixing_probs_broadcast")
+            print(mixing_probs_broadcast)
+            categorical = tfd.Categorical(probs=mixing_probs_broadcast)
+            print("cat")
+            print(categorical)
+            mixture = tfd.Mixture(cat=categorical, components=components)
+            print("mixture")
+            print(mixture)
+            variational_expectation = mixture.log_prob(Y)
+            print("variational_expectation")
+            print(variational_expectation)
+
+            # sum over output dimensions (assumed independent)
+            variational_expectation = tf.reduce_sum(variational_expectation, -1)
+            print("variational_expectation after sum over output dims")
+            print(variational_expectation)
+
+            # average samples (gibbs)
+            # TODO have I average gibbs samples correctly???
+            approx_variational_expectation = (
+                tf.reduce_sum(variational_expectation, axis=0) / num_samples
+            )
+            print("variational_expectation after averaging gibbs samples")
+            print(approx_variational_expectation)
+            sum_variational_expectation = tf.reduce_sum(
+                approx_variational_expectation, axis=0
+            )
+            print("variational_expectation after sum over data mini batches")
+            print(sum_variational_expectation)
+
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                scale = num_data / minibatch_size
+            else:
+                scale = tf.cast(1.0, default_float())
+            return sum_variational_expectation * scale - kl_gating - kl_experts
         """Objective for maximum likelihood estimation.
 
         Lower bound to the log-marginal likelihood (ELBO).
