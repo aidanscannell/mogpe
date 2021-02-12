@@ -25,26 +25,40 @@ class SVGPExpert(SVGPModel, ExpertBase):
     and implements the predict_dist() method using SVGPModel's predict_y
     method.
     """
-    def __init__(self,
-                 kernel: Kernel,
-                 likelihood: Likelihood,
-                 inducing_variable,
-                 mean_function: MeanFunction = None,
-                 num_latent_gps: int = 1,
-                 q_diag: bool = False,
-                 q_mu=None,
-                 q_sqrt=None,
-                 whiten: bool = True,
-                 num_data=None):
-        super().__init__(kernel, likelihood, inducing_variable, mean_function,
-                         num_latent_gps, q_diag, q_mu, q_sqrt, whiten,
-                         num_data)
 
-    def predict_dist(self,
-                     Xnew: InputData,
-                     num_inducing_samples: int = None,
-                     full_cov: bool = False,
-                     full_output_cov: bool = False) -> MeanAndVariance:
+    def __init__(
+        self,
+        kernel: Kernel,
+        likelihood: Likelihood,
+        inducing_variable,
+        mean_function: MeanFunction = None,
+        num_latent_gps: int = 1,
+        q_diag: bool = False,
+        q_mu=None,
+        q_sqrt=None,
+        whiten: bool = True,
+        num_data=None,
+    ):
+        super().__init__(
+            kernel,
+            likelihood,
+            inducing_variable,
+            mean_function,
+            num_latent_gps,
+            q_diag,
+            q_mu,
+            q_sqrt,
+            whiten,
+            num_data,
+        )
+
+    def predict_dist(
+        self,
+        Xnew: InputData,
+        num_inducing_samples: int = None,
+        full_cov: bool = False,
+        full_output_cov: bool = False,
+    ) -> MeanAndVariance:
         """Returns the mean and (co)variance of the experts prediction at Xnew.
 
         :param Xnew: inputs with shape [num_test, input_dim]
@@ -64,10 +78,12 @@ class SVGPExpert(SVGPModel, ExpertBase):
             and if full_cov=True,
             [num_inducing_samples, output_dim, num_test, num_test]
         """
-        mu, var = self.predict_y(Xnew,
-                                 num_inducing_samples=num_inducing_samples,
-                                 full_cov=full_cov,
-                                 full_output_cov=full_output_cov)
+        mu, var = self.predict_y(
+            Xnew,
+            num_inducing_samples=num_inducing_samples,
+            full_cov=full_cov,
+            full_output_cov=full_output_cov,
+        )
         return mu, var
 
 
@@ -77,6 +93,7 @@ class SVGPExperts(ExpertsBase):
     Provides an interface between a set of SVGPExpert instances and the
     MixtureOfSVGPExperts class.
     """
+
     def __init__(self, experts_list: List[SVGPExpert] = None, name="Experts"):
         """
         :param experts_list: a list of SVGPExpert instances with the predict_dist()
@@ -111,11 +128,13 @@ class SVGPExperts(ExpertsBase):
         vars = tf.stack(vars, -1)
         return tfd.Normal(mus, tf.sqrt(vars))
 
-    def predict_fs(self,
-                   Xnew: InputData,
-                   num_inducing_samples: int = None,
-                   full_cov=False,
-                   full_output_cov=False) -> MeanAndVariance:
+    def predict_fs(
+        self,
+        Xnew: InputData,
+        num_inducing_samples: int = None,
+        full_cov=False,
+        full_output_cov=False,
+    ) -> MeanAndVariance:
         """Returns the set experts latent function mean and (co)vars at Xnew.
 
         :param Xnew: inputs with shape [num_test, input_dim]
@@ -123,8 +142,9 @@ class SVGPExperts(ExpertsBase):
         """
         mus, vars = [], []
         for expert in self.experts_list:
-            mu, var = expert.predict_f(Xnew, num_inducing_samples, full_cov,
-                                       full_output_cov)
+            mu, var = expert.predict_f(
+                Xnew, num_inducing_samples, full_cov, full_output_cov
+            )
             mus.append(mu)
             vars.append(var)
         mus = tf.stack(mus, -1)
