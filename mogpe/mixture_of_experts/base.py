@@ -40,9 +40,7 @@ class MixtureOfExperts(BayesianModel, ABC):
                     predict_dists(Xnew) method implemented.
     """
 
-    def __init__(
-        self, gating_network: GatingNetworkBase, experts: ExpertsBase
-    ):
+    def __init__(self, gating_network: GatingNetworkBase, experts: ExpertsBase):
         """
         :param gating_network: an instance of the GatingNetworkBase class with
                                 the predict_mixing_probs(Xnew) method implemented.
@@ -64,9 +62,7 @@ class MixtureOfExperts(BayesianModel, ABC):
         :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
         """
         with tf.name_scope("predict_mixing_probs") as scope:
-            mixing_probs = self.gating_network.predict_mixing_probs(
-                Xnew, **kwargs
-            )
+            mixing_probs = self.gating_network.predict_mixing_probs(Xnew, **kwargs)
         # shape_constraints = [
         #     (mixing_probs, ["...", "num_data", "1",
         #                     self.num_experts]),
