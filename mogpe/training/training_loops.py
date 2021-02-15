@@ -9,12 +9,14 @@ from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, Monitor
 from mogpe.training.utils import save_models_param_dict
 
 
-def training_tf_loop(model,
-                     training_loss,
-                     epochs: int = 1,
-                     num_batches_per_epoch: int = 1,
-                     logging_epoch_freq: int = 100,
-                     manager: tf.train.CheckpointManager = None):
+def training_tf_loop(
+    model,
+    training_loss,
+    epochs: int = 1,
+    num_batches_per_epoch: int = 1,
+    logging_epoch_freq: int = 100,
+    manager: tf.train.CheckpointManager = None,
+):
     """Runs Adam optimizer on model with training_loss (no monitoring).
 
     :param model: The model to be trained.
@@ -44,13 +46,15 @@ def training_tf_loop(model,
         # t = time.time()
 
 
-def monitored_training_tf_loop(model,
-                               training_loss,
-                               epochs: int = 1,
-                               num_batches_per_epoch: int = 1,
-                               fast_tasks: gpf.monitor.MonitorTaskGroup = None,
-                               logging_epoch_freq: int = 100,
-                               manager: tf.train.CheckpointManager = None):
+def monitored_training_tf_loop(
+    model,
+    training_loss,
+    epochs: int = 1,
+    num_batches_per_epoch: int = 1,
+    fast_tasks: gpf.monitor.MonitorTaskGroup = None,
+    logging_epoch_freq: int = 100,
+    manager: tf.train.CheckpointManager = None,
+):
     """Monitors Adam optimizer on model with training_loss.
 
     Both training and monitoring are inside tf.function (no image monitoring).
@@ -88,14 +92,16 @@ def monitored_training_tf_loop(model,
             # t = time.time()
 
 
-def monitored_training_loop(model,
-                            training_loss,
-                            epochs: int = 1,
-                            num_batches_per_epoch: int = 1,
-                            fast_tasks: gpf.monitor.MonitorTaskGroup = None,
-                            slow_tasks: gpf.monitor.MonitorTaskGroup = None,
-                            logging_epoch_freq: int = 100,
-                            manager: tf.train.CheckpointManager = None):
+def monitored_training_loop(
+    model,
+    training_loss,
+    epochs: int = 1,
+    num_batches_per_epoch: int = 1,
+    fast_tasks: gpf.monitor.MonitorTaskGroup = None,
+    slow_tasks: gpf.monitor.MonitorTaskGroup = None,
+    logging_epoch_freq: int = 100,
+    manager: tf.train.CheckpointManager = None,
+):
     """Monitors (with images) Adam optimizer on model with training_loss.
 
     Monitoring is not inside tf.function so this method will be slower than
@@ -134,6 +140,6 @@ def monitored_training_loop(model,
             if manager is not None:
                 manager.save()
                 # save_models_param_dict(model, save_dir)
-        # duration = t - time.time()
-        # print("Iteration duration: ", duration)
-        # t = time.time()
+            duration = t - time.time()
+            print("Iteration duration: ", duration)
+            t = time.time()
