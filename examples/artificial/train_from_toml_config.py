@@ -4,17 +4,17 @@ import tensorflow as tf
 
 from gpflow import default_float
 
-from mogpe.training.config_parser import train_from_config_and_dataset
+from mogpe.training import train_from_config_and_dataset
 
 
 def load_mixture_dataset(
-        filename='./artificial-data-used-in-paper.npz',
-        standardise=True):
+    filename="./artificial-data-used-in-paper.npz", standardise=True
+):
     data = np.load(filename)
-    X = data['x']
-    Y = data['y']
-    F = data['f']
-    prob_a_0 = data['prob_a_0']
+    X = data["x"]
+    Y = data["y"]
+    F = data["f"]
+    prob_a_0 = data["prob_a_0"]
 
     X = tf.convert_to_tensor(X, dtype=default_float())
     Y = tf.convert_to_tensor(Y, dtype=default_float())
@@ -30,9 +30,11 @@ def load_mixture_dataset(
     return data, F, prob_a_0
 
 
-data_file = './artificial-data-used-in-paper.npz'
-config_file = './config_2_experts.json'
-config_file = './config_2_experts.json'
+# data_file = "./artificial-data-used-in-paper.npz"
+# config_file = "./config_2_experts.json"
+data_file = "./data/artificial-data-used-in-paper.npz"
+config_file = "./configs/config_2_experts.toml"
+# config_file = "../quadcopter/configs/config_2_experts.toml"
 
 dataset, _, _ = load_mixture_dataset(data_file)
 trained_model = train_from_config_and_dataset(config_file, dataset)
