@@ -54,66 +54,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         # return self.lower_bound_stochastic(data)
         # return self.lower_bound_dagp(data)
 
-    def lower_bound_analytic_simple(
-        self, data: Tuple[tf.Tensor, tf.Tensor]
-    ) -> tf.Tensor:
-        """Lower bound to the log-marginal likelihood (ELBO).
-
-        This bound calculates log p(y_d|x) (for each output dimension) and sums
-        over them outside of the log to achieve independence.
-
-        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
-                     and outputs [num_data, ouput_dim])
-        :returns: loss - a Tensor with shape ()
-        """
-        with tf.name_scope("ELBO") as scope:
-            X, Y = data
-            num_test = X.shape[0]
-
-            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
-            kl_experts = tf.reduce_sum(self.experts.prior_kls())
-
-            print("Y shape")
-            print(Y.shape)
-            # Y = tf.expand_dims(Y, -1)
-            # print(Y.shape)
-            y_dist = self.predict_y(X)
-            print("y_dist (expert indicator variable marginalised)")
-            print(y_dist.batch_shape)
-            print(y_dist)
-
-            log_prob_y = y_dist.log_prob(Y)
-            print("log_prob_y shape")
-            print(log_prob_y.shape)
-
-            # Assume output dimensions are independent so sum over them
-            # as we've moved outside of the log
-            var_exp = tf.reduce_sum(log_prob_y, -1)
-            print("Shape after reducing sum over output dimension")
-            print(var_exp.shape)
-
-            var_exp = tf.reduce_sum(var_exp)
-            print("Reduced sum over mini batch")
-            print(var_exp.shape)
-            print(var_exp)
-
-            print("num data")
-            print(self.num_data)
-            if self.num_data is not None:
-                num_data = tf.cast(self.num_data, default_float())
-                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
-                print("minibatch_size")
-                print(minibatch_size)
-                scale = num_data / minibatch_size
-                print(scale)
-            else:
-                scale = tf.cast(1.0, default_float())
-            print("kl")
-            print(kl_gating)
-            print(kl_experts)
-
-            return var_exp * scale - kl_gating - kl_experts
-
     def lower_bound_dagp(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound used in Data Association with GPs (DAGP).
 
