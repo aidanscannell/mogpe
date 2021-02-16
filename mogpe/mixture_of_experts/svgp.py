@@ -229,13 +229,12 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
             return sum_variational_expectation * scale - kl_gating - kl_experts
 
-    def lower_bound_stochastic(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
-        """Objective for maximum likelihood estimation.
+    def lower_bound_1(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
 
-        Lower bound to the log-marginal likelihood (ELBO).
-
-        Same as lower_bound_analytic except that the inducing point dists
-        q(f, h) are marginalised via Gibbs sampling.
+        Tighter bound than lower_bound_further but requires an M dimensional
+        expectation over the inducing variables $q(\hat{f}, \hat{h})$
+        to be approximated (with Gibbs sampling).
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
