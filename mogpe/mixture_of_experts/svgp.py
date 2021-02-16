@@ -54,92 +54,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         # return self.lower_bound_stochastic(data)
         # return self.lower_bound_dagp(data)
 
-    def lower_bound_dagp(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
-        """Lower bound used in Data Association with GPs (DAGP).
-
-        This bound doesn't marginalise the expert indicator variable.
-
-        TODO check I've implemented this correctlyy. It's definitely slower thatn it should be.
-
-        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
-                     and outputs [num_data, ouput_dim])
-        :returns: loss - a Tensor with shape ()
-        """
-        with tf.name_scope("ELBO") as scope:
-            X, Y = data
-            Y = tf.expand_dims(Y, -1)
-            num_test = X.shape[0]
-
-            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
-            kl_experts = tf.reduce_sum(self.experts.prior_kls())
-
-            h_means, h_vars = self.gating_network.predict_fs(X)
-            # prob_a_0 = self.likelihood.predict_mean_and_var(h_means, h_var)[0]
-            # TODO remove duplicate call of h_means, h_vars
-
-            mixing_probs = self.predict_mixing_probs(X)
-            print("Mixing probs")
-            print(mixing_probs.shape)
-            assignments = tf.where(
-                mixing_probs > 0.5,
-                tf.ones(mixing_probs.shape),
-                tf.zeros(mixing_probs.shape),
-            )
-            print("Assignments")
-            print(assignments.shape)
-
-            log_expected_gating_fs = (
-                self.gating_network.likelihood.predict_log_density(
-                    h_means[:, 0, :], h_vars[:, 0, :], assignments[:, 0, :]
-                )
-                # self.gating_network.likelihood.predict_log_density(
-                #     h_means[:, :, 0], h_vars[:, :, 0], assignments[:, :, 0]
-                # )
-            )
-            print("log expected gating fs")
-            print(log_expected_gating_fs.shape)
-            var_exp_gating_fs = tf.reduce_sum(log_expected_gating_fs)
-            print(var_exp_gating_fs.shape)
-
-            batched_dists = self.predict_experts_dists(X)
-            print("Experts dists")
-            print(batched_dists)
-
-            log_expected_experts = batched_dists.log_prob(Y)
-            print("Log expected experts")
-            print(log_expected_experts.shape)
-
-            log_expected_experts = tf.reduce_sum(log_expected_experts, -2)
-            print("Experts after sum over output dims")
-            print(log_expected_experts.shape)
-
-            # TODO this only works for 2 experts case
-            var_exp_experts = tf.where(
-                assignments[:, 0, 0] == 1,
-                log_expected_experts[:, 0],
-                log_expected_experts[:, 1],
-            )
-            print("Experts after selecting mode")
-            print(var_exp_experts.shape)
-
-            var_exp_experts = tf.reduce_sum(var_exp_experts)
-            print("Reduced sum over mini batch")
-            print(var_exp_experts.shape)
-
-            if self.num_data is not None:
-                num_data = tf.cast(self.num_data, default_float())
-                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
-                scale = num_data / minibatch_size
-            else:
-                scale = tf.cast(1.0, default_float())
-
-            return (
-                var_exp_gating_fs * scale
-                + var_exp_experts * scale
-                - kl_gating
-                - kl_experts
-            )
-
     def lower_bound_analytic(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
@@ -426,6 +340,92 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
 
             return var_exp * scale - kl_gating - kl_experts
+
+    def lower_bound_dagp(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Lower bound used in Data Association with GPs (DAGP).
+
+        This bound doesn't marginalise the expert indicator variable.
+
+        TODO check I've implemented this correctlyy. It's definitely slower thatn it should be.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+            Y = tf.expand_dims(Y, -1)
+            num_test = X.shape[0]
+
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            h_means, h_vars = self.gating_network.predict_fs(X)
+            # prob_a_0 = self.likelihood.predict_mean_and_var(h_means, h_var)[0]
+            # TODO remove duplicate call of h_means, h_vars
+
+            mixing_probs = self.predict_mixing_probs(X)
+            print("Mixing probs")
+            print(mixing_probs.shape)
+            assignments = tf.where(
+                mixing_probs > 0.5,
+                tf.ones(mixing_probs.shape),
+                tf.zeros(mixing_probs.shape),
+            )
+            print("Assignments")
+            print(assignments.shape)
+
+            log_expected_gating_fs = (
+                self.gating_network.likelihood.predict_log_density(
+                    h_means[:, 0, :], h_vars[:, 0, :], assignments[:, 0, :]
+                )
+                # self.gating_network.likelihood.predict_log_density(
+                #     h_means[:, :, 0], h_vars[:, :, 0], assignments[:, :, 0]
+                # )
+            )
+            print("log expected gating fs")
+            print(log_expected_gating_fs.shape)
+            var_exp_gating_fs = tf.reduce_sum(log_expected_gating_fs)
+            print(var_exp_gating_fs.shape)
+
+            batched_dists = self.predict_experts_dists(X)
+            print("Experts dists")
+            print(batched_dists)
+
+            log_expected_experts = batched_dists.log_prob(Y)
+            print("Log expected experts")
+            print(log_expected_experts.shape)
+
+            log_expected_experts = tf.reduce_sum(log_expected_experts, -2)
+            print("Experts after sum over output dims")
+            print(log_expected_experts.shape)
+
+            # TODO this only works for 2 experts case
+            var_exp_experts = tf.where(
+                assignments[:, 0, 0] == 1,
+                log_expected_experts[:, 0],
+                log_expected_experts[:, 1],
+            )
+            print("Experts after selecting mode")
+            print(var_exp_experts.shape)
+
+            var_exp_experts = tf.reduce_sum(var_exp_experts)
+            print("Reduced sum over mini batch")
+            print(var_exp_experts.shape)
+
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                scale = num_data / minibatch_size
+            else:
+                scale = tf.cast(1.0, default_float())
+
+            return (
+                var_exp_gating_fs * scale
+                + var_exp_experts * scale
+                - kl_gating
+                - kl_experts
+            )
 
     def elbo(self, data: RegressionData) -> tf.Tensor:
         """Returns the evidence lower bound (ELBO) of the log marginal likelihood.
