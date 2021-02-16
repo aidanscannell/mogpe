@@ -125,12 +125,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
             return var_exp * scale - kl_gating - kl_experts
 
-    def lower_bound_analytic_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+    def lower_bound_further(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
-        This bound assumes each output dimension is independent and takes
-        the product over them within the logarithm (and before the expert
-        indicator variable is marginalised).
+        Looser bound than lower_bound_1 but analytically marginalises
+        the inducing variables $q(\hat{f}, \hat{h})$. Replaces M-dimensional
+        approx integrals with 1-dimensional approx integrals.
+
+        This bound assumes each output dimension is independent.
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
