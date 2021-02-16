@@ -149,64 +149,34 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print("Mixing probs")
             print(mixing_probs.shape)
 
-            # likelihoods = self.experts.likelihoods()
-            # print("likelihoods")
-            # print(likelihoods)
-            noise_variances = self.experts.noise_variances()
-            print("noise_variances")
-            print(noise_variances)
-
-            fmeans, fvars = self.experts.predict_fs(X, full_cov=False)
-            print("here")
-            print(fmeans.shape)
-            print(fvars.shape)
-            f_dist = tfp.distributions.Normal(
-                loc=fmeans,
-                scale=fvars,
-            )
-            print("f_dist")
-            print(f_dist)
             # num_samples = 5
             num_samples = 1
+            # TODO move this to a variational_expectation() method
+            noise_variances = self.experts.noise_variances()
+            fmeans, fvars = self.experts.predict_fs(X, full_cov=False)
+            f_dist = tfd.Normal(loc=fmeans, scale=fvars)
             f_dist_samples = f_dist.sample(num_samples)
-            print(f_dist_samples.shape)
 
             components = []
             for expert_k in range(self.num_experts):
-                locs = f_dist_samples[..., expert_k]
-                print("locs")
-                print(locs.shape)
                 component = tfd.Normal(
                     loc=f_dist_samples[..., expert_k], scale=noise_variances[expert_k]
                 )
-                print("component")
-                print(component)
                 components.append(component)
-                # mixing_probs_list = mixing_probs[..., expert_k]
-                # print("mixing_probs_list")
-                # print(mixing_probs_list)
-            print("components")
-            print(components)
             mixing_probs_broadcast = tf.expand_dims(mixing_probs, 0)
             mixing_probs_broadcast = tf.broadcast_to(
                 mixing_probs_broadcast, f_dist_samples.shape
             )
-            print("mixing_probs_broadcast")
-            print(mixing_probs_broadcast)
             categorical = tfd.Categorical(probs=mixing_probs_broadcast)
-            print("cat")
-            print(categorical)
             mixture = tfd.Mixture(cat=categorical, components=components)
-            print("mixture")
-            print(mixture)
             variational_expectation = mixture.log_prob(Y)
             print("variational_expectation")
-            print(variational_expectation)
+            print(variational_expectation.shape)
 
             # sum over output dimensions (assumed independent)
             variational_expectation = tf.reduce_sum(variational_expectation, -1)
             print("variational_expectation after sum over output dims")
-            print(variational_expectation)
+            print(variational_expectation.shape)
 
             # average samples (gibbs)
             # TODO have I average gibbs samples correctly???
@@ -214,12 +184,12 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 tf.reduce_sum(variational_expectation, axis=0) / num_samples
             )
             print("variational_expectation after averaging gibbs samples")
-            print(approx_variational_expectation)
+            print(approx_variational_expectation.shape)
             sum_variational_expectation = tf.reduce_sum(
                 approx_variational_expectation, axis=0
             )
             print("variational_expectation after sum over data mini batches")
-            print(sum_variational_expectation)
+            print(sum_variational_expectation.shape)
 
             if self.num_data is not None:
                 num_data = tf.cast(self.num_data, default_float())
