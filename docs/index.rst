@@ -41,7 +41,8 @@ The underlying mathematics of the model and inference is detailed in
    :hidden:
 
    understanding_code
-   understanding_math
+   ..
+      understanding_math
 
 
 .. toctree::
