@@ -1,5 +1,5 @@
 input_dim = 2
-output_dim = 1
+output_dim = 2
 epochs = 8000
 batch_size = 300
 num_inducing_samples = 1 # num samples to integrate inducing outputs variational dists in ELBO

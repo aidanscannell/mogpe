@@ -28,8 +28,8 @@ def load_mcycle_dataset(filename='./mcycle.csv'):
 data_file = './data/mcycle.csv'
 
 # Set path to training config
-# config_file = './configs/config_2_experts.toml'
-config_file = './configs/config_3_experts.toml'
+config_file = './configs/config_2_experts.toml'
+# config_file = './configs/config_3_experts.toml'
 
 # Load mcycle data set
 dataset = load_mcycle_dataset(data_file)

@@ -101,9 +101,10 @@ class MixtureOfExperts(BayesianModel, ABC):
         dists = self.predict_experts_dists(Xnew, **kwargs)
         print("experts dists shape")
         print(dists.batch_shape)
-        if dists.batch_shape != tf.shape(mixing_probs):
-            # mixing_probs = tf.expand_dims(mixing_probs, -2)
-            mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
+        # if dists.batch_shape != tf.shape(mixing_probs):
+        #     # mixing_probs = tf.expand_dims(mixing_probs, -2)
+        #     mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
+        mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
 
         tf.debugging.assert_equal(
             dists.batch_shape_tensor(),

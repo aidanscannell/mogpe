@@ -25,6 +25,6 @@ setup(
     packages=['mogpe', 'mogpe.experts', 'mogpe.gating_networks', 'mogpe.gps', 'mogpe.helpers', 'mogpe.mixture_of_experts', 'mogpe.training'],
     package_dir={"": "."},
     package_data={"mogpe": ["*.org"], "mogpe.mixture_of_experts": ["*.py#"]},
-    install_requires=['bunch==1.*,>=1.0.1', 'gpflow==2.*,>=2.1.3', 'jupyter==1.*,>=1.0.0', 'matplotlib==3.*,>=3.3.3', 'numpy==1.*,>=1.19.4', 'palettable==3.*,>=3.3.0', 'pandas==1.*,>=1.1.4', 'tensorflow==2.*,>=2.4.0', 'tensorflow-probability==0.*,>=0.12.1'],
+    install_requires=['bunch==1.*,>=1.0.1', 'dataclasses; python_version == "3.*" and python_version >= "3.6.0"', 'gpflow==2.*,>=2.1.0', 'jupyter==1.*,>=1.0.0', 'matplotlib==3.*,>=3.3.3', 'numpy>=1.19.4', 'palettable==3.*,>=3.3.0', 'tensorflow==2.*,>=2.4.0', 'tfp-nightly==0.*,>=0.14.0.a20210526', 'toml==0.*,>=0.10.2'],
     extras_require={"dev": ["black==20.*,>=20.8.0.b1", "isort==5.*,>=5.6.4", "nbsphinx==0.*,>=0.8.0", "nbsphinx-link==1.*,>=1.1.0", "pyflakes==2.*,>=2.2.0", "recommonmark==0.*,>=0.6.0", "sphinx==3.*,>=3.4.0", "sphinx-autodoc-typehints==1.*,>=1.11.1", "sphinx-rtd-theme==0.*,>=0.5.0"]},
 )
