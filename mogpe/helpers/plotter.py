@@ -114,7 +114,7 @@ class Plotter1D(PlotterBase):
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
         for k in range(num_experts):
-            ax.plot(self.test_inputs, mixing_probs[:, 0, k], label=str(k + 1))
+            ax.plot(self.test_inputs, mixing_probs[:, k], label=str(k + 1))
         ax.legend()
 
     def plot_gating_gps(self, fig, axs):
@@ -125,7 +125,7 @@ class Plotter1D(PlotterBase):
         tf.print("Plotting gating network gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
         for k in range(self.num_experts):
-            self.plot_gp(fig, axs[k], means[:, 0, k], vars[:, 0, k], label=str(k + 1))
+            self.plot_gp(fig, axs[k], means[:, k], vars[:, k], label=str(k + 1))
             axs[k].legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
@@ -414,7 +414,7 @@ class Plotter2D(PlotterBase):
             contf = axs[k].tricontourf(
                 self.test_inputs[:, 0],
                 self.test_inputs[:, 1],
-                mixing_probs[:, 0, k],
+                mixing_probs[:, k],
                 100,
                 levels=self.levels,
                 cmap=self.cmap,
@@ -455,18 +455,24 @@ class Plotter2D(PlotterBase):
         :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
         """
         tf.print("Plotting gating network gps...")
-        means, vars = self.model.gating_network.predict_fs(self.test_inputs)
         # if self.num_experts > 2:
         #     return self.plot_gps_shared_cbar(fig, axs, means, vars)
         # else:
         #     return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
         cbars = []
         if self.num_experts > 2:
+            means, vars = self.model.gating_network.predict_fs(self.test_inputs)
             # TODO haven't test the >2 expert case
-            cbars.append(self.plot_gps_shared_cbar(fig, axs, means, vars))
+            cbars.append(
+                self.plot_gps_shared_cbar(
+                    fig, axs, tf.expand_dims(means, -2), tf.expand_dims(vars, -2)
+                )
+            )
         else:
-            # return self.plot_gp(fig, axs, means[0, :, 0], vars[0, :, 0])
-            cbars.append(self.plot_gp(fig, axs, means[:, 0, 0], vars[:, 0, 0]))
+            means, vars = self.model.gating_network.predict_f(
+                self.test_inputs, full_cov=False
+            )
+            cbars.append(self.plot_gp(fig, axs, means[:, 0], vars[:, 0]))
             for ax in axs:
                 ax.scatter(
                     self.X[:, 0], self.X[:, 1], marker="x", alpha=0.01, color="k"
