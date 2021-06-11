@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Tuple
 
-import gpflow as gpf
 import tensorflow as tf
 import tensorflow_probability as tfp
 from gpflow import default_float
 from gpflow.models import ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
 from mogpe.experts import SVGPExperts
-from mogpe.gating_networks import SVGPGatingNetworkBase
+from mogpe.gating_networks import SVGPGatingNetwork
 from mogpe.mixture_of_experts import MixtureOfExperts
 
 tfd = tfp.distributions
@@ -34,21 +32,23 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
     def __init__(
         self,
-        gating_network: SVGPGatingNetworkBase,
+        gating_network: SVGPGatingNetwork,
         experts: SVGPExperts,
         num_data: int,
-        num_inducing_samples: int = 0,
+        num_samples: int = 1,
     ):
-        assert isinstance(gating_network, SVGPGatingNetworkBase)
+        # assert isinstance(gating_network, SVGPGatingNetworkBase)
+        assert isinstance(gating_network, SVGPGatingNetwork)
         assert isinstance(experts, SVGPExperts)
         super().__init__(gating_network, experts)
-        self.num_inducing_samples = num_inducing_samples
+        self.num_samples = num_samples
         self.num_data = num_data
 
     def maximum_log_likelihood_objective(
         self, data: Tuple[tf.Tensor, tf.Tensor]
     ) -> tf.Tensor:
-        return self.lower_bound_further(data)
+        # return self.lower_bound_further(data)
+        return self.lower_bound_tight(data)
         # return self.lower_bound_1(data)
         # return self.lower_bound_dagp(data)
         # return self.lower_bound_analytic(data)
@@ -68,36 +68,35 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         """
         with tf.name_scope("ELBO") as scope:
             X, Y = data
-            num_test = X.shape[0]
 
-            # kl_gating = self.gating_network.prior_kl()
-            # kls_gatings = self.gating_network.prior_kls()
-            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            # Evaluate KL terms
+            kl_gating = self.gating_network.prior_kl()
             kl_experts = tf.reduce_sum(self.experts.prior_kls())
 
-            mixing_probs = self.predict_mixing_probs(X)
-            print("Mixing probs")
-            print(mixing_probs.shape)
-
-            # num_samples = 5
-            num_samples = 1
-            # TODO move this to a variational_expectation() method
+            # Sample each experts variational posterior q(F) and construct p(Y|F)
+            f_means, f_vars = self.experts.predict_fs(X, full_cov=False)
+            f_dist = tfd.Normal(loc=f_means, scale=f_vars)  # [N, F, K]
+            f_dist_samples = f_dist.sample(self.num_samples)  # [S, N, F, K]
             noise_variances = self.experts.noise_variances()
-            fmeans, fvars = self.experts.predict_fs(X, full_cov=False)
-            f_dist = tfd.Normal(loc=fmeans, scale=fvars)
-            f_dist_samples = f_dist.sample(num_samples)
-
             components = []
             for expert_k in range(self.num_experts):
                 component = tfd.Normal(
                     loc=f_dist_samples[..., expert_k], scale=noise_variances[expert_k]
                 )
                 components.append(component)
-            mixing_probs_broadcast = tf.expand_dims(mixing_probs, 0)
+
+            # Evaluate gating network to get categorical dist over inicator var
+            mixing_probs = self.predict_mixing_probs(X)  # [N, K]
+            mixing_probs_broadcast = tf.expand_dims(mixing_probs, -2)  # [N, 1, K]
+            mixing_probs_broadcast = tf.expand_dims(
+                mixing_probs_broadcast, 0
+            )  # [1, N, 1, K]
             mixing_probs_broadcast = tf.broadcast_to(
-                mixing_probs_broadcast, f_dist_samples.shape
+                mixing_probs_broadcast, f_dist_samples.shape  # [S, N, F, K]
             )
             categorical = tfd.Categorical(probs=mixing_probs_broadcast)
+
+            # Create mixture dist and evaluate log prob
             mixture = tfd.Mixture(cat=categorical, components=components)
             variational_expectation = mixture.log_prob(Y)
             print("variational_expectation")
@@ -111,7 +110,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # average samples (gibbs)
             # TODO have I average gibbs samples correctly???
             approx_variational_expectation = (
-                tf.reduce_sum(variational_expectation, axis=0) / num_samples
+                tf.reduce_sum(variational_expectation, axis=0) / self.num_samples
             )
             print("variational_expectation after averaging gibbs samples")
             print(approx_variational_expectation.shape)
@@ -129,7 +128,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
             return sum_variational_expectation * scale - kl_gating - kl_experts
 
-    def lower_bound_1(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+    def lower_bound_tight(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
         Tighter bound than lower_bound_further but requires an M dimensional
@@ -144,29 +143,40 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             X, Y = data
             num_test = X.shape[0]
 
-            # kl_gating = self.gating_network.prior_kl()
-            # kls_gatings = self.gating_network.prior_kls()
-            kl_gating = tf.reduce_sum(self.gating_network.prior_kls())
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kl())
             kl_experts = tf.reduce_sum(self.experts.prior_kls())
 
             with tf.name_scope("predict_mixing_probs") as scope:
-                mixing_probs = self.predict_mixing_probs(
-                    X, num_inducing_samples=self.num_inducing_samples
+                h_mean, h_var = self.gating_network.predict_f(
+                    X, self.num_samples, full_cov=False
                 )
-            # TODO move this reshape into gating function
-            # mixing_probs = tf.reshape(
-            #     mixing_probs,
-            #     [self.num_inducing_samples, num_test, self.num_experts])
-            print("Mixing probs")
-            print(mixing_probs.shape)
+
+                def mixing_probs_wrapper(args):
+                    mean, var = args
+                    return self.gating_network.predict_mixing_probs_given_h(mean, var)
+
+                # map over samples
+                mixing_probs = tf.map_fn(
+                    mixing_probs_wrapper,
+                    (h_mean, h_var),
+                    fn_output_signature=default_float(),
+                )
+
+                # mixing_probs = tf.expand_dims(mixing_probs, -2)
+                print("Mixing probs")
+                print(mixing_probs.shape)
 
             with tf.name_scope("predict_experts_prob") as scope:
                 batched_dists = self.predict_experts_dists(
-                    X, num_inducing_samples=self.num_inducing_samples
+                    X, num_inducing_samples=self.num_samples
                 )
+                print("batched_dists")
+                print(batched_dists)
 
                 Y = tf.expand_dims(Y, 0)
                 Y = tf.expand_dims(Y, -1)
+                print("Y")
+                print(Y.shape)
                 expected_experts = batched_dists.prob(Y)
                 print("Expected experts")
                 print(expected_experts.shape)
@@ -175,17 +185,17 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 expected_experts = tf.reduce_prod(expected_experts, -2)
                 print("Experts after product over output dims")
                 # print(expected_experts.shape)
-                expected_experts = tf.expand_dims(expected_experts, -2)
+                # expected_experts = tf.expand_dims(expected_experts, -2)
                 print(expected_experts.shape)
 
             shape_constraints = [
                 (
                     expected_experts,
-                    ["num_inducing_samples", "num_data", "1", "num_experts"],
+                    ["num_inducing_samples", "num_data", "num_experts"],
                 ),
                 (
                     mixing_probs,
-                    ["num_inducing_samples", "num_data", "1", "num_experts"],
+                    ["num_inducing_samples", "num_data", "num_experts"],
                 ),
             ]
             tf.debugging.assert_shapes(
@@ -197,8 +207,8 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                     expected_experts, mixing_probs, transpose_b=True
                 )
 
-                # remove last two dims as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0, 0]
+                # remove last dim as artifacts of marginalising indicator
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0]
             print("Marginalised indicator variable")
             print(weighted_sum_over_indicator.shape)
 
@@ -211,7 +221,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # print(weighted_sum_over_indicator.shape)
 
             # TODO correct num samples for K experts. This assumes 2 experts
-            num_samples = self.num_inducing_samples ** (self.num_experts + 1)
+            num_samples = self.num_samples ** (self.num_experts + 1)
             var_exp = (
                 1
                 / num_samples
