@@ -59,19 +59,18 @@ class MixtureOfExperts(BayesianModel, ABC):
         :param Xnew: inputs with shape [num_test, input_dim]
         :param kwargs: kwargs to be passed to the gating networks
                        predict_mixing_probs() method.
-        :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
+        :returns: a batched Tensor with shape [..., num_test, num_experts]
         """
         with tf.name_scope("predict_mixing_probs") as scope:
             mixing_probs = self.gating_network.predict_mixing_probs(Xnew, **kwargs)
-        # shape_constraints = [
-        #     (mixing_probs, ["...", "num_data", "1",
-        #                     self.num_experts]),
-        # ]
-        # tf.debugging.assert_shapes(
-        #     shape_constraints,
-        #     message=
-        #     "Mixing probabilities dimensions (from gating network) should be [..., num_data, 1, num_experts]"
-        # )
+        num_data = Xnew.shape[0]
+        shape_constraints = [
+            (mixing_probs, [num_data, self.num_experts]),
+        ]
+        tf.debugging.assert_shapes(
+            shape_constraints,
+            message="Mixing probabilities dimensions (from gating network) should be [num_data, num_experts]",
+        )
         return self.gating_network.predict_mixing_probs(Xnew, **kwargs)
 
     def predict_experts_dists(self, Xnew: InputData, **kwargs) -> tf.Tensor:
@@ -104,6 +103,7 @@ class MixtureOfExperts(BayesianModel, ABC):
         # if dists.batch_shape != tf.shape(mixing_probs):
         #     # mixing_probs = tf.expand_dims(mixing_probs, -2)
         #     mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
+        mixing_probs = tf.expand_dims(mixing_probs, -2)
         mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
 
         tf.debugging.assert_equal(
