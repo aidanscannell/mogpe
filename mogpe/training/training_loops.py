@@ -126,8 +126,8 @@ def monitored_training_loop(
 
     monitor = Monitor(fast_tasks, slow_tasks)
 
-    print("num_batches_per_epoch")
-    print(num_batches_per_epoch)
+    # print("num_batches_per_epoch")
+    # print(num_batches_per_epoch)
     t = time.time()
     for epoch in range(epochs):
         for _ in range(num_batches_per_epoch):
@@ -135,13 +135,13 @@ def monitored_training_loop(
             # duration = t - time.time()
             # print("Iteration duration: ", duration)
             # t = time.time()
-        # monitor(epoch)
+        monitor(epoch)
         epoch_id = epoch + 1
-        print(f"Epoch {epoch_id}\n-------------------------------")
+        # print(f"Epoch {epoch_id}\n-------------------------------")
         if epoch_id % logging_epoch_freq == 0:
-            # tf.print(f"Epoch {epoch_id}: ELBO (train) {training_loss()}")
-            # if manager is not None:
-            #     manager.save()
+            tf.print(f"Epoch {epoch_id}: ELBO (train) {training_loss()}")
+            if manager is not None:
+                manager.save()
             #     # save_models_param_dict(model, save_dir)
             duration = time.time() - t
             print("Iteration duration: ", duration)
