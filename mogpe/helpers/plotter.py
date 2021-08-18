@@ -475,7 +475,12 @@ class Plotter2D(PlotterBase):
             cbars.append(self.plot_gp(fig, axs, means[:, 0], vars[:, 0]))
             for ax in axs:
                 ax.scatter(
-                    self.X[:, 0], self.X[:, 1], marker="x", alpha=0.01, color="k"
+                    self.model.gating_network.inducing_variable.Z[:, 0],
+                    self.model.gating_network.inducing_variable.Z[:, 1],
+                    marker="x",
+                    alpha=0.01,
+                    color="k"
+                    # self.X[:, 0], self.X[:, 1], marker="x", alpha=0.01, color="k"
                 )
         return np.array(cbars)
         # output_dim = means.shape[1]
