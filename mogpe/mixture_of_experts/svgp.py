@@ -47,8 +47,8 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     def maximum_log_likelihood_objective(
         self, data: Tuple[tf.Tensor, tf.Tensor]
     ) -> tf.Tensor:
-        # return self.lower_bound_further(data)
-        return self.lower_bound_tight(data)
+        return self.lower_bound_further(data)
+        # return self.lower_bound_tight(data)
         # return self.lower_bound_1(data)
         # return self.lower_bound_dagp(data)
         # return self.lower_bound_analytic(data)
