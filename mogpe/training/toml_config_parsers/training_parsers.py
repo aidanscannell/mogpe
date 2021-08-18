@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-import toml
-import gpflow as gpf
-import tensorflow as tf
-
-from bunch import Bunch
 from datetime import datetime
-from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
 
+import gpflow as gpf
+import numpy as np
+import tensorflow as tf
+import toml
+from bunch import Bunch
+from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
+from mogpe.helpers import Plotter1D, Plotter2D
 from mogpe.training import (
-    parse_mixture_of_svgp_experts_model,
-    training_tf_loop,
-    monitored_training_tf_loop,
     monitored_training_loop,
+    monitored_training_tf_loop,
+    MixtureOfSVGPExperts_from_toml,
+    # parse_mixture_of_svgp_experts_model,
+    training_tf_loop,
 )
 from mogpe.training.utils import load_model_from_config_and_checkpoint
-from mogpe.helpers import Plotter1D, Plotter2D
 
 
 def create_tf_dataset(dataset, num_data, batch_size):
@@ -67,7 +68,8 @@ def train_from_config_and_dataset(config_file, dataset):
         dataset, num_data, config.batch_size
     )
 
-    model = parse_mixture_of_svgp_experts_model(config, X)
+    # model = parse_mixture_of_svgp_experts_model(config, X)
+    model = MixtureOfSVGPExperts_from_toml(config, dataset)
     gpf.utilities.print_summary(model)
 
     if input_dim == 1:
@@ -77,7 +79,23 @@ def train_from_config_and_dataset(config_file, dataset):
         plotter = Plotter2D(model, X, Y)
         slow_tasks = plotter.tf_monitor_task_group(log_dir, config.slow_tasks_period)
     else:
-        slow_tasks = None
+        num_test = 400
+        factor = 1.2
+        sqrtN = int(np.sqrt(num_test))
+        xx = np.linspace(
+            tf.reduce_min(X[:, 0]) * factor, tf.reduce_max(X[:, 0]) * factor, sqrtN
+        )
+        yy = np.linspace(
+            tf.reduce_min(X[:, 1]) * factor, tf.reduce_max(X[:, 1]) * factor, sqrtN
+        )
+        xx, yy = np.meshgrid(xx, yy)
+        test_inputs = np.column_stack([xx.reshape(-1), yy.reshape(-1)])
+        test_inputs = np.concatenate(
+            [test_inputs, np.ones(test_inputs.shape) * 0.0], -1
+        )
+        plotter = Plotter2D(model, X, Y, test_inputs=test_inputs)
+        slow_tasks = plotter.tf_monitor_task_group(log_dir, config.slow_tasks_period)
+        # slow_tasks = None
     training_loss = model.training_loss_closure(iter(train_dataset))
     fast_tasks = parse_fast_tasks(
         config.fast_tasks_period, training_loss, model, log_dir

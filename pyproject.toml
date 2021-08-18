@@ -25,6 +25,7 @@ tensorflow-probability = "^0.12.2"
 tensorflow = "^2.5.0"
 gpflow = "^2.2.1"
 tensor-annotations = {git = "https://github.com/deepmind/tensor_annotations"}
+python-configuration = "^0.8.2"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

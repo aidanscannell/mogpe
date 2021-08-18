@@ -1,5 +1,3 @@
-input_dim = 1
-output_dim = 1
 epochs = 25000
 batch_size = 30
 num_samples = 1 # number of samples to approximate variational expectation with
@@ -7,18 +5,20 @@ num_experts = 3
 fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
 slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 100 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
-log_dir = "../logs/mcycle/three_experts"
 num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
 
 [[experts]]
     name = "expert_1" # specify a name
-    mean_function = "constant" # mean function e.g. options are "constant" or "zero"
     whiten = true # boolean, if true, use whitened representation of inducing points
+    [experts.mean_function]
+        name = "constant" # mean function e.g. options are "constant" or "zero"
+        [experts.mean_function.params] # set required parameters for the kernel type
+            constant = 0.0 # constant value
     [experts.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
         [experts.kernel.params] # set required parameters for the kernel type
-            lengthscale = 20.0 # RBF lengthscale
-            variance = 0.05 # RBF signal variance
+            lengthscale = 10.0 # RBF lengthscale
+            variance = 0.00005 # RBF signal variance
     [experts.likelihood]
         name = "gaussian" # likelihood type, "gaussian" is only valid option
         [experts.likelihood.params] # set required parameters for the likelihood type
@@ -32,8 +32,11 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
 
 [[experts]]
     name = "expert_2" # specify a name
-    mean_function = "constant" # mean function e.g. options are "constant" or "zero"
     whiten = true # boolean, if true, use whitened representation of inducing points
+    [experts.mean_function]
+        name = "constant" # mean function e.g. options are "constant" or "zero"
+        [experts.mean_function.params] # set required parameters for the kernel type
+            constant = 0.0 # constant value
     [experts.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
         [experts.kernel.params] # set required parameters for the kernel type
@@ -52,8 +55,11 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
 
 [[experts]]
     name = "expert_3" # specify a name
-    mean_function = "constant" # mean function e.g. options are "constant" or "zero"
     whiten = true # boolean, if true, use whitened representation of inducing points
+    [experts.mean_function]
+        name = "constant" # mean function e.g. options are "constant" or "zero"
+        [experts.mean_function.params] # set required parameters for the kernel type
+            constant = 0.0 # constant value
     [experts.kernel]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
         [experts.kernel.params] # set required parameters for the kernel type
@@ -71,21 +77,22 @@ num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ 
         q_diag = false # boolean, if true, approximate covariance by diagonal matrix
 
 [gating_network]
-    mean_function = "zero" # mean function e.g. options are "constant" or "zero"
     whiten = true # boolean, if true, use whitened representation of inducing points
-    [[gating_network.kernels]]
+    [gating_network.mean_function]
+        name = "zero" # mean function e.g. options are "constant" or "zero"
+    [[gating_network.kernel]]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
-        [gating_network.kernels.params] # set required parameters for the kernel type
+        [gating_network.kernel.params] # set required parameters for the kernel type
             lengthscale = 0.5 # RBF lengthscale
             variance = 3.0 # RBF signal variance
-    [[gating_network.kernels]]
+    [[gating_network.kernel]]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
-        [gating_network.kernels.params] # set required parameters for the kernel type
+        [gating_network.kernel.params] # set required parameters for the kernel type
             lengthscale = 0.5 # RBF lengthscale
             variance = 3.0 # RBF signal variance
-    [[gating_network.kernels]]
+    [[gating_network.kernel]]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product"
-        [gating_network.kernels.params] # set required parameters for the kernel type
+        [gating_network.kernel.params] # set required parameters for the kernel type
             lengthscale = 0.5 # RBF lengthscale
             variance = 3.0 # RBF signal variance
     [gating_network.inducing_points]

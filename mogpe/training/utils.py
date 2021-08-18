@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-import gpflow as gpf
-import numpy as np
 import pathlib
 import pickle
+from datetime import datetime
+
+import gpflow as gpf
+import numpy as np
 import tensorflow as tf
+from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
+
 from .toml_config_parsers.model_parsers import create_mosvgpe_model_from_config
 
 
@@ -80,6 +84,50 @@ def save_models_param_dict(model, save_dir):
     f = open(save_model_dir, "wb")
     pickle.dump(param_dict, f)
     f.close()
+
+
+def create_tf_dataset(dataset, num_data, batch_size):
+    prefetch_size = tf.data.experimental.AUTOTUNE
+    shuffle_buffer_size = num_data // 2
+    num_batches_per_epoch = num_data // batch_size
+    train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
+    train_dataset = (
+        train_dataset.repeat()
+        .prefetch(prefetch_size)
+        .shuffle(buffer_size=shuffle_buffer_size)
+        .batch(batch_size, drop_remainder=True)
+    )
+    return train_dataset, num_batches_per_epoch
+
+
+def init_fast_tasks(log_dir, model=None, training_loss=None, fast_tasks_period=10):
+    fast_tasks = []
+    if training_loss is not None:
+        fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "elbo"))
+    if model is not None:
+        fast_tasks.append(ModelToTensorBoard(log_dir, model))
+    return MonitorTaskGroup(fast_tasks, period=fast_tasks_period)
+
+
+def create_log_dir(log_dir, num_experts):
+    return (
+        log_dir
+        + "/"
+        + str(num_experts)
+        + "_experts/"
+        + datetime.now().strftime("%m-%d-%H%M%S")
+    )
+
+
+def init_inducing_variables(X, num_inducing):
+    if isinstance(X, tf.Tensor):
+        X = X.numpy()
+    input_dim = X.shape[1]
+    idx = np.random.choice(range(X.shape[0]), size=num_inducing, replace=False)
+    inducing_inputs = X[idx, :].reshape(num_inducing, input_dim)
+    return gpf.inducing_variables.SharedIndependentInducingVariables(
+        gpf.inducing_variables.InducingPoints(inducing_inputs)
+    )
 
 
 if __name__ == "__main__":
