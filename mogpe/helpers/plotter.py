@@ -272,7 +272,7 @@ class Plotter2D(PlotterBase):
             self.test_inputs[:, 1],
             mean,
             100,
-            levels=mean_levels,
+            # levels=mean_levels,
             cmap=self.cmap,
         )
         var_contf = axs[1].tricontourf(
@@ -280,7 +280,7 @@ class Plotter2D(PlotterBase):
             self.test_inputs[:, 1],
             var,
             100,
-            levels=var_levels,
+            # levels=var_levels,
             cmap=self.cmap,
         )
         return mean_contf, var_contf
@@ -308,6 +308,27 @@ class Plotter2D(PlotterBase):
         cax.xaxis.set_label_position("top")
         return cbar
 
+    def create_levels(self, means, vars):
+        if tf.math.reduce_max(means) > 0.0:
+            factor_mean = 1.01
+        else:
+            factor_mean = -1.01
+        if tf.math.reduce_max(vars) > 0.0:
+            factor_var = 1.01
+        else:
+            factor_var = -1.01
+        mean_levels = tf.linspace(
+            tf.math.reduce_min(means),
+            tf.math.reduce_max(means) * factor_mean,
+            self.num_levels,
+        )
+        var_levels = tf.linspace(
+            tf.math.reduce_min(vars),
+            tf.math.reduce_max(vars) * factor_var,
+            self.num_levels,
+        )
+        return mean_levels, var_levels
+
     def plot_gps_shared_cbar(self, fig, axs, means, vars):
         """Plots mean and var for each expert in each output dim
 
@@ -323,13 +344,8 @@ class Plotter2D(PlotterBase):
         """
         # output_dim = tf.shape(means)[1]
         output_dim = means.shape[1]
-        mean_levels = tf.linspace(
-            tf.math.reduce_min(means), tf.math.reduce_max(means), self.num_levels
-        )
-        var_levels = tf.linspace(
-            tf.math.reduce_min(vars), tf.math.reduce_max(vars), self.num_levels
-        )
         row = 0
+        mean_levels, var_levels = self.create_levels(means, vars)
         num_experts = means.shape[-1]
         for k in range(num_experts):
             for j in range(output_dim):
@@ -362,12 +378,13 @@ class Plotter2D(PlotterBase):
         """
         tf.print("Plotting experts f...")
         means, vars = self.model.predict_experts_fs(self.test_inputs)
-        mean_levels = tf.linspace(
-            tf.math.reduce_min(means), tf.math.reduce_max(means), self.num_levels
-        )
-        var_levels = tf.linspace(
-            tf.math.reduce_min(vars), tf.math.reduce_max(vars), self.num_levels
-        )
+        # mean_levels = tf.linspace(
+        #     tf.math.reduce_min(means), tf.math.reduce_max(means), self.num_levels
+        # )
+        # var_levels = tf.linspace(
+        #     tf.math.reduce_min(vars), tf.math.reduce_max(vars), self.num_levels
+        # )
+        mean_levels, var_levels = self.create_levels(means, vars)
         # return self.plot_gps_shared_cbar(fig, axs, means, vars)
         num_experts = means.shape[-1]
         output_dim = means.shape[-2]
