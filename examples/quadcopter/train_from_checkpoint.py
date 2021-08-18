@@ -1,73 +1,26 @@
 #!/usr/bin/env python3
-import numpy as np
-import tensorflow as tf
-from gpflow import default_float
 from mogpe.training import (
     train_from_config_and_checkpoint,
     train_from_config_and_dataset,
 )
-from mogpe.training.utils import load_model_from_config_and_checkpoint
 
-# Define input region (rectangle) to remove data from.
-# This is done to test the models ability to capture epistemic unc.
-# x1_low = -1.0
-# x1_high = 1.0
-# x2_low = -1.0
-# x2_high = 3.0
-x1_low = 0.0
-x1_high = 1.0
-x2_low = 0.0
-x2_high = 3.0
+from quadcopter.load_data import load_quadcopter_dataset
 
 
-def load_quadcopter_dataset(filename, standardise=False):
-    data = np.load(filename)
-    X = data["x"]
-    Y = data["y"][:, 0:2]
-    print("Input data shape: ", X.shape)
-    print("Output data shape: ", Y.shape)
+if __name__ == "__main__":
+    # Set path to data set npz file
+    # data_file = "./data/quadcopter_data.npz"
+    data_file = "./quadcopter/data/quadcopter_data_step_20.npz"
+    data_file = "./quadcopter/data/quadcopter_data_step_40.npz"
+    data_file = "./quadcopter/data/quadcopter_data.npz"
 
-    # remove some data points
-    def trim_dataset(X, Y, x1_low, x2_low, x1_high, x2_high):
-        mask_0 = X[:, 0] < x1_low
-        mask_1 = X[:, 1] < x2_low
-        mask_2 = X[:, 0] > x1_high
-        mask_3 = X[:, 1] > x2_high
-        mask = mask_0 | mask_1 | mask_2 | mask_3
-        X_partial = X[mask, :]
-        Y_partial = Y[mask, :]
-        return X_partial, Y_partial
+    # Set path to training config
+    config_file = "./quadcopter/configs/config_2_experts.toml"
+    ckpt_dir = "./logs/quadcopter/two_experts/08-13-172243"
+    ckpt_dir = "./logs/quadcopter/two_experts/08-13-190426"
 
-    # X, Y = trim_dataset(X, Y, x1_low=-1.0, x2_low=-1.0, x1_high=1.0, x2_high=3.0)
-    X, Y = trim_dataset(
-        X, Y, x1_low=x1_low, x2_low=x2_low, x1_high=x1_high, x2_high=x2_high
-    )
+    # Load mcycle data set
+    dataset = load_quadcopter_dataset(data_file)
 
-    X = tf.convert_to_tensor(X, dtype=default_float())
-    Y = tf.convert_to_tensor(Y, dtype=default_float())
-    print("Trimmed input data shape: ", X.shape)
-    print("Trimmed output data shape: ", Y.shape)
-
-    # standardise input
-    mean_x, var_x = tf.nn.moments(X, axes=[0])
-    mean_y, var_y = tf.nn.moments(Y, axes=[0])
-    X = (X - mean_x) / tf.sqrt(var_x)
-    Y = (Y - mean_y) / tf.sqrt(var_y)
-    data = (X, Y)
-    return data
-
-
-# Set path to data set npz file
-data_file = "./data/quadcopter_data.npz"
-
-# Set path to training config
-config_file = "./configs/config_2_experts.toml"
-# ckpt_dir = "../logs/quadcopter/two_experts/11-14-232512"
-ckpt_dir = "../logs/quadcopter/two_experts/01-25-170623"
-# config_file = './configs/config_3_experts.toml'
-
-# Load mcycle data set
-dataset = load_quadcopter_dataset(data_file)
-
-# Parse the toml config file and train
-trained_model = train_from_config_and_checkpoint(config_file, ckpt_dir, dataset)
+    # Parse the toml config file and train
+    trained_model = train_from_config_and_checkpoint(config_file, ckpt_dir, dataset)
