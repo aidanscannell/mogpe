@@ -4,6 +4,20 @@ This document can be used to get familiar with =mogpe=.
 
 =mogpe= is used learn Mixture's of Gaussian process experts on three example data sets:
 
-1. An artificial data set,
-2. The motorcycle (mcycle) data set,
-3. A real-world 2D data set of a quadcopter flying in a room subject to spatially varying turbulence.
+1. The motorcycle (mcycle) data set,
+2. A real-world 2D data set of a quadcopter flying in a room subject to spatially varying turbulence.
+3. A simulated 2D quadcopter (point mass) subject to spatially varying turbulence.
+
+Each example has a set of =toml= configuration files which specify the initial model parameters and training hyperparameters.
+The scripts can be run from this directory =/path/to/mogpe/examples/= using the following lines,
+#+begin_src shell
+cd /path/to/mogpe/examples/
+poetry shell
+python -m mcycle.train_from_model_config
+#+end_src
+or for the quadcopter example,
+#+begin_src shell
+cd /path/to/mogpe/examples/
+poetry shell
+python -m quadcopter.train_from_model_config
+#+end_src
