@@ -349,20 +349,6 @@ def parse_experts(experts_cfg, input_dim, output_dim, X):
     return SVGPExperts(experts_list)
 
 
-# def parse_mixture_of_svgp_experts_model(cfg, X):
-#     num_data, input_dim = X.shape
-#     num_samples = parse_num_samples(cfg)
-#     experts = parse_experts(cfg.experts, input_dim, cfg.output_dim, X)
-#     gating_network = parse_gating_network(cfg, X)
-
-#     return MixtureOfSVGPExperts(
-#         gating_network=gating_network,
-#         experts=experts,
-#         num_samples=num_samples,
-#         num_data=num_data,
-#     )
-
-
 def MixtureOfSVGPExperts_from_toml(config_file, dataset):
     cfg = config_from_toml(config_file, read_from_file=True)
 
@@ -379,29 +365,23 @@ def MixtureOfSVGPExperts_from_toml(config_file, dataset):
         num_samples=parse_num_samples(cfg),
         num_data=num_data,
     )
-    # return parse_mixture_of_svgp_experts_model(cfg, dataset)
 
 
-create_mosvgpe_model_from_config = MixtureOfSVGPExperts_from_toml
+# class ConfigParser:
+#     def __init__(self, config_file, dataset=None):
+#         self.cfg = config_from_toml(config_file, read_from_file=True)
+#         if dataset is not None:
+#             self.X, self.Y = dataset
+#             self.num_data = self.X.shape[0]
+#             self.input_dim = self.X.shape[1]
+#             self.output_dim = self.Y.shape[1]
 
+#         experts = self.parse_experts(cfg.experts, num_data, X)
+#         gating_network = self.parse_gating_network(cfg.gating_network, X)
 
-class ConfigParser:
-    def __init__(self, config_file, dataset=None):
-        self.cfg = config_from_toml(config_file, read_from_file=True)
-        if dataset is not None:
-            self.X, self.Y = dataset
-            self.num_data = self.X.shape[0]
-            self.input_dim = self.X.shape[1]
-            self.output_dim = self.Y.shape[1]
-
-        experts = self.parse_experts(cfg.experts, num_data, X)
-        gating_network = self.parse_gating_network(cfg.gating_network, X)
-
-        model = MixtureOfSVGPExperts(
-            gating_network=gating_network,
-            experts=experts,
-            num_samples=self.cfg.num_samples,
-            num_data=self.cfg.num_data,
-        )
-
-    # def parse_experts(self.):
+#         model = MixtureOfSVGPExperts(
+#             gating_network=gating_network,
+#             experts=experts,
+#             num_samples=self.cfg.num_samples,
+#             num_data=self.cfg.num_data,
+#         )
