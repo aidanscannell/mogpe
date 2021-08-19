@@ -8,7 +8,8 @@ import numpy as np
 import tensorflow as tf
 from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
 
-from .toml_config_parsers.model_parsers import create_mosvgpe_model_from_config
+# from .toml_config_parsers.model_parsers import create_mosvgpe_model_from_config
+from .toml_config_parsers.model_parsers import MixtureOfSVGPExperts_from_toml
 
 
 def update_model_from_checkpoint(model, ckpt_dir):
@@ -20,8 +21,9 @@ def update_model_from_checkpoint(model, ckpt_dir):
     return model
 
 
-def load_model_from_config_and_checkpoint(config_file, ckpt_dir, X=None):
-    model = create_mosvgpe_model_from_config(config_file, X)
+def load_model_from_config_and_checkpoint(config_file, ckpt_dir, dataset):
+    model = MixtureOfSVGPExperts_from_toml(config_file, dataset)
+    # model = create_mosvgpe_model_from_config(config_file, X)
     # print("Initial Model from config_file")
     # gpf.utilities.print_summary(model)
     return update_model_from_checkpoint(model, ckpt_dir)
