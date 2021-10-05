@@ -269,7 +269,7 @@ def calc_error(data_dict, step, tello_x, tello_y):
 
 
 if __name__ == "__main__":
-    path_to_csv_folder = "./27-feb/half-lengthscale"
+    path_to_csv_folder = "./csv/27-feb/half-lengthscale"
 
     steps = [10, 20, 40]
     directions = ["up", "down"]
