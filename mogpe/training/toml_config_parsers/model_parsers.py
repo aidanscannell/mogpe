@@ -15,7 +15,9 @@ from mogpe.mixture_of_experts import MixtureOfSVGPExperts
 DEFAULT_VARIANCE_LOWER_BOUND = 1e-6
 
 
-def parse_lengthscale(params_cfg, input_dim):
+def parse_lengthscale(params_cfg, input_dim, active_dims=None):
+    if active_dims is not None:
+        input_dim = len(active_dims)
     try:
         return tf.convert_to_tensor(
             [params_cfg.lengthscale] * input_dim, dtype=default_float()
