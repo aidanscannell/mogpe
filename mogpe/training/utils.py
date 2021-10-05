@@ -105,18 +105,60 @@ def create_tf_dataset(dataset, num_data, batch_size):
 def init_fast_tasks(log_dir, model=None, training_loss=None, fast_tasks_period=10):
     fast_tasks = []
     if training_loss is not None:
-        fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "elbo"))
+        fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "training_loss"))
     if model is not None:
         fast_tasks.append(ModelToTensorBoard(log_dir, model))
     return MonitorTaskGroup(fast_tasks, period=fast_tasks_period)
 
 
-def create_log_dir(log_dir, num_experts):
+def init_fast_tasks_bounds(
+    log_dir, train_dataset, model, training_loss=None, fast_tasks_period=10
+):
+    further_train_dataset_iter = iter(train_dataset)
+    tight_train_dataset_iter = iter(train_dataset)
+
+    @tf.function
+    def elbo_further():
+        batch = next(further_train_dataset_iter)
+        return model.lower_bound_further(batch)
+
+    @tf.function
+    def elbo_tight():
+        batch = next(tight_train_dataset_iter)
+        return model.lower_bound_tight(batch)
+
+    fast_tasks = []
+    fast_tasks.append(ScalarToTensorBoard(log_dir, elbo_further, "elbo_further"))
+    fast_tasks.append(ScalarToTensorBoard(log_dir, elbo_tight, "elbo_tight"))
+    if training_loss is None:
+        fast_tasks.append(
+            ScalarToTensorBoard(
+                log_dir,
+                model.training_loss_closure(iter(train_dataset)),
+                "training_loss",
+            )
+        )
+    else:
+        fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "training_loss"))
+    fast_tasks.append(ModelToTensorBoard(log_dir, model))
+    return MonitorTaskGroup(fast_tasks, period=fast_tasks_period)
+
+
+def create_log_dir(
+    log_dir,
+    num_experts,
+    batch_size,
+    learning_rate=0.001,
+):
     return (
         log_dir
         + "/"
         + str(num_experts)
-        + "_experts/"
+        + "_experts/batch_size_"
+        + str(batch_size)
+        + "/learning_rate_"
+        + str(learning_rate)
+        + "/"
         + datetime.now().strftime("%m-%d-%H%M%S")
     )
 
