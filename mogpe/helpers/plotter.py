@@ -15,6 +15,21 @@ color_3 = "darkred"
 color_3 = "lime"
 color_obs = "red"
 
+plt.style.use("science")
+
+SMALL_SIZE = 8
+MEDIUM_SIZE = 10
+BIGGER_SIZE = 12
+
+# plt.rc("font", size=SMALL_SIZE)  # controls default text sizes
+plt.rc("font", size=BIGGER_SIZE)  # controls default text sizes
+plt.rc("axes", titlesize=SMALL_SIZE)  # fontsize of the axes title
+plt.rc("axes", labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+plt.rc("xtick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("ytick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
+plt.rc("figure", titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 
 class PlotterBase(ABC):
     def __init__(self, model, X, Y, num_samples=100, params=None):
@@ -219,13 +234,13 @@ class Plotter2D(PlotterBase):
         test_inputs=None,
         num_samples=100,
         params=None,
-        num_levels=10,
+        num_levels=6,
         cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap,
     ):
         super().__init__(model, X, Y, num_samples, params)
         self.cmap = cmap
         self.num_levels = num_levels
-        # self.levels = np.linspace(0., 1., num_levels)
+        # self.levels = np.linspace(0.0, 1.0, num_levels)
         self.levels = np.linspace(0.0, 1.0, 50)
         if test_inputs is None:
             num_test = 400
@@ -267,6 +282,9 @@ class Plotter2D(PlotterBase):
         :param mean_levels: levels for mean contourf e.g. np.linspace(0, 1, 10)
         :param var_levels: levels for var contourf e.g. np.linspace(0, 1, 10)
         """
+        for ax in axs:
+            ax.set_xlabel("$x$")
+            ax.set_ylabel("$y$")
         mean_contf = axs[0].tricontourf(
             self.test_inputs[:, 0],
             self.test_inputs[:, 1],
@@ -301,9 +319,12 @@ class Plotter2D(PlotterBase):
             ax=ax,
             use_gridspec=True,
             cax=cax,
-            format="%0.2f",
+            # format="%0.2f",
             orientation="horizontal",
         )
+        # cbar.ax.locator_params(nbins=9)
+
+        # cax.ticklabel_format(style="sci", scilimits=(0, 3))
         cax.xaxis.set_ticks_position("top")
         cax.xaxis.set_label_position("top")
         return cbar
@@ -425,6 +446,9 @@ class Plotter2D(PlotterBase):
         """
         tf.print("Plotting gating network mixing probabilities...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+        for ax in axs:
+            ax.set_xlabel("$x$")
+            ax.set_ylabel("$y$")
         for k in range(self.num_experts):
             if k < self.num_experts - 1:
                 axs[k].get_xaxis().set_visible(False)
