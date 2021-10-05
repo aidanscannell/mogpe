@@ -13,3 +13,4 @@ from .toml_config_parsers.training_parsers import (
     train_from_config_and_dataset,
     train_from_config_and_checkpoint,
 )
+from .utils import load_model_from_config_and_checkpoint
