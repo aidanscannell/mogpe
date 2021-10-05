@@ -151,6 +151,26 @@ class SVGPExperts(ExpertsBase):
         vars = tf.stack(vars, -1)
         return mus, vars
 
+    def predict_ys(
+        self,
+        Xnew: InputData,
+        num_inducing_samples: int = None,
+        full_cov=False,
+        full_output_cov=False,
+    ) -> MeanAndVariance:
+        """Returns the set of experts predictions mean and (co)vars at Xnew.
+
+        :param Xnew: inputs with shape [num_test, input_dim]
+        :returns: a tuple of (mean, (co)var) each with shape [..., num_test, output_dim, num_experts]
+        """
+        dists = self.predict_dists(
+            Xnew,
+            num_inducing_samples=num_inducing_samples,
+            full_cov=full_cov,
+            full_output_cov=full_output_cov,
+        )
+        return dists.mean(), dists.variance()
+
     def likelihoods(self) -> List[Likelihood]:
         likelihoods = []
         for expert in self.experts_list:
