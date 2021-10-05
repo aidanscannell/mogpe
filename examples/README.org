@@ -20,4 +20,5 @@ or for the quadcopter example,
 cd /path/to/mogpe/examples/
 poetry shell
 python -m quadcopter.train_from_model_config
+python -m quadcopter.learn_subset
 #+end_src
