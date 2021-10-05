@@ -27,22 +27,28 @@ def parse_lengthscale(params_cfg, input_dim):
 
 def parse_variance(params_cfg):
     try:
-        return params_cfg.variance
+        return tf.Variable([params_cfg.variance], dtype=default_float())
     except AttributeError:
         print("No variance in config so setting it to 1.0")
         return 1.0
 
 
 def parse_rbf_kernel(kernel_cfg, input_dim):
-    lengthscale = parse_lengthscale(kernel_cfg.params, input_dim)
+    active_dims = parse_active_dims(kernel_cfg)
+    lengthscale = parse_lengthscale(kernel_cfg.params, input_dim, active_dims)
     variance = parse_variance(kernel_cfg.params)
-    return gpf.kernels.RBF(lengthscales=lengthscale, variance=variance)
+    return gpf.kernels.RBF(
+        lengthscales=lengthscale, variance=variance, active_dims=active_dims
+    )
 
 
 def parse_cosine_kernel(kernel_cfg, input_dim):
     lengthscale = parse_lengthscale(kernel_cfg.params, input_dim)
     variance = parse_variance(kernel_cfg.params)
-    return gpf.kernels.Cosine(lengthscales=lengthscale, variance=variance)
+    active_dims = parse_active_dims(kernel_cfg)
+    return gpf.kernels.Cosine(
+        lengthscales=lengthscale, variance=variance, active_dims=active_dims
+    )
 
 
 def parse_prod_kernel(kernel_cfg, input_dim):
@@ -264,6 +270,14 @@ def parse_whiten(svgp_cfg):
         return True
 
 
+def parse_active_dims(kernel_cfg):
+    try:
+        return kernel_cfg.active_dims
+    except AttributeError:
+        print("No active_dims in toml config so setting active_dims=None")
+        return None
+
+
 def parse_num_samples(cfg):
     try:
         return cfg.num_samples
@@ -280,6 +294,13 @@ def parse_num_experts(cfg):
 
 
 def parse_gating_network(cfg, X):
+    active_dims = parse_active_dims(cfg.gating_network)
+    if active_dims is not None:
+        X_active = []
+        for dim in active_dims:
+            X_active.append(X[:, dim])
+        X = np.stack(X_active, -1)
+
     num_data, input_dim = X.shape
     num_experts = parse_num_experts(cfg)
 
