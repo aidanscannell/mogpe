@@ -14,6 +14,7 @@ def training_tf_loop(
     training_loss,
     epochs: int = 1,
     num_batches_per_epoch: int = 1,
+    learning_rate: float = 0.001,
     logging_epoch_freq: int = 100,
     manager: tf.train.CheckpointManager = None,
 ):
@@ -25,7 +26,7 @@ def training_tf_loop(
     :param num_batches_per_epoch: The number of batches per epoch
     :param logging_epoch_freq: The epoch frequency that the training loss is printed.
     """
-    optimizer = tf.optimizers.Adam()
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
     @tf.function
     def tf_optimization_step():
@@ -51,6 +52,7 @@ def monitored_training_tf_loop(
     training_loss,
     epochs: int = 1,
     num_batches_per_epoch: int = 1,
+    learning_rate: float = 0.001,
     fast_tasks: gpf.monitor.MonitorTaskGroup = None,
     logging_epoch_freq: int = 100,
     manager: tf.train.CheckpointManager = None,
@@ -69,7 +71,7 @@ def monitored_training_tf_loop(
         MonitorTaskGroup([ScalarToTensorBoard(log_dir, training_loss, "elbo")])
     :param logging_epoch_freq: The epoch frequency that the training loss is printed.
     """
-    optimizer = tf.optimizers.Adam()
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
     monitor = Monitor(fast_tasks)
 
     @tf.function
@@ -97,6 +99,7 @@ def monitored_training_loop(
     training_loss,
     epochs: int = 1,
     num_batches_per_epoch: int = 1,
+    learning_rate: float = 0.001,
     fast_tasks: gpf.monitor.MonitorTaskGroup = None,
     slow_tasks: gpf.monitor.MonitorTaskGroup = None,
     logging_epoch_freq: int = 100,
@@ -116,7 +119,7 @@ def monitored_training_loop(
     :param slow_tasks: gpflow monitor slow tasks e.g. plotting images
     :param logging_epoch_freq: The epoch frequency that the training loss is printed.
     """
-    optimizer = tf.optimizers.Adam()
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
     # checkpoint_path = "training_2/cp-{epoch:04d}.ckpt"
     # checkpoint_dir = os.path.dirname(checkpoint_path)
 
