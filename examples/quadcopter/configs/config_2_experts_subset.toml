@@ -3,6 +3,8 @@
 data_file = "./quadcopter/data/quadcopter_data_step_20_direction_down.npz"
 # data_file = "./quadcopter/data/quadcopter_data_step_40_direction_down.npz"
 trim_coords = [[-1.0, -3.0], [1.0, -1.0]]
+standardise = true  # true/false whether to standardise data
+plot_dataset = false # true/false whether to plot data set with quiver
 
 epochs = 6000
 # batch_size = 300
