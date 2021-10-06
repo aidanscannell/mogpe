@@ -18,6 +18,7 @@ slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow
 logging_epoch_freq = 50 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
 log_dir = "./logs/quadcopter/subset/"
 num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
+bound = "further" # which ELBO to use, either "tight" or "further", default is "further"
 
 [[experts]]
     name = "non_turbulent_mode" # specify a name
