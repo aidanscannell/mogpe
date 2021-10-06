@@ -150,14 +150,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         """
         with tf.name_scope("ELBO") as scope:
             X, Y = data
-            num_test = X.shape[0]
+            # num_test = X.shape[0]
 
             kl_gating = tf.reduce_sum(self.gating_network.prior_kl())
             kl_experts = tf.reduce_sum(self.experts.prior_kls())
 
             with tf.name_scope("predict_mixing_probs") as scope:
                 h_mean, h_var = self.gating_network.predict_f(
-                    X, self.num_samples, full_cov=False
+                    X, num_inducing_samples=self.num_samples, full_cov=False
                 )
 
                 def mixing_probs_wrapper(args):
@@ -212,12 +212,24 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 message="Gating network and experts dimensions do not match",
             )
             with tf.name_scope("marginalise_indicator_variable") as scope:
+                expected_experts = tf.expand_dims(expected_experts, -2)
+                expected_experts = tf.expand_dims(expected_experts, 1)
+                mixing_probs = tf.expand_dims(mixing_probs, -2)
+                mixing_probs = tf.expand_dims(mixing_probs, 0)
+                print("expected_experts expanded")
+                print("mixing_probs expanded")
+                print(expected_experts.shape)
+                print(mixing_probs.shape)
                 weighted_sum_over_indicator = tf.matmul(
                     expected_experts, mixing_probs, transpose_b=True
                 )
 
+                print("Marginalised indicator variable")
+                print(weighted_sum_over_indicator.shape)
                 # remove last dim as artifacts of marginalising indicator
-                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0]
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, :, 0, 0]
+                # weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0, 0]
+                # weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, 0]
             print("Marginalised indicator variable")
             print(weighted_sum_over_indicator.shape)
 
@@ -229,26 +241,31 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             # print('Reduce sum over output dimension')
             # print(weighted_sum_over_indicator.shape)
 
-            # TODO correct num samples for K experts. This assumes 2 experts
-            num_samples = self.num_samples ** (self.num_experts + 1)
-            var_exp = (
-                1
-                / num_samples
-                * tf.reduce_sum(tf.math.log(weighted_sum_over_indicator), axis=0)
-            )
+            # # TODO correct num samples for K experts. This assumes 2 experts
+            # num_samples = self.num_samples ** (self.num_experts + 1)
+            # var_exp = (
+            #     1
+            #     / num_samples
+            #     * tf.reduce_sum(tf.math.log(weighted_sum_over_indicator), axis=0)
+            # )
+            # print("Averaged inducing samples")
+            # print(var_exp.shape)
+            # # # TODO where should output dimension be reduced?
+            # # var_exp = tf.linalg.diag_part(var_exp)
+            # # print('Ignore covariance in output dimension')
+            # # print(var_exp.shape)
+            # var_exp = tf.reduce_sum(var_exp)
+            # print("Reduced sum over mini batch")
+            # print(var_exp.shape)
+
+            log = tf.math.log(weighted_sum_over_indicator)
+            var_exp = tf.reduce_mean(log, axis=0)  # Average experts inducing samples
+            var_exp = tf.reduce_mean(var_exp, axis=0)  # Average gating inducing samples
             print("Averaged inducing samples")
             print(var_exp.shape)
-            # # TODO where should output dimension be reduced?
-            # var_exp = tf.linalg.diag_part(var_exp)
-            # print('Ignore covariance in output dimension')
-            # print(var_exp.shape)
-            var_exp = tf.reduce_sum(var_exp)
+            var_exp = tf.reduce_sum(var_exp, 0)
             print("Reduced sum over mini batch")
             print(var_exp.shape)
-
-            # var_exp = tf.reduce_sum(var_exp)
-            # print('Reduce sum over output_dim to get loss')
-            # print(var_exp.shape)
 
             if self.num_data is not None:
                 num_data = tf.cast(self.num_data, default_float())
