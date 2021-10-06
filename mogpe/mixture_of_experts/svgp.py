@@ -36,6 +36,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         experts: SVGPExperts,
         num_data: int,
         num_samples: int = 1,
+        bound: str = "further",  # "tight" or "further"
     ):
         # assert isinstance(gating_network, SVGPGatingNetworkBase)
         assert isinstance(gating_network, SVGPGatingNetwork)
@@ -43,12 +44,20 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         super().__init__(gating_network, experts)
         self.num_samples = num_samples
         self.num_data = num_data
+        self.bound = bound
 
     def maximum_log_likelihood_objective(
         self, data: Tuple[tf.Tensor, tf.Tensor]
     ) -> tf.Tensor:
-        return self.lower_bound_further(data)
-        # return self.lower_bound_tight(data)
+        if self.bound == "further":
+            return self.lower_bound_further(data)
+        elif self.bound == "tight":
+            return self.lower_bound_tight(data)
+        else:
+            print(
+                'Incorrect value passed so MixtureOfSVGPExperts.bound, should be "tight" or "further". Using further_bound as default.'
+            )
+            return self.lower_bound_further(data)
         # return self.lower_bound_1(data)
         # return self.lower_bound_dagp(data)
         # return self.lower_bound_analytic(data)
