@@ -67,15 +67,15 @@ def load_quadcopter_dataset(
     print("Trimmed input data shape: ", X.shape)
     print("Trimmed output data shape: ", Y.shape)
 
-    if plot:
-        plt.quiver(X[:, 0], X[:, 1], Y[:, 0], Y[:, 1])
-        plt.show()
-
     # standardise input
     if standardise:
         mean_x, var_x = tf.nn.moments(X, axes=[0])
         mean_y, var_y = tf.nn.moments(Y, axes=[0])
         X = (X - mean_x) / tf.sqrt(var_x)
         Y = (Y - mean_y) / tf.sqrt(var_y)
+
+    if plot:
+        plt.quiver(X[:, 0], X[:, 1], Y[:, 0], Y[:, 1])
+        plt.show()
     data = (X, Y)
     return data
