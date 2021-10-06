@@ -8,27 +8,13 @@ from mogpe.helpers.plotter import Plotter2D
 # from mogpe.training import create_mosvgpe_model_from_config, monitored_training_loop
 from mogpe.training import MixtureOfSVGPExperts_from_toml, monitored_training_loop
 from mogpe.training.utils import create_log_dir, create_tf_dataset, init_fast_tasks
-from quadcopter.load_data import load_quadcopter_dataset
+from quadcopter.data.load_data import load_quadcopter_dataset
 
 tf.random.set_seed(42)
 np.random.seed(42)
 
 
-# Define input region (rectangle) to remove data from.
-# This is done to test the models ability to capture epistemic unc.
-# trim_coords = np.array([[-1.0, -1.0], [1.0, 3.0]])
-# trim_coords = np.array([[-1.0, -3.0], [1.0, -1.0]])
-# x1_low = -1.0
-# x1_high = 1.0
-# x2_low = -1.0
-# x2_high = 3.0
-# x1_low = 0.0
-# x1_high = 1.0
-# x2_low = 0.0
-# x2_high = 3.0
-
-
-def train_model_from_config(
+def train_mogpe_on_quadcopter_given_config(
     config_file: str,
     # config_file: str, data_file: str, log_dir: str = "./logs/quadcopter"
 ):
@@ -36,12 +22,24 @@ def train_model_from_config(
     cfg = config_from_toml(config_file, read_from_file=True)
 
     # Load quadcopter data set
-    if cfg.trim_coords is not None:
+    try:
         trim_coords = np.array(cfg.trim_coords)
-    else:
+    except AttributeError:
         trim_coords = None
+    try:
+        standardise = cfg.trim_coords
+    except AttributeError:
+        standardise = None
+    try:
+        plot = cfg.plot_dataset
+    except AttributeError:
+        plot = False
     dataset = load_quadcopter_dataset(
-        cfg.data_file, trim_coords=trim_coords, num_outputs=2, plot=True
+        cfg.data_file,
+        trim_coords=trim_coords,
+        num_outputs=2,
+        plot=plot,
+        standardise=standardise,
     )
 
     # Parse the toml config file to create MixtureOfSVGPExperts model
@@ -80,12 +78,9 @@ def train_model_from_config(
     )
 
 
-# if __name__ == "__main__":
-#     log_dir = "./logs/quadcopter"  # dir to store tensorboard logs
+if __name__ == "__main__":
+    # Load config (with model and training params) from toml file
+    config_file = "./quadcopter/configs/config_2_experts_subset.toml"  # path to config
+    config_file = "./quadcopter/configs/config_2_experts_full.toml"  # path to config
 
-#     # Load config (with model and training params) from toml file
-#     config_file = "./quadcopter/configs/config_2_experts.toml"  # path to config
-
-#     # data_file = "./quadcopter/data/quadcopter_data_step_10_direction_down.npz"
-#     data_file = "./quadcopter/data/quadcopter_data_step_20_direction_down.npz"
-#     # data_file = "./quadcopter/data/quadcopter_data_step_40_direction_down.npz"
+    train_mogpe_on_quadcopter_given_config(config_file=config_file)
