@@ -118,11 +118,10 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print("variational_expectation after sum over output dims")
             print(variational_expectation.shape)
 
-            # average samples (gibbs)
-            # TODO have I average gibbs samples correctly???
-            approx_variational_expectation = (
-                tf.reduce_sum(variational_expectation, axis=0) / self.num_samples
-            )
+            # Average samples (gibbs)
+            approx_variational_expectation = tf.reduce_mean(
+                variational_expectation, axis=0
+            )  # [N]
             print("variational_expectation after averaging gibbs samples")
             print(approx_variational_expectation.shape)
             sum_variational_expectation = tf.reduce_sum(
