@@ -295,6 +295,20 @@ def parse_num_experts(cfg):
         raise NotImplementedError("num_experts not specified in toml config")
 
 
+def parse_bound(cfg):
+    try:
+        if cfg.bound == "further" or cfg.bound == "tight":
+            return cfg.bound
+        else:
+            print(
+                "Bound in toml config should be either 'further' or 'tight',  setting bound='further'"
+            )
+            return "further"
+    except AttributeError:
+        print("No bound in toml config so setting bound='further'")
+        return "further"
+
+
 def parse_gating_network(cfg, X):
     active_dims = parse_active_dims(cfg.gating_network)
     if active_dims is not None:
@@ -381,12 +395,14 @@ def MixtureOfSVGPExperts_from_toml(config_file, dataset):
 
     experts = parse_experts(cfg.experts, input_dim, output_dim, X)
     gating_network = parse_gating_network(cfg, X)
+    bound = parse_bound(cfg)
 
     return MixtureOfSVGPExperts(
         gating_network=gating_network,
         experts=experts,
         num_samples=parse_num_samples(cfg),
         num_data=num_data,
+        bound=bound,
     )
 
 
