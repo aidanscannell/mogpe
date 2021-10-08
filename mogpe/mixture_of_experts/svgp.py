@@ -95,15 +95,36 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 components.append(component)
 
             # Evaluate gating network to get categorical dist over inicator var
-            mixing_probs = self.predict_mixing_probs(X)  # [N, K]
-            mixing_probs_broadcast = tf.expand_dims(mixing_probs, -2)  # [N, 1, K]
-            mixing_probs_broadcast = tf.expand_dims(
-                mixing_probs_broadcast, 0
-            )  # [1, N, 1, K]
+            h_means, h_vars = self.gating_network.predict_f(X, full_cov=False)
+            h_dist = tfd.Normal(loc=h_means, scale=h_vars)  # [N, F, K]
+            h_dist_samples = h_dist.sample(self.num_samples)  # [S, N, F, K]
+            mixing_probs = self.gating_network.predict_mixing_probs_given_h(
+                h_mean=h_dist_samples
+            )  # [S, N, K]
+            mixing_probs_broadcast = tf.expand_dims(mixing_probs, -2)  # [S, N, 1, K]
             mixing_probs_broadcast = tf.broadcast_to(
                 mixing_probs_broadcast, f_dist_samples.shape  # [S, N, F, K]
             )
             categorical = tfd.Categorical(probs=mixing_probs_broadcast)
+
+            # Move both expectations inside log
+            # mixing_probs = self.predict_mixing_probs(X)  # [N, K]
+            # mixing_probs_broadcast = tf.expand_dims(mixing_probs, -2)  # [N, 1, K]
+            # mixing_probs_broadcast = tf.broadcast_to(
+            #     mixing_probs_broadcast, f_dist.batch_shape  # [S, N, F, K]
+            # )
+            # categorical = tfd.Categorical(probs=mixing_probs_broadcast)
+
+            # Move gating expectation inside log
+            # mixing_probs = self.predict_mixing_probs(X)  # [N, K]
+            # mixing_probs_broadcast = tf.expand_dims(mixing_probs, -2)  # [N, 1, K]
+            # mixing_probs_broadcast = tf.expand_dims(
+            #     mixing_probs_broadcast, 0
+            # )  # [1, N, 1, K]
+            # mixing_probs_broadcast = tf.broadcast_to(
+            #     mixing_probs_broadcast, f_dist_samples.shape  # [S, N, F, K]
+            # )
+            # categorical = tfd.Categorical(probs=mixing_probs_broadcast)
 
             # Create mixture dist and evaluate log prob
             mixture = tfd.Mixture(cat=categorical, components=components)
