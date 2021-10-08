@@ -27,9 +27,9 @@ def train_mogpe_on_quadcopter_given_config(
     except AttributeError:
         trim_coords = None
     try:
-        standardise = cfg.trim_coords
+        standardise = cfg.standardise
     except AttributeError:
-        standardise = None
+        standardise = False
     try:
         plot = cfg.plot_dataset
     except AttributeError:
