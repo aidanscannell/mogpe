@@ -149,8 +149,10 @@ def create_log_dir(
     num_experts,
     batch_size,
     learning_rate=0.001,
+    bound="further",
+    num_inducing=None,
 ):
-    return (
+    log_dir = (
         log_dir
         + "/"
         + str(num_experts)
@@ -159,8 +161,13 @@ def create_log_dir(
         + "/learning_rate_"
         + str(learning_rate)
         + "/"
-        + datetime.now().strftime("%m-%d-%H%M%S")
+        + bound
+        + "_bound/"
     )
+    if num_inducing is not None:
+        log_dir = log_dir + "num_inducing_" + str(num_inducing) + "/"
+    log_dir = log_dir + datetime.now().strftime("%m-%d-%H%M%S")
+    return log_dir
 
 
 def init_inducing_variables(X, num_inducing):
