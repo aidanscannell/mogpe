@@ -107,12 +107,14 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
             # Create mixture dist and evaluate log prob
             mixture = tfd.Mixture(cat=categorical, components=components)
-            variational_expectation = mixture.log_prob(Y)
+            variational_expectation = mixture.log_prob(Y)  # [S, N, F]
             print("variational_expectation")
             print(variational_expectation.shape)
 
             # sum over output dimensions (assumed independent)
-            variational_expectation = tf.reduce_sum(variational_expectation, -1)
+            variational_expectation = tf.reduce_sum(
+                variational_expectation, -1
+            )  # [S, N]
             print("variational_expectation after sum over output dims")
             print(variational_expectation.shape)
 
@@ -125,7 +127,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
             print(approx_variational_expectation.shape)
             sum_variational_expectation = tf.reduce_sum(
                 approx_variational_expectation, axis=0
-            )
+            )  # []
             print("variational_expectation after sum over data mini batches")
             print(sum_variational_expectation.shape)
 
