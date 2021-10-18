@@ -5,17 +5,20 @@ plot_dataset = false # true/false whether to plot data set with quiver
 test_split_size = 0.3
 
 epochs = 25000
-batch_size = 16
+# batch_size = 64
+batch_size = 32
+# batch_size = 16
 learning_rate = 0.01
+# learning_rate = 0.001
 num_samples = 1 # number of samples to approximate variational expectation with
 num_experts = 3
-fast_tasks_period = 1 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
-slow_tasks_period = 1 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
+fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
+slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 100 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
 log_dir = "./logs/mcycle/"
 num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
-bound = "tight" # which ELBO to use, either "tight" or "further", default is "further"
-# bound = "further" # which ELBO to use, either "tight" or "further", default is "further"
+# bound = "tight" # which ELBO to use, either "tight" or "further", default is "further"
+bound = "further" # which ELBO to use, either "tight" or "further", default is "further"
 
 [[experts]]
     name = "expert_1" # specify a name
@@ -34,7 +37,8 @@ bound = "tight" # which ELBO to use, either "tight" or "further", default is "fu
         [experts.likelihood.params] # set required parameters for the likelihood type
             variance = 0.03 # Guassian noise variance
     [experts.inducing_points]
-        num_inducing = 32
+        # num_inducing = 32
+        num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
         q_mu.var = 2.0 # add Gaussian noise to mean of variational Gaussian posterior to aid training N(0,q_mu.var)
         q_sqrt = 1.0 # cholesky of covariance of variational Gaussian posterior, will be multiplied by identity of correct shape
@@ -57,7 +61,8 @@ bound = "tight" # which ELBO to use, either "tight" or "further", default is "fu
         [experts.likelihood.params] # set required parameters for the likelihood type
             variance = 0.1 # Guassian noise variance
     [experts.inducing_points]
-        num_inducing = 32
+        # num_inducing = 32
+        num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
         q_mu.var = 2.0 # add Gaussian noise to mean of variational Gaussian posterior to aid training N(0,q_mu.var)
         q_sqrt = 1.0 # cholesky of covariance of variational Gaussian posterior, will be multiplied by identity of correct shape
@@ -80,7 +85,8 @@ bound = "tight" # which ELBO to use, either "tight" or "further", default is "fu
         [experts.likelihood.params] # set required parameters for the likelihood type
             variance = 0.2 # Guassian noise variance
     [experts.inducing_points]
-        num_inducing = 32
+        # num_inducing = 32
+        num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
         q_mu.var = 2.0 # add Gaussian noise to mean of variational Gaussian posterior to aid training N(0,q_mu.var)
         q_sqrt = 1.0 # cholesky of covariance of variational Gaussian posterior, will be multiplied by identity of correct shape
@@ -107,7 +113,8 @@ bound = "tight" # which ELBO to use, either "tight" or "further", default is "fu
             lengthscale = 0.5 # RBF lengthscale
             variance = 3.0 # RBF signal variance
     [gating_network.inducing_points]
-        num_inducing = 32
+        # num_inducing = 32
+        num_inducing = 30
         q_mu.mean = 0.0 # mean of variational Gaussian posterior, will be broadcast to correct shape
         q_mu.var = 2.0 # add Gaussian noise to mean of variational Gaussian posterior to aid training N(0,q_mu.var)
         q_sqrt = 2.0 # cholesky of covariance of variational Gaussian posterior, will be multiplied by identity of correct shape
