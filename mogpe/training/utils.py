@@ -7,6 +7,11 @@ import gpflow as gpf
 import numpy as np
 import tensorflow as tf
 from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
+from mogpe.training.metrics import (
+    build_negative_log_predictive_density,
+    build_mean_absolute_error,
+    build_root_mean_squared_error,
+)
 
 # from .toml_config_parsers.model_parsers import create_mosvgpe_model_from_config
 from .toml_config_parsers.model_parsers import MixtureOfSVGPExperts_from_toml
@@ -112,7 +117,12 @@ def init_fast_tasks(log_dir, model=None, training_loss=None, fast_tasks_period=1
 
 
 def init_fast_tasks_bounds(
-    log_dir, train_dataset, model, training_loss=None, fast_tasks_period=10
+    log_dir,
+    train_dataset,
+    model,
+    test_dataset=None,
+    training_loss=None,
+    fast_tasks_period=10,
 ):
     further_train_dataset_iter = iter(train_dataset)
     tight_train_dataset_iter = iter(train_dataset)
@@ -140,6 +150,49 @@ def init_fast_tasks_bounds(
         )
     else:
         fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "training_loss"))
+    if test_dataset is not None:
+        further_test_dataset_iter = iter(test_dataset)
+        tight_test_dataset_iter = iter(test_dataset)
+
+        @tf.function
+        def elbo_further_test():
+            batch = next(further_test_dataset_iter)
+            return model.lower_bound_further(batch)
+            # return model.lower_bound_further(test_dataset)
+
+        @tf.function
+        def elbo_tight_test():
+            batch = next(tight_test_dataset_iter)
+            return model.lower_bound_tight(batch)
+            # return model.lower_bound_tight(test_dataset)
+
+        fast_tasks.append(
+            ScalarToTensorBoard(
+                log_dir,
+                build_negative_log_predictive_density(model, iter(test_dataset)),
+                "NLPD",
+            )
+        )
+        fast_tasks.append(
+            ScalarToTensorBoard(
+                log_dir,
+                build_mean_absolute_error(model, iter(test_dataset)),
+                "MAE",
+            )
+        )
+        fast_tasks.append(
+            ScalarToTensorBoard(
+                log_dir,
+                build_root_mean_squared_error(model, iter(test_dataset)),
+                "RMSE",
+            )
+        )
+        fast_tasks.append(
+            ScalarToTensorBoard(log_dir, elbo_further_test, "elbo_further_test")
+        )
+        fast_tasks.append(
+            ScalarToTensorBoard(log_dir, elbo_tight_test, "elbo_tight_test")
+        )
     fast_tasks.append(ModelToTensorBoard(log_dir, model))
     return MonitorTaskGroup(fast_tasks, period=fast_tasks_period)
 
