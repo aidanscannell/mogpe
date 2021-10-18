@@ -120,8 +120,6 @@ def monitored_training_loop(
     :param logging_epoch_freq: The epoch frequency that the training loss is printed.
     """
     optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
-    # checkpoint_path = "training_2/cp-{epoch:04d}.ckpt"
-    # checkpoint_dir = os.path.dirname(checkpoint_path)
 
     @tf.function
     def tf_optimization_step():
