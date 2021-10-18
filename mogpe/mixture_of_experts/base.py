@@ -95,11 +95,7 @@ class MixtureOfExperts(BayesianModel, ABC):
         :returns: The prediction as a TensorFlow MixtureSameFamily distribution
         """
         mixing_probs = self.predict_mixing_probs(Xnew, **kwargs)
-        print("mixing probs shape")
-        print(mixing_probs.shape)
         dists = self.predict_experts_dists(Xnew, **kwargs)
-        print("experts dists shape")
-        print(dists.batch_shape)
         # if dists.batch_shape != tf.shape(mixing_probs):
         #     # mixing_probs = tf.expand_dims(mixing_probs, -2)
         #     mixing_probs = tf.broadcast_to(mixing_probs, dists.batch_shape)
