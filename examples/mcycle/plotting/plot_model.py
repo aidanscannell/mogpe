@@ -1,24 +1,56 @@
 #!/usr/bin/env python3
 import os
 
+import gpflow as gpf
 import matplotlib.pyplot as plt
 import numpy as np
 import palettable
 import tensorflow as tf
+import tensorflow_probability as tfp
 from config import config_from_toml
+from gpflow.likelihoods import Bernoulli, Softmax
+from matplotlib.colors import LinearSegmentedColormap
 from mcycle.data.load_data import load_mcycle_dataset
+from mcycle.train_svgp_on_mcycle_from_config import init_svgp_from_config
 from mogpe.training import load_model_from_config_and_checkpoint
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mogpe.training.metrics import (
+    negative_log_predictive_density,
+    root_mean_squared_error,
+    mean_absolute_error,
+)
+from mcycle.plotting.plot_metrics import restore_svgp
 
+tfd = tfp.distributions
 # plt.style.use("science")
 plt.style.use("seaborn-paper")
-# plt.style.use("ggplot")
+plt.style.use("ggplot")
 
 
 prop_cycle = plt.rcParams["axes.prop_cycle"]
 colors = prop_cycle.by_key()["color"]
 
-expert_colors = ["r", "g", "b"]
+# expert_colors = ["r", "g", "b"]
+expert_colors = ["c", "m", "y"]
+# svgp_color = "o"
+
+# svgp_color = colors[4]  # num_experts+1
+# svgp_color = "y"
+svgp_color = "m"
+svgp_color = "r"
+# svgp_color = "purple"
+# svgp_color = "crimson"
+# svgp_color = "crimson"
+# svgp_color = "olive"
+# svgp_color = "lime"
+svgp_linestyle = "--"
+# svgp_linestyle = "-"
+
+y_color = "blue"
+y_color = "black"
+# y_color = "lime"
+# y_color = "c"
+y_linestyle = "-"
 
 
 def init_axis_labels_and_ticks(axs):
@@ -41,18 +73,21 @@ class McyclePlotter:
         model,
         X,
         Y,
+        svgp=None,
         test_inputs=None,
         # num_samples=100,
-        num_samples=50,
+        # num_samples=50,
+        num_samples=80,
         # params=None,
         # num_levels=6,
-        # figsize=(6.4, 4.8),
-        figsize=(6.4 / 2, 4.8 / 2),
+        figsize=(6.4, 4.8),
+        # figsize=(6.4 / 2, 4.8 / 2),
         cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap,
     ):
         self.model = model
         self.X = X
         self.Y = Y
+        self.svgp = svgp
         self.num_experts = self.model.num_experts
         self.output_dim = Y.shape[1]
         self.figsize = figsize
@@ -74,11 +109,17 @@ class McyclePlotter:
 
         self.y_samples_dist = self.model.predict_y(self.test_inputs)
         self.y_mean = self.model.predict_y(self.test_inputs).mean()
-        self.y_samples = self.y_samples_dist.sample(self.num_samples)
-        self.test_inputs_broadcast = np.expand_dims(self.test_inputs, 0)
-        self.svgp_mean, self.svgp_var = self.model.experts.predict_ys(self.test_inputs)
-        self.svgp_mean = self.svgp_mean[:, :, 1]
-        self.svgp_var = self.svgp_var[:, :, 1]
+        self.y_var = self.model.predict_y(self.test_inputs).variance()
+        # self.y_samples = self.y_samples_dist.sample(self.num_samples)
+        # self.test_inputs_broadcast = np.expand_dims(self.test_inputs, 0)
+        if svgp is None:
+            self.svgp_mean, self.svgp_var = self.model.experts.predict_ys(
+                self.test_inputs
+            )
+            self.svgp_mean = self.svgp_mean[:, :, 1]
+            self.svgp_var = self.svgp_var[:, :, 1]
+        else:
+            self.svgp_mean, self.svgp_var = self.svgp.predict_y(self.test_inputs)
 
         self.y_means, self.y_vars = self.model.experts.predict_ys(self.test_inputs)
         self.f_means, self.f_vars = self.model.predict_experts_fs(self.test_inputs)
@@ -86,6 +127,27 @@ class McyclePlotter:
             self.test_inputs
         )
         self.mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+
+        # Generate samples from full model
+        if isinstance(self.model.gating_network.likelihood, Softmax):
+            self.alpha_dist = tfd.Categorical(probs=self.mixing_probs)
+        elif isinstance(self.model.gating_network.likelihood, Bernoulli):
+            self.alpha_dist = tfd.Bernoulli(probs=self.mixing_probs[:, 1])
+
+        self.alpha_samples = self.alpha_dist.sample(num_samples)
+        self.alpha_samples = tf.expand_dims(self.alpha_samples, -1)
+        self.experts_dists = tfd.Normal(self.y_means, self.y_vars)
+        self.experts_samples = self.experts_dists.sample(self.num_samples)
+        self.y_samples = self.experts_samples[:, :, :, 0]
+        for k in range(self.num_experts):
+            self.y_samples = tf.where(
+                self.alpha_samples == k,
+                self.experts_samples[:, :, :, k],
+                self.y_samples,
+            )
+        self.test_inputs_broadcast = np.broadcast_to(
+            self.test_inputs, shape=self.y_samples.shape
+        )
 
     def plot_data(self, fig, ax):
         ax.scatter(
@@ -128,6 +190,10 @@ class McyclePlotter:
             plt.savefig(save_filename, transparent=True)
 
     def plot_model(self, save_dir):
+        save_filename = os.path.join(save_dir, "y_means.pdf")
+        self.plot_y_means(save_filename=save_filename)
+        save_filename = os.path.join(save_dir, "y_samples_density.pdf")
+        self.plot_y_samples_density(save_filename=save_filename)
         save_filename = os.path.join(save_dir, "y_samples.pdf")
         self.plot_y_samples(save_filename=save_filename)
         save_filename = os.path.join(save_dir, "experts_y.pdf")
@@ -141,22 +207,40 @@ class McyclePlotter:
         # save_filename = os.path.join(save_dir, "dataset_quiver.pdf")
         # self.plot_dataset(save_filename=save_filename)
 
+    def plot_y_means(self, save_filename=None):
+        fig, axs = self.create_fig_axs_plot_y_means()
+        self.plot_y_means_given_fig_axs(fig, axs)
+        if save_filename is not None:
+            # plt.savefig(save_filename, transparent=True)
+            plt.savefig(save_filename)
+
+    def plot_y_samples_density(self, save_filename=None):
+        fig, ax = self.create_fig_axs_plot_y_samples_density()
+        ax.set_ylim(-3.5, 3.5)
+        self.plot_y_samples_density_given_fig_axs(fig, ax)
+        if save_filename is not None:
+            # plt.savefig(save_filename, transparent=True)
+            plt.savefig(save_filename)
+
     def plot_y_samples(self, save_filename=None):
-        fig, axs = self.create_fig_axs_plot_y_samples()
-        self.plot_y_samples_given_fig_axs(fig, axs)
+        fig, ax = self.create_fig_axs_plot_y_samples()
+        ax.set_ylim(-3.5, 3.5)
+        self.plot_y_samples_given_fig_axs(fig, ax)
         if save_filename is not None:
             # plt.savefig(save_filename, transparent=True)
             plt.savefig(save_filename)
 
     def plot_experts_y(self, save_filename=None):
-        fig, axs = self.create_fig_axs_plot_experts_f()
-        self.plot_experts_y_given_fig_axs(fig, axs)
+        fig, ax = self.create_fig_axs_plot_experts_f()
+        ax.set_ylim(-3.5, 3.5)
+        self.plot_experts_y_given_fig_axs(fig, ax)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
 
     def plot_experts_f(self, save_filename=None):
-        fig, axs = self.create_fig_axs_plot_experts_f()
-        self.plot_experts_f_given_fig_axs(fig, axs)
+        fig, ax = self.create_fig_axs_plot_experts_f()
+        ax.set_ylim(-3.5, 3.5)
+        self.plot_experts_f_given_fig_axs(fig, ax)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
 
@@ -172,9 +256,21 @@ class McyclePlotter:
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
 
+    def create_fig_axs_plot_y_means(self):
+        fig = plt.figure(figsize=self.figsize)
+        gs = fig.add_gridspec(1, 1)
+        axs = gs.subplots(sharex=True, sharey=True)
+        axs = init_axis_labels_and_ticks(axs)
+        return fig, axs
+
+    def create_fig_axs_plot_y_samples_density(self):
+        fig = plt.figure(figsize=self.figsize)
+        gs = fig.add_gridspec(1, 1)
+        axs = gs.subplots(sharex=True, sharey=True)
+        axs = init_axis_labels_and_ticks(axs)
+        return fig, axs
+
     def create_fig_axs_plot_y_samples(self):
-        # fig = plt.figure(figsize=(self.figsize[0], self.figsize[1] / 2))
-        # gs = fig.add_gridspec(1, 1, wspace=0.3)
         fig = plt.figure(figsize=self.figsize)
         gs = fig.add_gridspec(1, 1)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -183,15 +279,12 @@ class McyclePlotter:
 
     def create_fig_axs_plot_experts_f(self):
         fig = plt.figure(figsize=self.figsize)
-        # gs = fig.add_gridspec(1, 1, wspace=0.3)
         gs = fig.add_gridspec(1, 1)
         axs = gs.subplots(sharex=True, sharey=True)
         axs = init_axis_labels_and_ticks(axs)
         return fig, axs
 
     def create_fig_axs_plot_gating_gps(self):
-        # fig = plt.figure(figsize=(self.figsize[0], self.figsize[1] / 2))
-        # gs = fig.add_gridspec(2, 2, wspace=0.3)
         fig = plt.figure(figsize=self.figsize)
         gs = fig.add_gridspec(1, 1)
         axs = gs.subplots(sharex=True, sharey=True)
@@ -207,48 +300,48 @@ class McyclePlotter:
         # axs = init_axis_labels_and_ticks(axs)
         return fig, axs
 
-    def plot_y_samples_given_fig_axs(self, fig, ax):
-        # svgp_color = "k"
-        # svgp_color = "magenta"
-        # svgp_color = "r"
-        color_idx = self.num_experts
-        svgp_color = colors[color_idx]
-        # y_color = colors[color_idx]
-        # y_color = "darkred"
-        # y_color = "cyan"
-        # y_color = "k"
-        # y_color = "y"
-        y_linestyle = "--"
+    def plot_y_means_given_fig_axs(self, fig, ax):
         lw = 0.7
-        # ax.set_facecolor("lightgrey")
-        self.test_inputs_broadcast = np.broadcast_to(
-            self.test_inputs, shape=self.y_samples.shape
-        )
-        z = self.y_samples_dist.prob(self.y_samples)
-        # ax.plot(
-        #     self.test_inputs,
-        #     self.svgp_mean,
-        #     color=svgp_color,
-        #     lw=lw,
-        #     label="SVGP predictive mean $\mathbb{E}_{\\text{SVGP}}[y \mid x]$",
-        # )
-        ax.fill_between(
-            self.test_inputs[:, 0],
-            self.svgp_mean[:, 0] - 1.96 * np.sqrt(self.svgp_var[:, 0]),
-            self.svgp_mean[:, 0] + 1.96 * np.sqrt(self.svgp_var[:, 0]),
+        self.plot_data(fig, ax)
+        ax.plot(
+            self.test_inputs,
+            self.svgp_mean,
+            lw=lw,
             color=svgp_color,
-            alpha=0.2,
-            label="SVGP $\pm 2\sigma$"
-            # label="SVGP $\pm 2\sigma$ with $\mathcal{N}(y_* \mid \mu_*, \sigma^2_*)$",
+            linestyle=svgp_linestyle,
+            label="SVGP mean",
+            # label="SVGP predictive mean $\mathbb{E}_{\\text{SVGP}}[y \mid x]$",
         )
+
+        ax.plot(
+            self.test_inputs,
+            self.y_mean,
+            color=y_color,
+            lw=lw,
+            linestyle=y_linestyle,
+            label="MoSVGPE mean"
+            # label="Our predictive mean $\mathbb{E}_{\\text{ours}}[y \mid x]$",
+        )
+        ax.legend(loc=2)
+
+    def plot_y_samples_density_given_fig_axs(self, fig, ax):
+        lw = 0.7
+        lw = 1.1
+        # ax.fill_between(
+        #     self.test_inputs[:, 0],
+        #     self.svgp_mean[:, 0] - 1.96 * np.sqrt(self.svgp_var[:, 0]),
+        #     self.svgp_mean[:, 0] + 1.96 * np.sqrt(self.svgp_var[:, 0]),
+        #     color=svgp_color,
+        #     alpha=0.2,
+        #     label="SVGP $\pm 2\sigma$",
+        # )
         scatter = ax.scatter(
             self.test_inputs_broadcast,
             self.y_samples,
-            c=z,
+            c=self.y_samples_dist.prob(self.y_samples),
             # s=9,
             s=3,
             # cmap=self.cmap,
-            # cmap="Greys",
             # rasterized=True,
             alpha=0.8,
             label="MoSVGPE samples",
@@ -257,23 +350,48 @@ class McyclePlotter:
         cax = divider.append_axes("right", size="5%", pad=0.05)
         cbar = fig.colorbar(scatter, cax=cax)
         cbar.set_label("$p(y \mid x)$")
+        ax.plot(
+            self.test_inputs,
+            self.svgp_mean - 1.96 * np.sqrt(self.svgp_var),
+            color=svgp_color,
+            lw=lw,
+            label="SVGP $\pm 2\sigma$",
+        )
+        ax.plot(
+            self.test_inputs,
+            self.svgp_mean + 1.96 * np.sqrt(self.svgp_var),
+            color=svgp_color,
+            lw=lw,
+        )
+        ax.legend(loc=2)
 
-        # ax.plot(
-        #     self.test_inputs,
-        #     self.y_mean,
-        #     color=y_color,
-        #     lw=lw,
-        #     linestyle=y_linestyle,
-        #     label="Our predictive mean $\mathbb{E}_{\\text{ours}}[y \mid x]$",
-        # )
-
-        # ax.plot(
-        #     self.test_inputs,
-        #     self.svgp_mean,
-        #     lw=lw,
+    def plot_y_samples_given_fig_axs(self, fig, ax):
+        lw = 0.7
+        lw = 1.1
+        # ax.fill_between(
+        #     self.test_inputs[:, 0],
+        #     self.svgp_mean[:, 0] - 1.96 * np.sqrt(self.svgp_var[:, 0]),
+        #     self.svgp_mean[:, 0] + 1.96 * np.sqrt(self.svgp_var[:, 0]),
         #     color=svgp_color,
-        #     label="SVGP predictive mean $\mathbb{E}_{\\text{SVGP}}[y \mid x]$",
+        #     alpha=0.2,
+        #     label="SVGP $\pm 2\sigma$",
         # )
+        cmap = LinearSegmentedColormap.from_list(
+            "expert_colors",
+            colors=expert_colors[: self.num_experts],
+            N=self.num_experts,
+        )
+        ax.scatter(
+            self.test_inputs_broadcast,
+            self.y_samples,
+            c=self.alpha_samples,
+            # s=9,
+            s=3,
+            cmap=cmap,
+            # rasterized=True,
+            alpha=0.8,
+            label="MoSVGPE samples",
+        )
         ax.plot(
             self.test_inputs,
             self.svgp_mean - 1.96 * np.sqrt(self.svgp_var),
@@ -285,6 +403,7 @@ class McyclePlotter:
             self.svgp_mean + 1.96 * np.sqrt(self.svgp_var),
             color=svgp_color,
             lw=lw,
+            label="SVGP $\pm 2\sigma$",
         )
         ax.legend(loc=2)
 
@@ -307,11 +426,13 @@ class McyclePlotter:
                 ax,
                 means[:, 0, k],
                 vars[:, 0, k],
-                Z=Z,
+                # Z=Z,
+                Z=None,
                 mu_label=mu_label,
                 var_label=var_label,
                 color=expert_colors[k],
             )
+        ax.set_ylabel("$" + label + "_k(x)$")
         self.plot_data(fig, ax)
         ax.legend()
 
@@ -326,7 +447,7 @@ class McyclePlotter:
                     ].Z
                 except AttributeError:
                     Z = self.model.gating_network.inducing_variable.inducing_variables[
-                        0
+                        k
                     ].Z
             # mu_label = "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$"
             # var_label = "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$"
@@ -337,16 +458,18 @@ class McyclePlotter:
                 ax,
                 self.h_means[:, k],
                 self.h_vars[:, k],
-                Z=Z,
+                # Z=Z,
+                Z=None,
                 mu_label=mu_label,
                 var_label=var_label,
                 color=expert_colors[k],
             )
+        ax.set_ylabel("$h_k(x)$")
         ax.legend()
 
     def plot_mixing_probs_given_fig_axs(self, fig, ax):
         # ax.set_ylabel = "$\Pr(\\alpha_* = k \mid \mathbf{x}_*)$"
-        ax.set(xlabel="$x$", ylabel="$\Pr(\\alpha_* = k \mid \mathbf{x}_*)$")
+        ax.set(xlabel="$x$", ylabel="$\Pr(\\alpha = k \mid x)$")
         for k in range(self.num_experts):
             ax.plot(
                 self.test_inputs,
@@ -358,41 +481,39 @@ class McyclePlotter:
 
 
 if __name__ == "__main__":
-    two_expert_ckpt_dir = (
-        "./mcycle/saved_ckpts/2_experts/batch_size_32/learning_rate_0.01/10-06-100402"
-    )
-    three_expert_ckpt_dir = (
-        "./mcycle/saved_ckpts/3_experts/batch_size_32/learning_rate_0.01/10-06-105414"
-    )
 
-    # Load config (with model and training params) from toml file
-    two_expert_config_file = (
-        "./mcycle/configs/config_2_experts_subset.toml"  # path to config
-    )
-    three_expert_config_file = (
-        "./mcycle/configs/config_3_experts_subset.toml"  # path to config
-    )
-    two_expert_cfg = config_from_toml(two_expert_config_file, read_from_file=True)
-    three_expert_cfg = config_from_toml(three_expert_config_file, read_from_file=True)
+    ckpt_dirs = {
+        "K=2_L1": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140247",
+        "K=2_L2": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140200",
+        "K=3_L1": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140858",
+        "K=3_L2": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140829",
+    }
+    configs = {
+        "K=2_L1": "./mcycle/configs/config_2_experts_full.toml",
+        "K=2_L2": "./mcycle/configs/config_2_experts_full.toml",
+        "K=3_L1": "./mcycle/configs/config_3_experts_full.toml",
+        "K=3_L2": "./mcycle/configs/config_3_experts_full.toml",
+    }
 
-    # Load mcycle data set
-    try:
-        standardise = two_expert_cfg.standardise
-    except AttributeError:
-        standardise = False
-    dataset = load_mcycle_dataset(
-        two_expert_cfg.data_file, plot=False, standardise=standardise
-    )
+    # SVGP model to use
+    svgp_config = "./mcycle/configs/config_svgp_m_32_full.toml"
+    svgp_ckpt_dir = "./mcycle/saved_ckpts/full-dataset/svgp/1_experts/batch_size_16/learning_rate_0.01/normal_bound/num_inducing_32/10-15-145648"
+    svgp_model = restore_svgp(svgp_config, svgp_ckpt_dir)
 
-    two_expert_model = load_model_from_config_and_checkpoint(
-        two_expert_config_file, two_expert_ckpt_dir, dataset
-    )
-    three_expert_model = load_model_from_config_and_checkpoint(
-        three_expert_config_file, three_expert_ckpt_dir, dataset
-    )
+    results = {}
+    for model_str in ckpt_dirs:
+        cfg = config_from_toml(configs[model_str], read_from_file=True)
 
-    two_expet_plotter = McyclePlotter(two_expert_model, X=dataset[0], Y=dataset[1])
-    two_expet_plotter.plot_model("./mcycle/images/two-experts")
+        # Load mcycle data set
+        dataset, _ = load_mcycle_dataset(
+            cfg.data_file, plot=False, standardise=cfg.standardise
+        )
 
-    three_expet_plotter = McyclePlotter(three_expert_model, X=dataset[0], Y=dataset[1])
-    three_expet_plotter.plot_model("./mcycle/images/three-experts")
+        # Restore MoSVGPE checkpoint
+        model = load_model_from_config_and_checkpoint(
+            configs[model_str], ckpt_dirs[model_str], dataset
+        )
+
+        # Plot model
+        plotter = McyclePlotter(model, X=dataset[0], Y=dataset[1], svgp=svgp_model)
+        plotter.plot_model("./mcycle/images/" + model_str)
