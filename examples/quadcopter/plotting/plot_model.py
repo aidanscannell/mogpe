@@ -6,10 +6,14 @@ from mogpe.training import load_model_from_config_and_checkpoint
 from quadcopter.data.load_data import load_quadcopter_dataset
 
 if __name__ == "__main__":
-    ckpt_dir = "./quadcopter/saved_ckpts/subset/2_experts/batch_size_64/learning_rate_0.01/09-29-094538"
+    # ckpt_dir = "./quadcopter/saved_ckpts/subset/2_experts/batch_size_64/learning_rate_0.01/09-29-094538"
+    ckpt_dir = "./quadcopter/saved_ckpts/subset-10/2_experts/batch_size_64/learning_rate_0.01/further_bound/10-11-104617"
 
     # Load config (with model and training params) from toml file
-    config_file = "./quadcopter/configs/config_2_experts_subset.toml"  # path to config
+    # config_file = "./quadcopter/configs/config_2_experts_subset.toml"  # path to config
+    config_file = (
+        "./quadcopter/configs/config_2_experts_subset_10.toml"  # path to config
+    )
     cfg = config_from_toml(config_file, read_from_file=True)
 
     # Load quadcopter data set
@@ -28,4 +32,5 @@ if __name__ == "__main__":
 
     plotter = QuadcopterPlotter(model, X=dataset[0], Y=dataset[1])
     # plotter.plot_experts_f("./quadcopter/images/subset/test_new.pdf")
-    plotter.plot_model("./quadcopter/images/subset")
+    # plotter.plot_model("./quadcopter/images/subset")
+    plotter.plot_model("./quadcopter/images/subset-10")
