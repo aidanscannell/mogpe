@@ -3,7 +3,7 @@ import numpy as np
 from config import config_from_toml
 from mogpe.helpers.quadcopter_plotter import QuadcopterPlotter
 from mogpe.training import load_model_from_config_and_checkpoint
-from quadcopter.load_data import load_quadcopter_dataset
+from quadcopter.data.load_data import load_quadcopter_dataset
 
 if __name__ == "__main__":
     ckpt_dir = "./quadcopter/saved_ckpts/subset/2_experts/batch_size_64/learning_rate_0.01/09-29-094538"
