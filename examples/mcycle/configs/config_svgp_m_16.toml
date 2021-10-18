@@ -1,0 +1,16 @@
+# Data set config
+data_file = "./mcycle/data/mcycle.csv"
+standardise = true  # true/false whether to standardise data
+plot_dataset = false # true/false whether to plot data set with quiver
+test_split_size = 0.3
+
+# epochs = 15000
+epochs = 25000
+batch_size = 16
+learning_rate = 0.01
+fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
+slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
+logging_epoch_freq = 100 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
+log_dir = "./logs/mcycle/svgp/"
+num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
+num_inducing = 16
