@@ -306,7 +306,12 @@ def parse_num_experts(cfg):
 
 def parse_bound(cfg):
     try:
-        if cfg.bound == "further" or cfg.bound == "tight":
+        if (
+            cfg.bound == "further"
+            or cfg.bound == "tight"
+            or cfg.bound == "further_gating"
+            or cfg.bound == "tight_2"
+        ):
             return cfg.bound
         else:
             print(
