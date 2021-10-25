@@ -16,6 +16,7 @@ color_3 = "lime"
 color_obs = "red"
 
 plt.style.use("science")
+plt.style.use("seaborn-paper")
 
 SMALL_SIZE = 8
 MEDIUM_SIZE = 10
@@ -109,8 +110,10 @@ class Plotter1D(PlotterBase):
         row = 0
         for k, expert in enumerate(self.model.experts.experts_list):
             mean, var = expert.predict_f(self.test_inputs)
+            Z = expert.inducing_variable.Z
             for j in range(self.output_dim):
                 self.plot_gp(fig, axs[row], mean[:, j], var[:, j])
+                axs[row].scatter(Z, np.zeros(Z.shape), marker="|")
                 row += 1
 
     def plot_experts_y(self, fig, axs):
@@ -130,6 +133,9 @@ class Plotter1D(PlotterBase):
         num_experts = tf.shape(mixing_probs)[-1]
         for k in range(num_experts):
             ax.plot(self.test_inputs, mixing_probs[:, k], label=str(k + 1))
+
+        # Z = self.model.gating_network.inducing_variable.Z
+        # ax.scatter(Z, np.zeros(Z.shape), marker="|")
         ax.legend()
 
     def plot_gating_gps(self, fig, axs):
@@ -139,8 +145,21 @@ class Plotter1D(PlotterBase):
         """
         tf.print("Plotting gating network gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
+        # Z = self.model.gating_network.inducing_variable.Z
         for k in range(self.num_experts):
+            try:
+                Z = self.model.gating_network.inducing_variable.Z
+            except AttributeError:
+                try:
+                    Z = self.model.gating_network.inducing_variable.inducing_variables[
+                        0
+                    ].Z
+                except AttributeError:
+                    Z = self.model.gating_network.inducing_variable.inducing_variables[
+                        k
+                    ].Z
             self.plot_gp(fig, axs[k], means[:, k], vars[:, k], label=str(k + 1))
+            axs[k].scatter(Z, np.zeros(Z.shape), marker="|")
             axs[k].legend()
 
     def plot_samples(self, fig, ax, input_broadcast, y_samples, color=color_3):
@@ -149,7 +168,7 @@ class Plotter1D(PlotterBase):
             y_samples,
             marker=".",
             s=4.9,
-            color=color,
+            # color=color,
             lw=0.4,
             rasterized=True,
             alpha=0.2,
