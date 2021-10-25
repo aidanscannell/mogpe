@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-import palettable
-import numpy as np
 import os
+
+import numpy as np
+import palettable
 import tensorflow as tf
+from gpflow.monitor import MonitorTaskGroup
 from matplotlib import pyplot as plt
+from mogpe.training.monitor import ImageWithCbarToTensorBoard
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # plt.style.use("science")
@@ -26,7 +29,6 @@ class QuadcopterPlotter:
     def __init__(
         self,
         model,
-        # cfg,
         X,
         Y,
         test_inputs=None,
@@ -35,15 +37,16 @@ class QuadcopterPlotter:
         # num_levels=6,
         figsize=(6.4, 4.8),
         cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap,
+        static: bool = True,  # whether or not to recalculate model predictions at each call
     ):
         self.model = model
-        # self.cfg = cfg
         self.X = X
         self.Y = Y
         self.num_experts = self.model.num_experts
         self.output_dim = Y.shape[1]
         self.figsize = figsize
         self.cmap = cmap
+        self.static = static
         if test_inputs is None:
             num_test = 400
             factor = 1.2
@@ -82,7 +85,6 @@ class QuadcopterPlotter:
 
     def plot_gp_contf(self, fig, axs, mean, var, mean_levels=None, var_levels=None):
         """Plots contours for mean and var side by side"""
-
         mean_contf = self.contf(fig, axs[0], z=mean)
         var_contf = self.contf(fig, axs[1], z=var)
         return mean_contf, var_contf
@@ -176,12 +178,20 @@ class QuadcopterPlotter:
         return fig, axs
 
     def plot_y_mm_given_fig_axs(self, fig, axs):
+        if self.static:
+            y_mm_means = self.y_mm_means
+            y_mm_vars = self.y_mm_vars
+        else:
+            self.y_mm_dist = self.model.predict_y(self.test_inputs)
+            y_mm_means = self.y_mm_dist.mean()
+            y_mm_vars = self.y_mm_dist.variance()
+
         for dim in range(self.output_dim):
             mean_contf, var_contf = self.plot_gp_contf(
                 fig,
                 axs[dim, :],
-                self.y_mm_means[:, dim],
-                self.y_mm_vars[:, dim],
+                y_mm_means[:, dim],
+                y_mm_vars[:, dim],
             )
             self.add_cbar(
                 fig,
@@ -197,10 +207,20 @@ class QuadcopterPlotter:
             )
 
     def plot_experts_y_given_fig_axs(self, fig, axs):
-        self.plot_experts_given_fig_axs(fig, axs, self.y_means, self.y_vars, label="y")
+        if self.static:
+            y_means = self.y_means
+            y_vars = self.y_vars
+        else:
+            y_means, y_vars = self.model.experts.predict_ys(self.test_inputs)
+        self.plot_experts_given_fig_axs(fig, axs, y_means, y_vars, label="y")
 
     def plot_experts_f_given_fig_axs(self, fig, axs):
-        self.plot_experts_given_fig_axs(fig, axs, self.f_means, self.f_vars, label="f")
+        if self.static:
+            f_means = self.f_means
+            f_vars = self.f_vars
+        else:
+            f_means, f_vars = self.model.predict_experts_fs(self.test_inputs)
+        self.plot_experts_given_fig_axs(fig, axs, f_means, f_vars, label="f")
 
     def plot_experts_given_fig_axs(self, fig, axs, means, vars, label="f"):
         row = 0
@@ -237,12 +257,17 @@ class QuadcopterPlotter:
                 row += 1
 
     def plot_gating_gps_given_fig_axs(self, fig, axs):
+        if self.static:
+            h_means = self.h_means
+            h_vars = self.h_vars
+        else:
+            h_means, h_vars = self.model.gating_network.predict_fs(self.test_inputs)
         for k in range(self.num_experts):
             mean_contf, var_contf = self.plot_gp_contf(
                 fig,
                 axs[k, :],
-                self.h_means[:, k],
-                self.h_vars[:, k],
+                h_means[:, k],
+                h_vars[:, k],
             )
             self.add_cbar(
                 fig,
@@ -258,8 +283,12 @@ class QuadcopterPlotter:
             )
 
     def plot_mixing_probs_given_fig_axs(self, fig, axs):
+        if self.static:
+            mixing_probs = self.mixing_probs
+        else:
+            mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         for k in range(self.num_experts):
-            prob_contf = self.contf(fig, axs[k], z=self.mixing_probs[:, k])
+            prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
             self.add_cbar(
                 fig,
                 axs[k],
@@ -268,11 +297,89 @@ class QuadcopterPlotter:
             )
 
     def plot_gating_network_given_fig_axs(self, fig, axs):
+        if self.static:
+            mixing_probs = self.mixing_probs
+        else:
+            mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         for k in range(self.num_experts):
-            prob_contf = self.contf(fig, axs[k], z=self.mixing_probs[:, k])
+            prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
             self.add_cbar(
                 fig,
                 axs[k],
                 prob_contf,
                 "$\Pr(\\alpha_* = " + str(k + 1) + " \mid \mathbf{x}_*)$",
             )
+
+    def tf_monitor_task_group(self, log_dir, slow_tasks_period=500):
+        image_task_experts_f = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_experts_f_given_fig_axs,
+            name="experts_latent_function_posterior",
+            fig_kw={"figsize": self.figsize},
+            subplots_kw={
+                "nrows": self.num_experts * self.output_dim,
+                "ncols": 2,
+                # "wspace": 0.3,
+                "sharex": True,
+                "sharey": True,
+            },
+        )
+        image_task_experts_y = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_experts_y_given_fig_axs,
+            name="experts_output_posterior",
+            fig_kw={"figsize": self.figsize},
+            subplots_kw={
+                "nrows": self.num_experts * self.output_dim,
+                "ncols": 2,
+                # "wspace": 0.3,
+                "sharex": True,
+                "sharey": True,
+            },
+        )
+        image_task_gating_gps = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_gating_gps_given_fig_axs,
+            name="gating_network_gps_posteriors",
+            fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 2)},
+            subplots_kw={
+                "nrows": self.num_experts,
+                "ncols": 2,
+                # "wspace": 0.3,
+                "sharex": True,
+                "sharey": True,
+            },
+        )
+        image_task_mixing_probs = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_mixing_probs_given_fig_axs,
+            name="gating_network_mixing_probabilities",
+            fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 4)},
+            subplots_kw={
+                "nrows": 1,
+                "ncols": self.num_experts,
+                "sharex": True,
+                "sharey": True,
+            },
+        )
+        image_task_y = ImageWithCbarToTensorBoard(
+            log_dir,
+            self.plot_y_mm_given_fig_axs,
+            name="predictive_posterior_moment_matched",
+            fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 2)},
+            subplots_kw={
+                "nrows": self.output_dim,
+                "ncols": 2,
+                # "wspace": 0.3,
+                "sharex": True,
+                "sharey": True,
+            },
+        )
+        image_tasks = [
+            image_task_experts_y,
+            image_task_experts_f,
+            image_task_mixing_probs,
+            image_task_gating_gps,
+            image_task_y,
+        ]
+        return MonitorTaskGroup(image_tasks, period=slow_tasks_period)
