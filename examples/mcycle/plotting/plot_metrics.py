@@ -60,14 +60,17 @@ if __name__ == "__main__":
         cfg = config_from_toml(configs[model_str], read_from_file=True)
 
         # Load mcycle data set
-        dataset = load_mcycle_dataset(
-            cfg.data_file, plot=False, standardise=cfg.standardise
+        train_dataset, test_dataset = load_mcycle_dataset(
+            cfg.data_file,
+            plot=False,
+            standardise=cfg.standardise,
+            test_split_size=cfg.test_split_size,
         )
 
         # Restore MoSVGPE checkpoint
         if "K=" in model_str:
             model = load_model_from_config_and_checkpoint(
-                configs[model_str], ckpt_dirs[model_str], dataset
+                configs[model_str], ckpt_dirs[model_str], train_dataset
             )
         elif "SVGP" in model_str:
             model = restore_svgp(configs[model_str], ckpt_dirs[model_str])
@@ -76,10 +79,12 @@ if __name__ == "__main__":
 
         # Calculate metrics
         results["NLPD " + model_str] = negative_log_predictive_density(
-            model, dataset
+            model, test_dataset
         ).numpy()
-        results["RMSE " + model_str] = root_mean_squared_error(model, dataset).numpy()
-        results["MAE " + model_str] = mean_absolute_error(model, dataset).numpy()
+        results["RMSE " + model_str] = root_mean_squared_error(
+            model, test_dataset
+        ).numpy()
+        results["MAE " + model_str] = mean_absolute_error(model, test_dataset).numpy()
 
     # Print results
     for item in sorted(results.keys()):
