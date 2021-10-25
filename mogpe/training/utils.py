@@ -140,15 +140,7 @@ def init_fast_tasks_bounds(
     fast_tasks = []
     fast_tasks.append(ScalarToTensorBoard(log_dir, elbo_further, "elbo_further"))
     fast_tasks.append(ScalarToTensorBoard(log_dir, elbo_tight, "elbo_tight"))
-    if training_loss is None:
-        fast_tasks.append(
-            ScalarToTensorBoard(
-                log_dir,
-                model.training_loss_closure(iter(train_dataset)),
-                "training_loss",
-            )
-        )
-    else:
+    if training_loss is not None:
         fast_tasks.append(ScalarToTensorBoard(log_dir, training_loss, "training_loss"))
     if test_dataset is not None:
         further_test_dataset_iter = iter(test_dataset)
