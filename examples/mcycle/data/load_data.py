@@ -11,6 +11,7 @@ def load_mcycle_dataset(
     plot: bool = False,
     standardise: bool = True,
     test_split_size=0.0,
+    trim_coords=None,
 ):
     data = np.loadtxt(filename, delimiter=",", skiprows=1, usecols=(1, 2))
     X = data[:, 0].reshape(-1, 1)
@@ -23,6 +24,15 @@ def load_mcycle_dataset(
     if standardise:
         X = (X - X.mean()) / X.std()
         Y = (Y - Y.mean()) / Y.std()
+
+    if trim_coords is not None:
+        mask_0 = X < trim_coords[0]
+        mask_1 = X > trim_coords[1]
+        mask = mask_0 | mask_1
+        X = X[mask].reshape(-1, 1)
+        Y = Y[mask].reshape(-1, 1)
+        print("Input data shape after trim: ", X.shape)
+        print("Output data shape after trim: ", Y.shape)
 
     if test_split_size > 0:
         X_train, X_test, Y_train, Y_test = train_test_split(
