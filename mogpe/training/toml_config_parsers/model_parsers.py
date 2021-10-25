@@ -146,6 +146,14 @@ def parse_q_diag(inducing_points_cfg):
         return False
 
 
+def parse_inputs_trainable(inducing_points_cfg):
+    try:
+        return inducing_points_cfg.inputs_trainable
+    except AttributeError:
+        print("inputs_trainable not found in toml config, so setting leaving as True")
+        return True
+
+
 def parse_q_mu(inducing_points_cfg, output_dim):
     try:
         q_mu_mean = inducing_points_cfg.q_mu.mean
@@ -198,7 +206,8 @@ def parse_inducing_points(expert_cfg, output_dim):
     q_mu = parse_q_mu(inducing_points_cfg, output_dim)
     q_sqrt = parse_q_sqrt(inducing_points_cfg, output_dim)
     q_diag = parse_q_diag(inducing_points_cfg)
-    return q_mu, q_sqrt, q_diag
+    input_trainable = parse_inputs_trainable(inducing_points_cfg)
+    return q_mu, q_sqrt, q_diag, input_trainable
 
 
 def parse_single_inducing_variable(svgp_cfg, X):
@@ -333,9 +342,11 @@ def parse_gating_network(cfg, X):
     kernel = parse_kernel(
         cfg.gating_network.kernel, input_dim, output_dim=num_gating_functions
     )
-    q_mu, q_sqrt, q_diag = parse_inducing_points(
+    q_mu, q_sqrt, q_diag, inputs_trainable = parse_inducing_points(
         cfg.gating_network, num_gating_functions
     )
+    if not inputs_trainable:
+        gpf.set_trainable(inducing_variable, False)
     mean_function = parse_mean_function(cfg.gating_network)
     whiten = parse_whiten(cfg.gating_network)
 
@@ -360,10 +371,15 @@ def parse_expert(expert_cfg, input_dim, output_dim, X):
     likelihood = parse_likelihood(expert_cfg.likelihood, output_dim)
     kernel = parse_kernel(expert_cfg.kernel, input_dim=input_dim, output_dim=output_dim)
 
-    q_mu, q_sqrt, q_diag = parse_inducing_points(expert_cfg, output_dim)
+    q_mu, q_sqrt, q_diag, inputs_trainable = parse_inducing_points(
+        expert_cfg, output_dim
+    )
     whiten = parse_whiten(expert_cfg)
 
     inducing_variable = parse_inducing_variable(expert_cfg, X, output_dim, num_sets=1)
+
+    if not inputs_trainable:
+        gpf.set_trainable(inducing_variable, False)
 
     return SVGPExpert(
         kernel,
