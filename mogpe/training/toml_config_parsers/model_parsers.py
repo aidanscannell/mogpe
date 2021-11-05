@@ -310,6 +310,7 @@ def parse_bound(cfg):
             cfg.bound == "further"
             or cfg.bound == "tight"
             or cfg.bound == "further_gating"
+            or cfg.bound == "further_expert"
             or cfg.bound == "tight_2"
         ):
             return cfg.bound
