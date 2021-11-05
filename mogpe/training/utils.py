@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import pathlib
+import os
+import shutil
 import pickle
 from datetime import datetime
 
@@ -196,6 +198,7 @@ def create_log_dir(
     learning_rate=0.001,
     bound="further",
     num_inducing=None,
+    config_file=None,
 ):
     log_dir = (
         log_dir
@@ -212,6 +215,12 @@ def create_log_dir(
     if num_inducing is not None:
         log_dir = log_dir + "num_inducing_" + str(num_inducing) + "/"
     log_dir = log_dir + datetime.now().strftime("%m-%d-%H%M%S")
+    os.makedirs(log_dir)
+    if config_file is not None:
+        try:
+            shutil.copy(config_file, log_dir)
+        except:
+            print("Failed to copy config_file to log_dir")
     return log_dir
 
 
