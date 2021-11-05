@@ -2,7 +2,8 @@
 # data_file = "./quadcopter/data/quadcopter_data_step_10_direction_down.npz"
 data_file = "./quadcopter/data/quadcopter_data_step_20_direction_down.npz"
 # data_file = "./quadcopter/data/quadcopter_data_step_40_direction_down.npz"
-trim_coords = [[-1.0, -3.0], [1.0, -1.0]]
+# trim_coords = [[-1.0, -3.0], [1.0, -1.0]]
+trim_coords = [[-1.5, -3.0], [1.5, 0.0]]
 standardise = true  # true/false whether to standardise data
 plot_dataset = false # true/false whether to plot data set with quiver
 
@@ -16,7 +17,7 @@ num_experts = 2
 fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
 slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 50 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
-log_dir = "./logs/quadcopter/subset/"
+log_dir = "./logs/quadcopter/subset-20/"
 num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
 bound = "further" # which ELBO to use, either "tight" or "further", default is "further"
 
@@ -76,7 +77,8 @@ bound = "further" # which ELBO to use, either "tight" or "further", default is "
     [[gating_network.kernel]]
         name = "rbf" # kernel type e.g. "rbf", "cosine", "sum", "product" 
         [gating_network.kernel.params] # set required parameters for the kernel type
-            lengthscale = 1.5 # RBF lengthscale
+            # lengthscale = 1.5 # RBF lengthscale
+            lengthscale = 0.1 # RBF lengthscale
             # lengthscale = 5.0 # RBF lengthscale
             variance = 0.6 # RBF signal variance
     [gating_network.inducing_points]
