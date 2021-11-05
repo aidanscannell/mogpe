@@ -133,9 +133,6 @@ def monitored_training_loop(
     for epoch in range(epochs):
         for _ in range(num_batches_per_epoch):
             tf_optimization_step()
-            # duration = t - time.time()
-            # print("Iteration duration: ", duration)
-            # t = time.time()
         monitor(epoch)
         epoch_id = epoch + 1
         # print(f"Epoch {epoch_id}\n-------------------------------")
@@ -144,6 +141,6 @@ def monitored_training_loop(
             if manager is not None:
                 manager.save()
             #     # save_models_param_dict(model, save_dir)
-            duration = time.time() - t
-            print("Iteration duration: ", duration)
-            t = time.time()
+            # duration = time.time() - t
+            # tf.print("Iteration duration: ", duration)
+            # t = time.time()
