@@ -96,6 +96,7 @@ def train_svgp_on_mcycle_given_config(
         batch_size=cfg.batch_size,
         learning_rate=cfg.learning_rate,
         num_inducing=cfg.num_inducing,
+        config_file=config_file,
     )
     num_test = 100
     test_inputs = np.linspace(
