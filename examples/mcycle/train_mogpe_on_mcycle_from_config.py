@@ -36,17 +36,16 @@ def train_mogpe_on_mcycle_given_config(
         test_split_size = cfg.test_split_size
     except AttributeError:
         test_split_size = False
-    # dataset = load_mcycle_dataset(
-    #     cfg.data_file,
-    #     plot=plot,
-    #     standardise=standardise,
-    #     test_split_size=test_split_size,
-    # )
+    try:
+        trim_coords = cfg.trim_coords
+    except AttributeError:
+        trim_coords = None
     train_dataset, test_dataset = load_mcycle_dataset(
         cfg.data_file,
         plot=plot,
         standardise=standardise,
         test_split_size=test_split_size,
+        trim_coords=trim_coords,
     )
 
     # Parse the toml config file to create MixtureOfSVGPExperts model
@@ -77,6 +76,7 @@ def train_mogpe_on_mcycle_given_config(
         learning_rate=cfg.learning_rate,
         bound=cfg.bound,
         num_inducing=cfg.experts[0]["inducing_points"]["num_inducing"],
+        config_file=config_file,
     )
     plotter = Plotter1D(model, X=train_dataset[0], Y=train_dataset[1])
     slow_tasks = plotter.tf_monitor_task_group(log_dir, cfg.slow_tasks_period)
@@ -112,9 +112,11 @@ if __name__ == "__main__":
     # Load config (with model and training params) from toml file
     # config_file = "./mcycle/configs/config_2_experts.toml"  # path to config
     # config_file = "./mcycle/configs/config_3_experts.toml"  # path to config
-    # config_file = "./mcycle/configs/config_3_experts_test.toml"  # path to config
+    config_file = "./mcycle/configs/config_3_experts_test.toml"  # path to config
     # config_file = "./mcycle/configs/config_2_experts_test.toml"  # path to config
     # config_file = "./mcycle/configs/config_2_experts_full.toml"  # path to config
-    config_file = "./mcycle/configs/config_3_experts_full.toml"  # path to config
+    # config_file = "./mcycle/configs/config_3_experts_full.toml"  # path to config
+
+    # config_file = "./mcycle/configs/config_2_experts_subset.toml"  # path to config
 
     train_mogpe_on_mcycle_given_config(config_file=config_file)
