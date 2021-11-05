@@ -212,7 +212,9 @@ class QuadcopterPlotter:
             y_vars = self.y_vars
         else:
             y_means, y_vars = self.model.experts.predict_ys(self.test_inputs)
-        self.plot_experts_given_fig_axs(fig, axs, y_means, y_vars, label="y")
+        self.plot_experts_given_fig_axs(
+            fig, axs, y_means, y_vars, label="\Delta \mathbf{x}"
+        )
 
     def plot_experts_f_given_fig_axs(self, fig, axs):
         if self.static:
