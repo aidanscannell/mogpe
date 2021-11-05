@@ -482,17 +482,28 @@ class McyclePlotter:
 
 if __name__ == "__main__":
 
+    # ckpt_dirs = {
+    #     "K=2_L1": "./logs/mcycle/full-dataset/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-20-141622",
+    #     # "K=2_L1": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140247",
+    #     "K=2_L2": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140200",
+    #     "K=3_L1": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140858",
+    #     "K=3_L2": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140829",
+    # }
     ckpt_dirs = {
-        "K=2_L1": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140247",
-        "K=2_L2": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140200",
+        "K=2_L1": "./logs/mcycle/full-dataset/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-20-141622",
+        "K=2_L2": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/further_gating_bound/num_inducing_32/10-26-112847",
+        "K=2_L3": "./mcycle/saved_ckpts/full-dataset/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140200",
         "K=3_L1": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-15-140858",
-        "K=3_L2": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140829",
+        "K=3_L2": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/further_gating_bound/num_inducing_32/10-26-112927",
+        "K=3_L3": "./mcycle/saved_ckpts/full-dataset/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-15-140829",
     }
     configs = {
         "K=2_L1": "./mcycle/configs/config_2_experts_full.toml",
         "K=2_L2": "./mcycle/configs/config_2_experts_full.toml",
+        "K=2_L3": "./mcycle/configs/config_2_experts_full.toml",
         "K=3_L1": "./mcycle/configs/config_3_experts_full.toml",
         "K=3_L2": "./mcycle/configs/config_3_experts_full.toml",
+        "K=3_L3": "./mcycle/configs/config_3_experts_full.toml",
     }
 
     # SVGP model to use
@@ -500,20 +511,40 @@ if __name__ == "__main__":
     svgp_ckpt_dir = "./mcycle/saved_ckpts/full-dataset/svgp/1_experts/batch_size_16/learning_rate_0.01/normal_bound/num_inducing_32/10-15-145648"
     svgp_model = restore_svgp(svgp_config, svgp_ckpt_dir)
 
+    # Load mcycle data set
+    cfg = config_from_toml(svgp_config, read_from_file=True)
+    train_dataset, test_dataset = load_mcycle_dataset(
+        cfg.data_file, plot=False, standardise=cfg.standardise
+    )
+
+    svgp_rmse = root_mean_squared_error(
+        svgp_model, dataset=train_dataset, batched=True
+    ).numpy()
+
     results = {}
     for model_str in ckpt_dirs:
         cfg = config_from_toml(configs[model_str], read_from_file=True)
 
-        # Load mcycle data set
-        dataset, _ = load_mcycle_dataset(
-            cfg.data_file, plot=False, standardise=cfg.standardise
-        )
-
         # Restore MoSVGPE checkpoint
         model = load_model_from_config_and_checkpoint(
-            configs[model_str], ckpt_dirs[model_str], dataset
+            configs[model_str], ckpt_dirs[model_str], dataset=train_dataset
         )
+        rmse = root_mean_squared_error(
+            model, dataset=train_dataset, batched=True
+        ).numpy()
+        # rmse = root_mean_squared_error(model, dataset=(X, Y)).numpy()
 
         # Plot model
-        plotter = McyclePlotter(model, X=dataset[0], Y=dataset[1], svgp=svgp_model)
+        plotter = McyclePlotter(
+            model, X=train_dataset[0], Y=train_dataset[1], svgp=svgp_model
+        )
+        # fig, axs = plotter.create_fig_axs_plot_y_means()
+        # plotter.plot_y_means_given_fig_axs(fig, axs)
+        # axs.plot(train_dataset[0], svgp_rmse - rmse, color="b") * 100
+        # diff = svgp_rmse - rmse
+        # print(diff)
+        # axs.plot(train_dataset[0], rmse, color="b")
+        # axs.plot(train_dataset[0], svgp_rmse, color="r")
+        # plt.show()
+
         plotter.plot_model("./mcycle/images/" + model_str)
