@@ -52,16 +52,9 @@ def train_mogpe_on_quadcopter_given_config(
     # Parse the toml config file to create MixtureOfSVGPExperts model
     model = MixtureOfSVGPExperts_from_toml(config_file, train_dataset)
     gpf.utilities.print_summary(model)
-    gpf.set_trainable(model.gating_network.inducing_variable, False)
-    for expert in model.experts.experts_list:
-        gpf.set_trainable(expert.inducing_variable, False)
     gpf.utilities.print_summary(model)
 
     # Create tf dataset that can be iterated and build training loss closure
-    # train_dataset, num_batches_per_epoch = create_tf_dataset(
-    #     dataset, num_data=dataset[0].shape[0], batch_size=cfg.batch_size
-    # )
-    # training_loss = model.training_loss_closure(iter(train_dataset))
     train_dataset_tf, num_batches_per_epoch = create_tf_dataset(
         train_dataset, num_data=train_dataset[0].shape[0], batch_size=cfg.batch_size
     )
@@ -78,6 +71,7 @@ def train_mogpe_on_quadcopter_given_config(
         learning_rate=cfg.learning_rate,
         bound=cfg.bound,
         num_inducing=cfg.experts[0]["inducing_points"]["num_inducing"],
+        config_file=config_file,
     )
     plotter = Plotter2D(model, X=train_dataset[0], Y=train_dataset[1])
     slow_tasks = plotter.tf_monitor_task_group(log_dir, cfg.slow_tasks_period)
@@ -113,9 +107,11 @@ if __name__ == "__main__":
     # Load config (with model and training params) from toml file
     config_file = "./quadcopter/configs/config_2_experts_subset.toml"  # path to config
     # config_file = "./quadcopter/configs/config_2_experts_full.toml"  # path to config
-    config_file = (
-        "./quadcopter/configs/config_2_experts_subset_10.toml"  # path to config
-    )
+    config_file = "./quadcopter/configs/config_2_experts_subset_10.toml"
+    # config_file = "./quadcopter/configs/config_2_experts_subset_10_icra.toml"
+    # config_file = "./quadcopter/configs/config_2_experts_subset_40_icra.toml"
+    # config_file = "./quadcopter/configs/config_2_experts_subset_20_icra.toml"
+    # config_file = "./quadcopter/configs/config_2_experts_subset_40.toml"
     # config_file = (
     #     # "./quadcopter/configs/config_2_experts_subset_10.toml"  # path to config
     #     # "./quadcopter/configs/config_2_experts_subset_40.toml"  # path to config
