@@ -556,6 +556,18 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 scale = tf.cast(1.0, default_float())
             return var_exp * scale - kl_gating - kl_experts
 
+    def marginal_likelihood(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Marginal likelihood (ML).
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: marginal likelihood - a Tensor with shape ()
+        """
+        X, Y = data
+        mixture_dist = self.predict_y(X)
+        marginal_likelihood = mixture_dist.prob(Y)
+        return marginal_likelihood
+
     def elbo(self, data: RegressionData) -> tf.Tensor:
         """Returns the evidence lower bound (ELBO) of the log marginal likelihood.
 
