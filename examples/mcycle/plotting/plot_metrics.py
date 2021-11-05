@@ -38,9 +38,11 @@ def restore_gp(config_file, ckpt_dir):
 if __name__ == "__main__":
     ckpt_dirs = {
         "K=2, L1": "./mcycle/saved_ckpts/2_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-14-172144",
-        "K=2, L2": "./mcycle/saved_ckpts/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-14-172119",
+        "K=2, L2": "./mcycle/saved_ckpts/2_experts/batch_size_16/learning_rate_0.01/further_gating_bound/num_inducing_32/10-26-103445",
+        "K=2, L3": "./mcycle/saved_ckpts/2_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-14-172119",
         "K=3, L1": "./mcycle/saved_ckpts/3_experts/batch_size_16/learning_rate_0.01/tight_bound/num_inducing_32/10-14-172452",
-        "K=3, L2": "./mcycle/saved_ckpts/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-14-172350",
+        "K=3, L2": "./mcycle/saved_ckpts/3_experts/batch_size_16/learning_rate_0.01/further_gating_bound/num_inducing_32/10-26-103803",
+        "K=3, L3": "./mcycle/saved_ckpts/3_experts/batch_size_16/learning_rate_0.01/further_bound/num_inducing_32/10-14-172350",
         "SVGP, M=16": "./mcycle/saved_ckpts/svgp/1_experts/batch_size_16/learning_rate_0.01/normal_bound/num_inducing_16/10-15-095606",
         "SVGP, M=32": "./mcycle/saved_ckpts/svgp/1_experts/batch_size_16/learning_rate_0.01/normal_bound/num_inducing_32/10-15-095647",
         "GP": "./mcycle/saved_ckpts/gp/1_experts/batch_size_na/learning_rate_0.001/None_bound/10-14-175702",
@@ -48,8 +50,10 @@ if __name__ == "__main__":
     configs = {
         "K=2, L1": "./mcycle/configs/config_2_experts.toml",
         "K=2, L2": "./mcycle/configs/config_2_experts.toml",
+        "K=2, L3": "./mcycle/configs/config_2_experts.toml",
         "K=3, L1": "./mcycle/configs/config_3_experts.toml",
         "K=3, L2": "./mcycle/configs/config_3_experts.toml",
+        "K=3, L3": "./mcycle/configs/config_3_experts.toml",
         "SVGP, M=16": "./mcycle/configs/config_svgp_m_16.toml",
         "SVGP, M=32": "./mcycle/configs/config_svgp_m_32.toml",
         "GP": "./mcycle/configs/config_gp.toml",
