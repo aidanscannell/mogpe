@@ -36,6 +36,13 @@ def load_model_from_config_and_checkpoint(config_file, ckpt_dir, dataset):
     return update_model_from_checkpoint(model, ckpt_dir)
 
 
+def load_model_from_checkpoint(ckpt_dir):
+    dataset = np.load(ckpt_dir + "/train_dataset")
+    config_file = ckpt_dir + "/config.toml"
+    model = MixtureOfSVGPExperts_from_toml(config_file, dataset)
+    return update_model_from_checkpoint(model, ckpt_dir)
+
+
 def save_model(model, save_dir=None):
     if save_dir is None:
         save_dir = str(pathlib.Path(tempfile.gettempdir()))
@@ -198,7 +205,6 @@ def create_log_dir(
     learning_rate=0.001,
     bound="further",
     num_inducing=None,
-    config_file=None,
 ):
     log_dir = (
         log_dir
@@ -216,12 +222,24 @@ def create_log_dir(
         log_dir = log_dir + "num_inducing_" + str(num_inducing) + "/"
     log_dir = log_dir + datetime.now().strftime("%m-%d-%H%M%S")
     os.makedirs(log_dir)
+    return log_dir
+
+
+def init_checkpoint_manager(
+    model, log_dir, num_ckpts, config_file=None, train_dataset=None, test_dataset=None
+):
     if config_file is not None:
         try:
-            shutil.copy(config_file, log_dir)
+            shutil.copy(config_file, log_dir + "/config.toml")
         except:
             print("Failed to copy config_file to log_dir")
-    return log_dir
+    if train_dataset is not None:
+        np.savez(log_dir + "/train_dataset", x=train_dataset[0], y=train_dataset[1])
+    if test_dataset is not None:
+        np.savez(log_dir + "/test_dataset", x=test_dataset[0], y=test_dataset[1])
+    ckpt = tf.train.Checkpoint(model=model)
+    manager = tf.train.CheckpointManager(ckpt, log_dir, max_to_keep=num_ckpts)
+    return manager
 
 
 def init_inducing_variables(X, num_inducing):
