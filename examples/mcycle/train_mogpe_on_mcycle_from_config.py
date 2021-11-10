@@ -90,9 +90,18 @@ def train_mogpe_on_mcycle_given_config(
         fast_tasks_period=cfg.fast_tasks_period,
     )
 
-    # Init checkpoint manager for saving model during training
-    ckpt = tf.train.Checkpoint(model=model)
-    manager = tf.train.CheckpointManager(ckpt, log_dir, max_to_keep=cfg.num_ckpts)
+    # Init checkpoint manager for saving model during training (saves datasets and config as well)
+    manager = init_checkpoint_manager(
+        model,
+        log_dir,
+        num_ckpts=cfg.num_ckpts,
+        config_file=config_file,
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+    )
+    # # Init checkpoint manager for saving model during training
+    # ckpt = tf.train.Checkpoint(model=model)
+    # manager = tf.train.CheckpointManager(ckpt, log_dir, max_to_keep=cfg.num_ckpts)
 
     # Main training loop
     trained_model = monitored_training_loop(
