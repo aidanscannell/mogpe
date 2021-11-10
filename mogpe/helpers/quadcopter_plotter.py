@@ -17,11 +17,16 @@ plt.style.use("seaborn-paper")
 
 
 def init_axis_labels_and_ticks(axs):
-    for ax in axs.flat:
-        ax.set(xlabel="$x$", ylabel="$y$")
-    # Hide x labels and tick labels for top plots and y ticks for right plots.
-    for ax in axs.flat:
-        ax.label_outer()
+    if isinstance(axs, np.ndarray):
+        for ax in axs.flat:
+            ax.set(xlabel="$x$", ylabel="$y$")
+        # Hide x labels and tick labels for top plots and y ticks for right plots.
+        for ax in axs.flat:
+            ax.label_outer()
+    else:
+        axs.set(xlabel="$x$", ylabel="$y$")
+        # Hide x labels and tick labels for top plots and y ticks for right plots.
+        axs.label_outer()
     return axs
 
 
@@ -258,44 +263,71 @@ class QuadcopterPlotter:
                 )
                 row += 1
 
-    def plot_gating_gps_given_fig_axs(self, fig, axs):
+    def plot_gating_gps_given_fig_axs(self, fig, axs, desired_mode=None):
         if self.static:
             h_means = self.h_means
             h_vars = self.h_vars
         else:
             h_means, h_vars = self.model.gating_network.predict_fs(self.test_inputs)
-        for k in range(self.num_experts):
+
+        if desired_mode is None:
+            for k in range(self.num_experts):
+                mean_contf, var_contf = self.plot_gp_contf(
+                    fig,
+                    axs[k, :],
+                    h_means[:, k],
+                    h_vars[:, k],
+                )
+                self.add_cbar(
+                    fig,
+                    axs[k, 0],
+                    mean_contf,
+                    "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                )
+                self.add_cbar(
+                    fig,
+                    axs[k, 1],
+                    var_contf,
+                    "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                )
+        else:
             mean_contf, var_contf = self.plot_gp_contf(
-                fig,
-                axs[k, :],
-                h_means[:, k],
-                h_vars[:, k],
+                fig, axs, h_means[:, desired_mode], h_vars[:, desired_mode]
             )
             self.add_cbar(
                 fig,
-                axs[k, 0],
+                axs[0],
                 mean_contf,
-                "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                "$\mathbb{E}[h_{" + str(desired_mode + 1) + "}(\mathbf{x}_*)]$",
             )
             self.add_cbar(
                 fig,
-                axs[k, 1],
+                axs[1],
                 var_contf,
-                "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                "$\mathbb{V}[h_{" + str(desired_mode + 1) + "}(\mathbf{x}_*)]$",
             )
 
-    def plot_mixing_probs_given_fig_axs(self, fig, axs):
+    def plot_mixing_probs_given_fig_axs(self, fig, axs, desired_mode=None):
         if self.static:
             mixing_probs = self.mixing_probs
         else:
             mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
-        for k in range(self.num_experts):
-            prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
+        if desired_mode is None:
+            for k in range(self.num_experts):
+                prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
+                self.add_cbar(
+                    fig,
+                    axs[k],
+                    prob_contf,
+                    "$\Pr(\\alpha_* = " + str(k + 1) + " \mid \mathbf{x}_*)$",
+                )
+        else:
+            prob_contf = self.contf(fig, axs, z=mixing_probs[:, desired_mode])
             self.add_cbar(
                 fig,
-                axs[k],
+                axs,
                 prob_contf,
-                "$\Pr(\\alpha_* = " + str(k + 1) + " \mid \mathbf{x}_*)$",
+                "$\Pr(\\alpha_* = " + str(desired_mode + 1) + " \mid \mathbf{x}_*)$",
             )
 
     def plot_gating_network_given_fig_axs(self, fig, axs):
