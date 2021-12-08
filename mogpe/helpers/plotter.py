@@ -194,7 +194,7 @@ class Plotter1D(PlotterBase):
         # fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
         # self.plot_gating_gps(fig, ax)
         fig, axs = plt.subplots(1, self.num_experts, figsize=(10, 4))
-        self.plot_experts_y(fig, axs)
+        self.plot_experts_f(fig, axs)
         fig, ax = plt.subplots(1, 1)
         self.plot_y(fig, ax)
 
