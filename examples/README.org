@@ -13,12 +13,11 @@ The scripts can be run from this directory =/path/to/mogpe/examples/= using the 
 #+begin_src shell
 cd /path/to/mogpe/examples/
 poetry shell
-python -m mcycle.train_from_model_config
+python -m mcycle.train_mogpe_on_mcycle_from_config
 #+end_src
 or for the quadcopter example,
 #+begin_src shell
 cd /path/to/mogpe/examples/
 poetry shell
-python -m quadcopter.train_from_model_config
-python -m quadcopter.learn_subset
+python -m quadcopter.train_mogpe_on_quadcopter_given_config
 #+end_src
