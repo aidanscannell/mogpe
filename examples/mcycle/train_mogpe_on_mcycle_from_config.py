@@ -122,11 +122,12 @@ if __name__ == "__main__":
     # Load config (with model and training params) from toml file
     # config_file = "./mcycle/configs/config_2_experts.toml"  # path to config
     # config_file = "./mcycle/configs/config_3_experts.toml"  # path to config
-    config_file = "./mcycle/configs/config_3_experts_test.toml"  # path to config
+    # config_file = "./mcycle/configs/config_3_experts_test.toml"  # path to config
     # config_file = "./mcycle/configs/config_2_experts_test.toml"  # path to config
     # config_file = "./mcycle/configs/config_2_experts_full.toml"  # path to config
     # config_file = "./mcycle/configs/config_3_experts_full.toml"  # path to config
 
     # config_file = "./mcycle/configs/config_2_experts_subset.toml"  # path to config
+    config_file = "./mcycle/configs/config_2_experts.toml"  # path to config
 
     train_mogpe_on_mcycle_given_config(config_file=config_file)
