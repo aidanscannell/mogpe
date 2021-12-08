@@ -168,7 +168,7 @@ class Plotter1D(PlotterBase):
             y_samples,
             marker=".",
             s=4.9,
-            # color=color,
+            color=color,
             lw=0.4,
             rasterized=True,
             alpha=0.2,
