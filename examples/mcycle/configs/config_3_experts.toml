@@ -9,13 +9,14 @@ batch_size = 16
 learning_rate = 0.01
 num_samples = 1 # number of samples to approximate variational expectation with
 num_experts = 3
-fast_tasks_period = 1 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
-slow_tasks_period = 1 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
+fast_tasks_period = 10 # write loss and model params to tensorboard if epoch_num % fast_tasks_period == 0
+slow_tasks_period = 500 # plot model (images) to tensorboard if epoch_num % slow_tasks_period == 0
 logging_epoch_freq = 100 # print loss (ELBO) if epoch_num % logging_epoch_freq == 0
 log_dir = "./logs/mcycle/"
 num_ckpts = 5 # max number of checkpoints to store (model is saved in log_dir @ logging_epoch_freq). Remove this line to disable checkpointing
-bound = "tight" # which ELBO to use, either "tight" or "further", default is "further"
+# bound = "tight" # which ELBO to use, either "tight" or "further", default is "further"
 # bound = "further" # which ELBO to use, either "tight" or "further", default is "further"
+bound = "further_gating" # which ELBO to use, either "tight" or "further", default is "further"
 
 [[experts]]
     name = "expert_1" # specify a name
