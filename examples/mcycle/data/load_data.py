@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from gpflow import default_float
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import train_test_split
 
 
 def load_mcycle_dataset(
