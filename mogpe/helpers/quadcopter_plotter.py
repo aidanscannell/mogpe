@@ -286,7 +286,15 @@ class QuadcopterPlotter:
     def plot_experts_given_fig_axs(self, fig, axs, means, vars, label="f"):
         row = 0
         for k in range(self.num_experts):
+            expert = self.model.experts.experts_list[k]
             for j in range(self.output_dim):
+                # self.plot_inducing_variables(
+                #     fig,
+                #     axs[row, :],
+                #     Z=expert.inducing_variable.Z,
+                #     q_mu=expert.q_mu[:, j],
+                #     q_sqrt=expert.q_sqrt[j, :, :],
+                # )
                 mean_contf, var_contf = self.plot_gp_contf(
                     fig,
                     axs[row, :],
