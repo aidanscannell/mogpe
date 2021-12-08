@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import tensorflow as tf
 from gpflow.kernels import Kernel

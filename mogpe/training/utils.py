@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import pathlib
 import os
-import shutil
+import pathlib
 import pickle
+import shutil
 from datetime import datetime
 
 import gpflow as gpf
@@ -10,8 +10,8 @@ import numpy as np
 import tensorflow as tf
 from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
 from mogpe.training.metrics import (
-    build_negative_log_predictive_density,
     build_mean_absolute_error,
+    build_negative_log_predictive_density,
     build_root_mean_squared_error,
 )
 

@@ -2,12 +2,10 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-import numpy as np
-import tensorflow as tf
 import tensorflow_probability as tfp
 
 from gpflow import Module
-from gpflow.models.model import InputData, MeanAndVariance
+from gpflow.models.model import InputData
 
 tfd = tfp.distributions
 
@@ -40,14 +38,15 @@ class ExpertsBase(Module, ABC):
     method that returns the set of experts predictions at an input (as a
     batched TensorFlow distribution).
     """
+
     def __init__(self, experts_list: List[ExpertBase] = None, name="Experts"):
         """
         :param experts_list: A list of experts that inherit from ExpertBase
         """
         super().__init__(name=name)
         assert isinstance(
-            experts_list,
-            list), 'experts_list should be a list of ExpertBase instances'
+            experts_list, list
+        ), "experts_list should be a list of ExpertBase instances"
         for expert in experts_list:
             assert isinstance(expert, ExpertBase)
         self.num_experts = len(experts_list)

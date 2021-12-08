@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """ Tasks that write to TensorBoard """
-
 from io import BytesIO
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import tensorflow as tf
-
 from gpflow.monitor import ToTensorBoard
 
 
@@ -15,7 +13,8 @@ class ImageWithCbarToTensorBoard(ToTensorBoard):
         self,
         log_dir: str,
         plotting_function: Callable[
-            ["matplotlib.figure.Figure", "matplotlib.figure.Axes"], "matplotlib.figure.Figure"
+            ["matplotlib.figure.Figure", "matplotlib.figure.Axes"],
+            "matplotlib.figure.Figure",
         ],
         name: Optional[str] = None,
         *,
@@ -54,7 +53,9 @@ class ImageWithCbarToTensorBoard(ToTensorBoard):
         try:
             from matplotlib.figure import Figure
         except ImportError:
-            raise RuntimeError("ImageWithCbarToTensorBoard requires the matplotlib package to be installed")
+            raise RuntimeError(
+                "ImageWithCbarToTensorBoard requires the matplotlib package to be installed"
+            )
 
         self.fig = Figure(**self.fig_kw)
         if self.subplots_kw != {}:

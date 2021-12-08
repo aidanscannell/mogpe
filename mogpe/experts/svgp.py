@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 from typing import List
 
-import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-import gpflow as gpf
 from gpflow.kernels import Kernel
 from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction
 from gpflow.models.model import InputData, MeanAndVariance
-from gpflow.models.training_mixins import InputData
-
-from mogpe.gps import SVGPModel
 from mogpe.experts import ExpertBase, ExpertsBase
+from mogpe.gps import SVGPModel
 
 tfd = tfp.distributions
 

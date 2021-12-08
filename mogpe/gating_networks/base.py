@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
-import tensorflow as tf
 
+import tensorflow as tf
 from gpflow import Module
 from gpflow.models.model import InputData, MeanAndVariance
 
 
 class GatingNetworkBase(Module, ABC):
     """Abstract base class for the gating network."""
+
     @abstractmethod
     def predict_fs(self, Xnew: InputData, **kwargs) -> MeanAndVariance:
         """Calculates the set of gating function posteriors at Xnew

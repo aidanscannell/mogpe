@@ -9,10 +9,9 @@ from bunch import Bunch
 from gpflow.monitor import ModelToTensorBoard, MonitorTaskGroup, ScalarToTensorBoard
 from mogpe.helpers import Plotter1D, Plotter2D
 from mogpe.training import (
+    MixtureOfSVGPExperts_from_toml,
     monitored_training_loop,
     monitored_training_tf_loop,
-    MixtureOfSVGPExperts_from_toml,
-    # parse_mixture_of_svgp_experts_model,
     training_tf_loop,
 )
 from mogpe.training.utils import load_model_from_config_and_checkpoint

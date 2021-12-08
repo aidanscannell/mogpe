@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-from functools import partial
-
-import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 

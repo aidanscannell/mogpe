@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-import gpflow as gpf
-import numpy as np
-import pathlib
 import time
-import tensorflow as tf
 
-from gpflow.monitor import ImageToTensorBoard, MonitorTaskGroup, Monitor
-from mogpe.training.utils import save_models_param_dict
+import gpflow as gpf
+import tensorflow as tf
+from gpflow.monitor import Monitor
 
 
 def training_tf_loop(

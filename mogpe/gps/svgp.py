@@ -9,7 +9,6 @@ from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction
 from gpflow.models import SVGP
 from gpflow.models.model import InputData, MeanAndVariance
-from gpflow.models.training_mixins import InputData
 
 tfd = tfp.distributions
 
@@ -148,7 +147,7 @@ class SVGPModel(SVGP):
                 mu, var = tf.map_fn(
                     single_sample_conditional,
                     q_mu,
-                    dtype=(default_float(), default_float()),
+                    fn_output_signature=(default_float(), default_float()),
                 )
             return mu + self.mean_function(Xnew), var
 

@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-
 import numpy as np
 import tensorflow as tf
-
 from gpflow import logdensities
 from gpflow.base import Parameter
-from gpflow.utilities import positive
 from gpflow.likelihoods.base import ScalarLikelihood
+from gpflow.utilities import positive
 
 # from gpflow.likelihoods.utils import inv_probit
 

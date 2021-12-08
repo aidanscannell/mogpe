@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from abc import ABC
 
-import gpflow as gpf
 import tensorflow as tf
 import tensorflow_probability as tfp
-from gpflow import default_float
-from gpflow.models import BayesianModel, ExternalDataTrainingLossMixin
-from gpflow.models.training_mixins import InputData, RegressionData
-
+from gpflow.models import BayesianModel
+from gpflow.models.training_mixins import InputData
 from mogpe.experts import ExpertsBase
 from mogpe.gating_networks import GatingNetworkBase
 
