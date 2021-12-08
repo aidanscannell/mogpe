@@ -189,7 +189,10 @@ def parse_q_sqrt(inducing_points_cfg, output_dim):
         return None
     return np.array(
         [
-            q_sqrt * np.eye(num_inducing, dtype=default_float())
+            q_sqrt
+            * np.eye(num_inducing, dtype=default_float())
+            @ np.absolute(np.random.randn(num_inducing, num_inducing))
+            * 1.0
             for _ in range(output_dim)
         ]
     )
