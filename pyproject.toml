@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mogpe"
-version = "0.1.0"
+version = "0.2.0"
 description = "GPflow/Tensorflow implementation of mixture of Gaussian process experts - uses sparse GPs and stochastic variational inference"
 license = "Apache-2.0"
 authors = ["Aidan Scannell <scannell.aidan@gmail.com>"]
