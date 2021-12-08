@@ -34,6 +34,29 @@ if __name__ == "__main__":
         plot=False,
         standardise=False,
     )
+
+    def unstandardise(dataset, standardised_dataset):
+        def unstandardise_array(std_array, unstd_array):
+            mean = tf.reduce_mean(unstd_array)
+            std = tf.sqrt(tf.math.reduce_variance(unstd_array))
+            print("std")
+            print(std)
+            return std_array * std + mean
+
+        X, Y = dataset
+        standardised_X, standardised_Y = standardised_dataset
+        unstd_X = unstandardise_array(standardised_X, X)
+        unstd_Y = unstandardise_array(standardised_Y, Y)
+        return (unstd_X, unstd_Y)
+
+    standardised_dataset, _ = load_quadcopter_dataset(
+        cfg.data_file,
+        trim_coords=trim_coords,
+        num_outputs=2,
+        plot=False,
+        standardise=True,
+    )
+    dataset = unstandardise(dataset, standardised_dataset)
     model = load_model_from_config_and_checkpoint(config_file, ckpt_dir, dataset)
 
     plotter = QuadcopterPlotter(model, X=dataset[0], Y=dataset[1])
