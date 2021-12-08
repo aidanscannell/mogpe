@@ -1,5 +1,5 @@
 * =mogpe= - Mixtures of Gaussian Process Experts in TensorFlow 
-[[https://readthedocs.org/projects/pip/badge/?version=latest&style=plastic?style=svg]]
+[[https://readthedocs.org/projects/pip/badge/?version=latest&style=plastic.svg?style=svg]]
 
 /Disclaimer: This is research code that I have rewritten/documented/packaged as a learning experience (it currently has no tests)./
 
