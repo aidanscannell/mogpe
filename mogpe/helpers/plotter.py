@@ -110,8 +110,11 @@ class Plotter1D(PlotterBase):
         row = 0
         for k, expert in enumerate(self.model.experts.experts_list):
             mean, var = expert.predict_f(self.test_inputs)
+            f_samples = expert.predict_f_samples(self.test_inputs, 5)
             Z = expert.inducing_variable.Z
             for j in range(self.output_dim):
+                for f_sample in f_samples:
+                    axs[row].plot(self.test_inputs, f_sample, alpha=0.3)
                 self.plot_gp(fig, axs[row], mean[:, j], var[:, j])
                 axs[row].scatter(Z, np.zeros(Z.shape), marker="|", color="k")
                 row += 1
