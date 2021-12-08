@@ -424,22 +424,22 @@ class Plotter2D(PlotterBase):
         # var_levels = tf.linspace(
         #     tf.math.reduce_min(vars), tf.math.reduce_max(vars), self.num_levels
         # )
-        mean_levels, var_levels = self.create_levels(means, vars)
-        # return self.plot_gps_shared_cbar(fig, axs, means, vars)
-        num_experts = means.shape[-1]
-        output_dim = means.shape[-2]
-        row = 0
-        cbars = []
-        for k in range(num_experts):
-            for j in range(output_dim):
-                if row != num_experts * output_dim - 1:
-                    axs[row, 0].get_xaxis().set_visible(False)
-                    axs[row, 1].get_xaxis().set_visible(False)
-                cbars.append(
-                    self.plot_gp(fig, axs[row, :], means[:, j, k], vars[:, j, k])
-                )
-                row += 1
-        return np.array(cbars)
+        return self.plot_gps_shared_cbar(fig, axs, means, vars)
+        # mean_levels, var_levels = self.create_levels(means, vars)
+        # num_experts = means.shape[-1]
+        # output_dim = means.shape[-2]
+        # row = 0
+        # cbars = []
+        # for k in range(num_experts):
+        #     for j in range(output_dim):
+        #         if row != num_experts * output_dim - 1:
+        #             axs[row, 0].get_xaxis().set_visible(False)
+        #             axs[row, 1].get_xaxis().set_visible(False)
+        #         cbars.append(
+        #             self.plot_gp(fig, axs[row, :], means[:, j, k], vars[:, j, k])
+        #         )
+        #         row += 1
+        # return np.array(cbars)
 
     def plot_experts_y(self, fig, axs):
         """Plots each experts predictive posterior in each output dim
