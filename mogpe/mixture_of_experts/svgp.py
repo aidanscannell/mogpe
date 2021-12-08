@@ -108,7 +108,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                     X, num_inducing_samples=self.num_samples
                 )  # [S, N, F, K]
                 print("batched_dists")
-                print(batched_dists)
+                print(batched_dists.batch_shape)
                 Y = tf.expand_dims(Y, 0)  # [1, N, F]
                 Y = tf.expand_dims(Y, -1)  # [1, N, F, 1]
                 expected_experts = batched_dists.prob(Y)  # [S, N, F, K]
