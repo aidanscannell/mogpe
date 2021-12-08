@@ -72,12 +72,117 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         # return self.lower_bound_dagp(data)
         # return self.lower_bound_analytic(data)
 
+    def lower_bound_further_gating(
+        self, data: Tuple[tf.Tensor, tf.Tensor]
+    ) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
+
+        Similar to lower_bound_tight but with a further bound on the gating
+        network. The bound removes the M dimensional integral over the gating
+        network inducing variables $q(\hat{\mathbf{U}})$ with 1 dimensional
+        integrals over the gating network variational posterior $q(\mathbf{h}_n)$.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+
+            kl_gating = tf.reduce_sum(self.gating_network.prior_kl())
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            with tf.name_scope("predict_mixing_probs") as scope:
+                # Evaluate gating network to get categorical dist over inicator var
+                h_means, h_vars = self.gating_network.predict_f(X, full_cov=False)
+                h_dist = tfd.Normal(loc=h_means, scale=h_vars)  # [N, F, K]
+                h_dist_samples = h_dist.sample(self.num_samples)  # [S, N, K]
+                mixing_probs = self.gating_network.predict_mixing_probs_given_h(
+                    h_mean=h_dist_samples
+                )  # [S, N, K]
+                print("Mixing probs")
+                print(mixing_probs.shape)
+
+            with tf.name_scope("predict_experts_prob") as scope:
+                batched_dists = self.predict_experts_dists(
+                    X, num_inducing_samples=self.num_samples
+                )  # [S, N, F, K]
+                print("batched_dists")
+                print(batched_dists)
+                Y = tf.expand_dims(Y, 0)  # [1, N, F]
+                Y = tf.expand_dims(Y, -1)  # [1, N, F, 1]
+                expected_experts = batched_dists.prob(Y)  # [S, N, F, K]
+                print("Expected experts")
+                print(expected_experts.shape)
+
+                # Product over output_dim
+                expected_experts = tf.reduce_prod(expected_experts, -2)  # [S, N, K]
+                print("Experts after product over output dims")
+                # print(expected_experts.shape)
+                # expected_experts = tf.expand_dims(expected_experts, -2)
+                print(expected_experts.shape)
+
+            shape_constraints = [
+                (
+                    expected_experts,
+                    ["num_inducing_samples", "num_data", "num_experts"],
+                ),
+                (
+                    mixing_probs,
+                    ["num_inducing_samples", "num_data", "num_experts"],
+                ),
+            ]
+            tf.debugging.assert_shapes(
+                shape_constraints,
+                message="Gating network and experts dimensions do not match",
+            )
+
+            # Expand to enable integrationg over both expert and gating samples
+            expected_experts = tf.expand_dims(expected_experts, 1)
+            mixing_probs = tf.expand_dims(mixing_probs, 0)
+
+            with tf.name_scope("marginalise_indicator_variable") as scope:
+                expected_experts = tf.expand_dims(expected_experts, -2)
+                mixing_probs = tf.expand_dims(mixing_probs, -2)
+                print("expected_experts expanded")
+                print("mixing_probs expanded")
+                print(expected_experts.shape)
+                print(mixing_probs.shape)
+                weighted_sum_over_indicator = tf.matmul(
+                    expected_experts, mixing_probs, transpose_b=True
+                )
+                print("Marginalised indicator variable")
+                print(weighted_sum_over_indicator.shape)
+                weighted_sum_over_indicator = weighted_sum_over_indicator[:, :, :, 0, 0]
+                print(weighted_sum_over_indicator.shape)
+
+            log = tf.math.log(weighted_sum_over_indicator)
+            var_exp = tf.reduce_mean(log, axis=0)  # Average gating samples
+            var_exp = tf.reduce_mean(var_exp, axis=0)  # Average expert inducing samples
+            print("Averaged inducing samples")
+            print(var_exp.shape)
+            var_exp = tf.reduce_sum(var_exp, 0)
+            print("Reduced sum over mini batch")
+            print(var_exp.shape)
+
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                scale = num_data / minibatch_size
+            else:
+                scale = tf.cast(1.0, default_float())
+
+            return var_exp * scale - kl_gating - kl_experts
+
     def lower_bound_further(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
-        Looser bound than lower_bound_1 but analytically marginalises
-        the inducing variables $q(\hat{f}, \hat{h})$. Replaces M-dimensional
-        approx integrals with 1-dimensional approx integrals.
+        Looser bound than lower_bound_tight as it marginalises both of the expert's
+        and the gating network's inducing variables $q(\hat{f}, \hat{h})$ in closed-form.
+        Replaces M-dimensional approx integrals with 1-dimensional approx integrals.
+
+        This bound is equivalent to a different likelihood approximation that
+        only mixes the noise models (as opposed to the full GPs).
 
         This bound assumes each output dimension is independent.
 
@@ -159,94 +264,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                 approx_variational_expectation, axis=0
             )  # []
             print("variational_expectation after sum over data mini batches")
-            print(sum_variational_expectation.shape)
-
-            if self.num_data is not None:
-                num_data = tf.cast(self.num_data, default_float())
-                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
-                scale = num_data / minibatch_size
-            else:
-                scale = tf.cast(1.0, default_float())
-            return sum_variational_expectation * scale - kl_gating - kl_experts
-
-    def lower_bound_further_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
-        """Lower bound to the log-marginal likelihood (ELBO).
-
-        Looser bound than lower_bound_1 but analytically marginalises
-        the inducing variables $q(\hat{f}, \hat{h})$. Replaces M-dimensional
-        approx integrals with 1-dimensional approx integrals.
-
-        This bound assumes each output dimension is independent.
-
-        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
-                     and outputs [num_data, ouput_dim])
-        :returns: loss - a Tensor with shape ()
-        """
-        with tf.name_scope("ELBO") as scope:
-            X, Y = data
-
-            # Evaluate KL terms
-            kl_gating = self.gating_network.prior_kl()
-            kl_experts = tf.reduce_sum(self.experts.prior_kls())
-
-            # Evaluate gating network to get categorical dist over inicator var
-            h_means, h_vars = self.gating_network.predict_f(X, full_cov=False)
-            h_dist = tfd.Normal(loc=h_means, scale=h_vars)  # [N, F, K]
-            h_dist_samples = h_dist.sample(self.num_samples)  # [S, N, F, K]
-            mixing_probs = self.gating_network.predict_mixing_probs_given_h(
-                h_mean=h_dist_samples
-            )  # [S, N, K]
-
-            # Sample each experts variational posterior q(F) and construct p(Y|F)
-            f_means, f_vars = self.experts.predict_fs(X, full_cov=False)
-            f_dist = tfd.Normal(loc=f_means, scale=f_vars)  # [N, F, K]
-            f_dist_samples = f_dist.sample(self.num_samples)  # [S, N, F, K]
-            noise_variances = self.experts.noise_variances()
-
-            noise_variances = tf.stack(noise_variances, -1)
-            noise_variances = tf.expand_dims(noise_variances, 0)
-            noise_variances = tf.expand_dims(noise_variances, 0)
-            print("noise_variances")
-            print(noise_variances)
-            batched_dists = tfd.Normal(loc=f_dist_samples, scale=noise_variances)
-            print("batched_dists")
-            print(batched_dists)
-
-            Y = tf.expand_dims(Y, 0)
-            Y = tf.expand_dims(Y, -1)
-            Y = tf.broadcast_to(Y, batched_dists.batch_shape)
-            print("Y")
-            print(Y.shape)
-            experts_prob_ys = batched_dists.prob(Y)
-            print("Experts probs")
-            print(experts_prob_ys.shape)
-
-            # Product over output_dim
-            experts_prob_ys = tf.reduce_prod(experts_prob_ys, -2)
-
-            with tf.name_scope("marginalise_indicator_variable") as scope:
-                experts_prob_ys = tf.expand_dims(experts_prob_ys, 1)
-                mixing_probs = tf.expand_dims(mixing_probs, 0)
-                experts_prob_ys = tf.expand_dims(experts_prob_ys, -2)
-                mixing_probs = tf.expand_dims(mixing_probs, -2)
-                print("expected_experts expanded")
-                print(experts_prob_ys.shape)
-                print("mixing_probs expanded")
-                print(mixing_probs.shape)
-                weighted_sum_over_indicator = tf.matmul(
-                    experts_prob_ys, mixing_probs, transpose_b=True
-                )[..., 0, 0]
-
-                print("Marginalised indicator variable")
-                print(weighted_sum_over_indicator.shape)
-
-            log = tf.math.log(weighted_sum_over_indicator)
-            var_exp = tf.reduce_mean(log, axis=0)  # Average gating samples
-            var_exp = tf.reduce_mean(var_exp, axis=0)  # Average expert inducing samples
-            print("Averaged inducing samples")
-            print(var_exp.shape)
-            sum_variational_expectation = tf.reduce_sum(var_exp, 0)
-            print("Reduced sum over mini batch")
             print(sum_variational_expectation.shape)
 
             if self.num_data is not None:
@@ -396,6 +413,94 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
             return var_exp * scale - kl_gating - kl_experts
 
+    def lower_bound_further_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
+        """Lower bound to the log-marginal likelihood (ELBO).
+
+        Looser bound than lower_bound_tight but marginalises the inducing variables
+        $q(\hat{f}, \hat{h})$ in closed-form. Replaces M-dimensional
+        approx integrals with 1-dimensional approx integrals.
+
+        This bound assumes each output dimension is independent.
+
+        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
+                     and outputs [num_data, ouput_dim])
+        :returns: loss - a Tensor with shape ()
+        """
+        with tf.name_scope("ELBO") as scope:
+            X, Y = data
+
+            # Evaluate KL terms
+            kl_gating = self.gating_network.prior_kl()
+            kl_experts = tf.reduce_sum(self.experts.prior_kls())
+
+            # Evaluate gating network to get categorical dist over inicator var
+            h_means, h_vars = self.gating_network.predict_f(X, full_cov=False)
+            h_dist = tfd.Normal(loc=h_means, scale=h_vars)  # [N, F, K]
+            h_dist_samples = h_dist.sample(self.num_samples)  # [S, N, F, K]
+            mixing_probs = self.gating_network.predict_mixing_probs_given_h(
+                h_mean=h_dist_samples
+            )  # [S, N, K]
+
+            # Sample each experts variational posterior q(F) and construct p(Y|F)
+            f_means, f_vars = self.experts.predict_fs(X, full_cov=False)
+            f_dist = tfd.Normal(loc=f_means, scale=f_vars)  # [N, F, K]
+            f_dist_samples = f_dist.sample(self.num_samples)  # [S, N, F, K]
+            noise_variances = self.experts.noise_variances()
+
+            noise_variances = tf.stack(noise_variances, -1)
+            noise_variances = tf.expand_dims(noise_variances, 0)
+            noise_variances = tf.expand_dims(noise_variances, 0)
+            print("noise_variances")
+            print(noise_variances)
+            batched_dists = tfd.Normal(loc=f_dist_samples, scale=noise_variances)
+            print("batched_dists")
+            print(batched_dists)
+
+            Y = tf.expand_dims(Y, 0)
+            Y = tf.expand_dims(Y, -1)
+            Y = tf.broadcast_to(Y, batched_dists.batch_shape)
+            print("Y")
+            print(Y.shape)
+            experts_prob_ys = batched_dists.prob(Y)
+            print("Experts probs")
+            print(experts_prob_ys.shape)
+
+            # Product over output_dim
+            experts_prob_ys = tf.reduce_prod(experts_prob_ys, -2)
+
+            with tf.name_scope("marginalise_indicator_variable") as scope:
+                experts_prob_ys = tf.expand_dims(experts_prob_ys, 1)
+                mixing_probs = tf.expand_dims(mixing_probs, 0)
+                experts_prob_ys = tf.expand_dims(experts_prob_ys, -2)
+                mixing_probs = tf.expand_dims(mixing_probs, -2)
+                print("expected_experts expanded")
+                print(experts_prob_ys.shape)
+                print("mixing_probs expanded")
+                print(mixing_probs.shape)
+                weighted_sum_over_indicator = tf.matmul(
+                    experts_prob_ys, mixing_probs, transpose_b=True
+                )[..., 0, 0]
+
+                print("Marginalised indicator variable")
+                print(weighted_sum_over_indicator.shape)
+
+            log = tf.math.log(weighted_sum_over_indicator)
+            var_exp = tf.reduce_mean(log, axis=0)  # Average gating samples
+            var_exp = tf.reduce_mean(var_exp, axis=0)  # Average expert inducing samples
+            print("Averaged inducing samples")
+            print(var_exp.shape)
+            sum_variational_expectation = tf.reduce_sum(var_exp, 0)
+            print("Reduced sum over mini batch")
+            print(sum_variational_expectation.shape)
+
+            if self.num_data is not None:
+                num_data = tf.cast(self.num_data, default_float())
+                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
+                scale = num_data / minibatch_size
+            else:
+                scale = tf.cast(1.0, default_float())
+            return sum_variational_expectation * scale - kl_gating - kl_experts
+
     def lower_bound_tight_2(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
@@ -499,10 +604,13 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     ) -> tf.Tensor:
         """Lower bound to the log-marginal likelihood (ELBO).
 
-        Similar to lower_bound_tight but with a further bound on the gating
-        network. The bound removes the M dimensional integral over the gating
-        network inducing variables $q(\hat{\mathbf{U}})$ with 1 dimensional
+        Similar to lower_bound_tight but with a further bound on the experts.
+        The bound removes the M dimensional integral over each expert's
+        inducing variables $q(\hat{\mathbf{U}})$ with 1 dimensional
         integrals over the gating network variational posterior $q(\mathbf{h}_n)$.
+
+        This bound is equivalent to a different likelihood approximation that
+        only mixes the noise models (as opposed to the full GPs).
 
         :param data: data tuple (X, Y) with inputs [num_data, input_dim]
                      and outputs [num_data, ouput_dim])
@@ -663,107 +771,6 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
 
             return sum_variational_expectation * scale - kl_gating - kl_experts
             # return var_exp * scale - kl_gating - kl_experts
-
-    def lower_bound_further_gating(
-        self, data: Tuple[tf.Tensor, tf.Tensor]
-    ) -> tf.Tensor:
-        """Lower bound to the log-marginal likelihood (ELBO).
-
-        Similar to lower_bound_tight but with a further bound on the gating
-        network. The bound removes the M dimensional integral over the gating
-        network inducing variables $q(\hat{\mathbf{U}})$ with 1 dimensional
-        integrals over the gating network variational posterior $q(\mathbf{h}_n)$.
-
-        :param data: data tuple (X, Y) with inputs [num_data, input_dim]
-                     and outputs [num_data, ouput_dim])
-        :returns: loss - a Tensor with shape ()
-        """
-        with tf.name_scope("ELBO") as scope:
-            X, Y = data
-
-            kl_gating = tf.reduce_sum(self.gating_network.prior_kl())
-            kl_experts = tf.reduce_sum(self.experts.prior_kls())
-
-            with tf.name_scope("predict_mixing_probs") as scope:
-                # Evaluate gating network to get categorical dist over inicator var
-                h_means, h_vars = self.gating_network.predict_f(X, full_cov=False)
-                h_dist = tfd.Normal(loc=h_means, scale=h_vars)  # [N, F, K]
-                h_dist_samples = h_dist.sample(self.num_samples)  # [S, N, K]
-                mixing_probs = self.gating_network.predict_mixing_probs_given_h(
-                    h_mean=h_dist_samples
-                )  # [S, N, K]
-                print("Mixing probs")
-                print(mixing_probs.shape)
-
-            with tf.name_scope("predict_experts_prob") as scope:
-                batched_dists = self.predict_experts_dists(
-                    X, num_inducing_samples=self.num_samples
-                )  # [S, N, F, K]
-                print("batched_dists")
-                print(batched_dists)
-                Y = tf.expand_dims(Y, 0)  # [1, N, F]
-                Y = tf.expand_dims(Y, -1)  # [1, N, F, 1]
-                expected_experts = batched_dists.prob(Y)  # [S, N, F, K]
-                print("Expected experts")
-                print(expected_experts.shape)
-
-                # Product over output_dim
-                expected_experts = tf.reduce_prod(expected_experts, -2)  # [S, N, K]
-                print("Experts after product over output dims")
-                # print(expected_experts.shape)
-                # expected_experts = tf.expand_dims(expected_experts, -2)
-                print(expected_experts.shape)
-
-            shape_constraints = [
-                (
-                    expected_experts,
-                    ["num_inducing_samples", "num_data", "num_experts"],
-                ),
-                (
-                    mixing_probs,
-                    ["num_inducing_samples", "num_data", "num_experts"],
-                ),
-            ]
-            tf.debugging.assert_shapes(
-                shape_constraints,
-                message="Gating network and experts dimensions do not match",
-            )
-
-            # Expand to enable integrationg over both expert and gating samples
-            expected_experts = tf.expand_dims(expected_experts, 1)
-            mixing_probs = tf.expand_dims(mixing_probs, 0)
-
-            with tf.name_scope("marginalise_indicator_variable") as scope:
-                expected_experts = tf.expand_dims(expected_experts, -2)
-                mixing_probs = tf.expand_dims(mixing_probs, -2)
-                print("expected_experts expanded")
-                print("mixing_probs expanded")
-                print(expected_experts.shape)
-                print(mixing_probs.shape)
-                weighted_sum_over_indicator = tf.matmul(
-                    expected_experts, mixing_probs, transpose_b=True
-                )[:, :, :, 0, 0]
-
-                print("Marginalised indicator variable")
-                print(weighted_sum_over_indicator.shape)
-
-            log = tf.math.log(weighted_sum_over_indicator)
-            var_exp = tf.reduce_mean(log, axis=0)  # Average gating samples
-            var_exp = tf.reduce_mean(var_exp, axis=0)  # Average expert inducing samples
-            print("Averaged inducing samples")
-            print(var_exp.shape)
-            var_exp = tf.reduce_sum(var_exp, 0)
-            print("Reduced sum over mini batch")
-            print(var_exp.shape)
-
-            if self.num_data is not None:
-                num_data = tf.cast(self.num_data, default_float())
-                minibatch_size = tf.cast(tf.shape(X)[0], default_float())
-                scale = num_data / minibatch_size
-            else:
-                scale = tf.cast(1.0, default_float())
-
-            return var_exp * scale - kl_gating - kl_experts
 
     def lower_bound_dagp(self, data: Tuple[tf.Tensor, tf.Tensor]) -> tf.Tensor:
         """Lower bound used in Data Association with GPs (DAGP).
