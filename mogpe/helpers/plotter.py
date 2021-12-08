@@ -113,7 +113,7 @@ class Plotter1D(PlotterBase):
             Z = expert.inducing_variable.Z
             for j in range(self.output_dim):
                 self.plot_gp(fig, axs[row], mean[:, j], var[:, j])
-                axs[row].scatter(Z, np.zeros(Z.shape), marker="|")
+                axs[row].scatter(Z, np.zeros(Z.shape), marker="|", color="k")
                 row += 1
 
     def plot_experts_y(self, fig, axs):
