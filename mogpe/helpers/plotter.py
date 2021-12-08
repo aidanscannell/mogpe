@@ -106,7 +106,7 @@ class Plotter1D(PlotterBase):
         )
 
     def plot_experts_f(self, fig, axs):
-        tf.print("Plotting experts f...")
+        # tf.print("Plotting experts f...")
         row = 0
         for k, expert in enumerate(self.model.experts.experts_list):
             mean, var = expert.predict_f(self.test_inputs)
@@ -117,7 +117,7 @@ class Plotter1D(PlotterBase):
                 row += 1
 
     def plot_experts_y(self, fig, axs):
-        tf.print("Plotting experts y...")
+        # tf.print("Plotting experts y...")
         dists = self.model.predict_experts_dists(self.test_inputs)
         mean = dists.mean()
         var = dists.variance()
@@ -128,7 +128,7 @@ class Plotter1D(PlotterBase):
                 row += 1
 
     def plot_gating_network(self, fig, ax):
-        tf.print("Plotting gating network mixing probabilities...")
+        # tf.print("Plotting gating network mixing probabilities...")
         mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
         num_experts = tf.shape(mixing_probs)[-1]
         for k in range(num_experts):
@@ -143,7 +143,7 @@ class Plotter1D(PlotterBase):
 
         :param axs: if num_experts > 2: [num_experts, 2] else [1, 2]
         """
-        tf.print("Plotting gating network gps...")
+        # tf.print("Plotting gating network gps...")
         means, vars = self.model.gating_network.predict_fs(self.test_inputs)
         # Z = self.model.gating_network.inducing_variable.Z
         for k in range(self.num_experts):
@@ -175,7 +175,7 @@ class Plotter1D(PlotterBase):
         )
 
     def plot_y(self, fig, ax):
-        tf.print("Plotting y...")
+        # tf.print("Plotting y...")
         alpha = 0.4
         ax.scatter(self.X, self.Y, marker="x", color="k", alpha=alpha)
         y_dist = self.model.predict_y(self.test_inputs)
