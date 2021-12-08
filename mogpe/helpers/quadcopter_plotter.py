@@ -178,30 +178,35 @@ class QuadcopterPlotter:
         self.plot_y_mm_given_fig_axs(fig, axs)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+        return fig, axs
 
     def plot_experts_y(self, save_filename=None):
         fig, axs = self.create_fig_axs_plot_experts_f()
         self.plot_experts_y_given_fig_axs(fig, axs)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+        return fig, axs
 
     def plot_experts_f(self, save_filename=None):
         fig, axs = self.create_fig_axs_plot_experts_f()
         self.plot_experts_f_given_fig_axs(fig, axs)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+        return fig, axs
 
     def plot_gating_gps(self, save_filename=None):
         fig, axs = self.create_fig_axs_plot_gating_gps()
         self.plot_gating_gps_given_fig_axs(fig, axs)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+        return fig, axs
 
     def plot_mixing_probs(self, save_filename=None):
         fig, axs = self.create_fig_axs_plot_mixing_probs()
         self.plot_mixing_probs_given_fig_axs(fig, axs)
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+        return fig, axs
 
     def create_fig_axs_plot_y_mm(self):
         fig = plt.figure(figsize=(self.figsize[0], self.figsize[1] / 2))
