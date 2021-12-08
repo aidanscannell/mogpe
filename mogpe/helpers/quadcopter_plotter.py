@@ -302,7 +302,7 @@ class QuadcopterPlotter:
                     + "_{"
                     + str(k + 1)
                     + str(j + 1)
-                    + "}(\mathbf{x}_*)]$",
+                    + "}(\mathbf{x})]$",
                 )
                 self.add_cbar(
                     fig,
@@ -313,7 +313,7 @@ class QuadcopterPlotter:
                     + "_{"
                     + str(k + 1)
                     + str(j + 1)
-                    + "}(\mathbf{x}_*)]$",
+                    + "}(\mathbf{x})]$",
                 )
                 row += 1
 
@@ -336,13 +336,13 @@ class QuadcopterPlotter:
                     fig,
                     axs[k, 0],
                     mean_contf,
-                    "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                    "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x})]$",
                 )
                 self.add_cbar(
                     fig,
                     axs[k, 1],
                     var_contf,
-                    "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x}_*)]$",
+                    "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x})]$",
                 )
         else:
             mean_contf, var_contf = self.plot_gp_contf(
@@ -352,13 +352,13 @@ class QuadcopterPlotter:
                 fig,
                 axs[0],
                 mean_contf,
-                "$\mathbb{E}[h_{" + str(desired_mode + 1) + "}(\mathbf{x}_*)]$",
+                "$\mathbb{E}[h_{" + str(desired_mode + 1) + "}(\mathbf{x})]$",
             )
             self.add_cbar(
                 fig,
                 axs[1],
                 var_contf,
-                "$\mathbb{V}[h_{" + str(desired_mode + 1) + "}(\mathbf{x}_*)]$",
+                "$\mathbb{V}[h_{" + str(desired_mode + 1) + "}(\mathbf{x})]$",
             )
 
     def plot_mixing_probs_given_fig_axs(self, fig, axs, desired_mode=None):
@@ -373,7 +373,7 @@ class QuadcopterPlotter:
                     fig,
                     axs[k],
                     prob_contf,
-                    "$\Pr(\\alpha_* = " + str(k + 1) + " \mid \mathbf{x}_*)$",
+                    "$\Pr(\\alpha = " + str(k + 1) + " \mid \mathbf{x})$",
                 )
         else:
             prob_contf = self.contf(fig, axs, z=mixing_probs[:, desired_mode])
@@ -381,7 +381,7 @@ class QuadcopterPlotter:
                 fig,
                 axs,
                 prob_contf,
-                "$\Pr(\\alpha_* = " + str(desired_mode + 1) + " \mid \mathbf{x}_*)$",
+                "$\Pr(\\alpha = " + str(desired_mode + 1) + " \mid \mathbf{x})$",
             )
 
     def plot_gating_network_given_fig_axs(self, fig, axs):
@@ -395,7 +395,7 @@ class QuadcopterPlotter:
                 fig,
                 axs[k],
                 prob_contf,
-                "$\Pr(\\alpha_* = " + str(k + 1) + " \mid \mathbf{x}_*)$",
+                "$\Pr(\\alpha = " + str(k + 1) + " \mid \mathbf{x})$",
             )
 
     def tf_monitor_task_group(self, log_dir, slow_tasks_period=500):
