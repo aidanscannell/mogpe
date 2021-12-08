@@ -5,6 +5,7 @@ import numpy as np
 import palettable
 import tensorflow as tf
 from gpflow.monitor import MonitorTaskGroup
+from matplotlib import patches
 from matplotlib import pyplot as plt
 from mogpe.training.monitor import ImageWithCbarToTensorBoard
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -109,6 +110,54 @@ class QuadcopterPlotter:
         ax.set_ylabel("$y$")
         if save_filename is not None:
             plt.savefig(save_filename, transparent=True)
+
+    def plot_inducing_variables(self, fig, axs, Z, q_mu, q_sqrt):
+        # Z = self.mode_opt.dynamics.gating_gp.inducing_variable.Z
+        # q_mu = self.mode_opt.dynamics.gating_gp.q_mu
+        # q_sqrt = self.mode_opt.dynamics.gating_gp.q_sqrt[0, :, :]
+        print("q_mu.shape")
+        print(q_mu.shape)
+        print(q_sqrt.shape)
+        q_diag = tf.linalg.diag_part(q_sqrt)
+        print("q_diag.shape")
+        print(q_diag.shape)
+        print("plotting inducing_variables")
+        tf.print("plotting inducing_variables")
+        for ax in axs.flat:
+            for Z_, q_mu_, q_diag_ in zip(Z.numpy(), q_mu.numpy(), q_diag.numpy()):
+                print("q_mu_.shape")
+                print(Z_.shape)
+                print(q_mu_.shape)
+                print(q_diag_.shape)
+                ax.add_patch(
+                    patches.Ellipse(
+                        (Z_[0], Z_[1]),
+                        q_diag_ * 1,
+                        q_diag_ * 1,
+                        facecolor="none",
+                        edgecolor="b",
+                        linewidth=0.1,
+                        alpha=0.6,
+                    )
+                )
+
+        q_diag = tf.diag_part(q_sqrt)
+        print("q_diag.shape")
+        print(q_diag.shape)
+        for ax in axs:
+            print("plotting inducing_variables")
+            tf.print("plotting inducing_variables")
+            ax.add_patch(
+                patches.Ellipse(
+                    (q_mu[:, 0], q_mu[:, 1]),
+                    q_diag[:, 0] * 100000000,
+                    q_diag[:, 1] * 100000000,
+                    facecolor="none",
+                    edgecolor="b",
+                    linewidth=0.1,
+                    alpha=0.6,
+                )
+            )
 
     def plot_model(self, save_dir):
         save_filename = os.path.join(save_dir, "y_moment_matched.pdf")
