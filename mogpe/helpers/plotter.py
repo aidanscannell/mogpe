@@ -599,7 +599,9 @@ class Plotter2D(PlotterBase):
         fig, axs = plt.subplots(self.output_dim, 2, figsize=(10, 4))
         self.plot_y(fig, axs)
 
-    def tf_monitor_task_group(self, log_dir, slow_period=500):
+    def tf_monitor_task_group(
+        self, log_dir, slow_period=500, gating_network_only=False
+    ):
         ncols = 2
         nrows_y = self.output_dim
         nrows_experts = self.num_experts * self.output_dim
@@ -650,14 +652,20 @@ class Plotter2D(PlotterBase):
         # image_tasks = [
         #     image_task_experts_y, image_task_experts_f, image_task_gating
         # ]
-        image_tasks = [
-            image_task_experts_y,
-            image_task_experts_f,
-            image_task_gating,
-            image_task_gating_gps,
-            image_task_y
-            # image_task_y
-        ]
+        if gating_network_only:
+            image_tasks = [
+                image_task_gating,
+                image_task_gating_gps,
+            ]
+        else:
+            image_tasks = [
+                image_task_experts_y,
+                image_task_experts_f,
+                image_task_gating,
+                image_task_gating_gps,
+                image_task_y
+                # image_task_y
+            ]
         # image_tasks = [
         #     image_task_experts_y, image_task_experts_f, image_task_y
         # ]
