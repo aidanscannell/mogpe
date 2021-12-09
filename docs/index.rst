@@ -17,8 +17,9 @@ the `examples directory <https://github.com/aidanscannell/mogpe/tree/master/exam
 and notebooks show how the model can be configured and trained.
 Details on the implementation can be found in
 :ref:`understanding_code:What's going on with this code?!` and the :ref:`api:mogpe API`.
-The underlying mathematics of the model and inference is detailed in
-:ref:`understanding_math:Hit me up with some sweet maths!`.
+..
+   The underlying mathematics of the model and inference is detailed in
+   :ref:`understanding_math:Hit me up with some sweet maths!`.
 
 
 .. toctree::
