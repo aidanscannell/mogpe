@@ -13,7 +13,6 @@ It also provides the building blocks for implementing other Mixtures of Gaussian
 =mogpe= uses [[https://github.com/GPflow/GPflow.git][GPflow 2.1]]/[[https://github.com/tensorflow/tensorflow.git][TensorFlow 2.4+]] for running computations, which allows fast execution on GPUs, and uses Python ≥ 3.8.
 It was originally created by [[https://www.aidanscannell.com/][Aidan Scannell]].
 
-
 ** Install mogpe
 This is a Python package that should be installed into a virtual environment.
 Start by cloning the repo from Github:
@@ -134,3 +133,12 @@ parsers.
 *** mogpe.helpers
 The helpers directory contains classes to aid plotting models with 1D and 2D inputs.
 These are exploited by the monitored training loops.
+
+
+** Publications
+This code was used in the following publication,
+- A. Scannell, C. H. Ek and A. Richards, "Trajectory Optimisation in Learned Multimodal Dynamical Systems via Latent-ODE Collocation," 2021 IEEE International Conference on Robotics and Automation (ICRA), 2021, pp. 12745-12751, doi: 10.1109/ICRA48506.2021.9561362.
+
+** TODO:
+- Update maths in documentation,
+  + Maybe just add link to thesis or paper once published?
