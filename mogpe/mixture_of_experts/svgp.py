@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import Tuple
+from typing import Tuple, Optional
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -34,9 +34,9 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self,
         gating_network: SVGPGatingNetwork,
         experts: SVGPExperts,
-        num_data: int,
-        num_samples: int = 1,
-        bound: str = "further_gating",  # "further_gating" or "tight" or "further" or
+        num_data: Optional[int] = None,
+        num_samples: Optional[int] = 1,
+        bound: Optional[str] = "further_gating",  # "further_gating"/"tight"/"further"
     ):
         assert isinstance(gating_network, SVGPGatingNetwork)
         assert isinstance(experts, SVGPExperts)
