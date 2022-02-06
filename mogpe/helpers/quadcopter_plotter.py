@@ -45,6 +45,7 @@ class QuadcopterPlotter:
         cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap,
         static: bool = True,  # whether or not to recalculate model predictions at each call
     ):
+        print("using quadco9tper plotter")
         self.model = model
         self.X = X
         self.Y = Y
@@ -97,9 +98,28 @@ class QuadcopterPlotter:
 
     def add_cbar(self, fig, ax, contf, label=""):
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = fig.colorbar(contf, cax=cax)
+        # cax = divider.append_axes("right", size="5%", pad=0.05)
+        # cax = divider.append_axes("top", size="5%", pad=0.05)
+        # cbar = fig.colorbar(contf, cax=cax)
+
+        if isinstance(ax, np.ndarray):
+            divider = make_axes_locatable(ax[0])
+        else:
+            divider = make_axes_locatable(ax)
+        cax = divider.append_axes("top", size="5%", pad=0.05)
+        cbar = fig.colorbar(
+            contf,
+            # ax=ax,
+            use_gridspec=True,
+            cax=cax,
+            orientation="horizontal",
+        )
+
+        # cax.ticklabel_format(style="sci", scilimits=(0, 3))
+        cax.xaxis.set_ticks_position("top")
+        cax.xaxis.set_label_position("top")
         cbar.set_label(label)
+        return cbar
 
     def plot_dataset(self, save_filename=None):
         fig = plt.figure(figsize=(self.figsize[0] / 2, self.figsize[1] / 2))
@@ -224,14 +244,16 @@ class QuadcopterPlotter:
 
     def create_fig_axs_plot_gating_gps(self):
         fig = plt.figure(figsize=(self.figsize[0], self.figsize[1] / 2))
-        gs = fig.add_gridspec(2, 2, wspace=0.3)
+        # gs = fig.add_gridspec(2, 2, wspace=0.3)
+        gs = fig.add_gridspec(2, 2, wspace=0.1)
         axs = gs.subplots(sharex=True, sharey=True)
         axs = init_axis_labels_and_ticks(axs)
         return fig, axs
 
     def create_fig_axs_plot_mixing_probs(self):
         fig = plt.figure(figsize=(self.figsize[0], self.figsize[1] / 4))
-        gs = fig.add_gridspec(1, 2, wspace=0.3)
+        # gs = fig.add_gridspec(1, 2, wspace=0.3)
+        gs = fig.add_gridspec(1, 2, wspace=0.1)
         axs = gs.subplots(sharex=True, sharey=True)
         axs = init_axis_labels_and_ticks(axs)
         return fig, axs
@@ -344,13 +366,23 @@ class QuadcopterPlotter:
                     fig,
                     axs[k, 0],
                     mean_contf,
-                    "$\mathbb{E}[h_{" + str(k + 1) + "}(\mathbf{x})]$",
+                    # "Expert "
+                    # + str(k + 1)
+                    # +
+                    "Gating Function Mean $\mathbb{E}[h_{"
+                    + str(k + 1)
+                    + "}(\mathbf{x})]$",
                 )
                 self.add_cbar(
                     fig,
                     axs[k, 1],
                     var_contf,
-                    "$\mathbb{V}[h_{" + str(k + 1) + "}(\mathbf{x})]$",
+                    # "Expert "
+                    # + str(k + 1)
+                    # +
+                    "Gating Function Variance $\mathbb{V}[h_{"
+                    + str(k + 1)
+                    + "}(\mathbf{x})]$",
                 )
         else:
             mean_contf, var_contf = self.plot_gp_contf(
@@ -360,13 +392,23 @@ class QuadcopterPlotter:
                 fig,
                 axs[0],
                 mean_contf,
-                "$\mathbb{E}[h_{" + str(desired_mode + 1) + "}(\mathbf{x})]$",
+                # "Expert "
+                # + str(desired_mode + 1)
+                # +
+                "Gating Function Mean $\mathbb{E}[h_{"
+                + str(desired_mode + 1)
+                + "}(\mathbf{x})]$",
             )
             self.add_cbar(
                 fig,
                 axs[1],
                 var_contf,
-                "$\mathbb{V}[h_{" + str(desired_mode + 1) + "}(\mathbf{x})]$",
+                # "Expert "
+                # + str(desired_mode + 1)
+                # +
+                "Gating Function Variance $\mathbb{V}[h_{"
+                + str(desired_mode + 1)
+                + "}(\mathbf{x})]$",
             )
 
     def plot_mixing_probs_given_fig_axs(self, fig, axs, desired_mode=None):

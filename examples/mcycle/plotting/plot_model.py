@@ -26,6 +26,21 @@ tfd = tfp.distributions
 plt.style.use("seaborn-paper")
 plt.style.use("ggplot")
 
+# SMALL_SIZE = 8
+# MEDIUM_SIZE = 10
+# BIGGER_SIZE = 12
+SMALL_SIZE = 18
+MEDIUM_SIZE = 20
+BIGGER_SIZE = 22
+
+# plt.rc("font", size=SMALL_SIZE)  # controls default text sizes
+plt.rc("font", size=BIGGER_SIZE)  # controls default text sizes
+plt.rc("axes", titlesize=BIGGER_SIZE)  # fontsize of the axes title
+plt.rc("axes", labelsize=BIGGER_SIZE)  # fontsize of the x and y labels
+plt.rc("xtick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("ytick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
+plt.rc("figure", titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 prop_cycle = plt.rcParams["axes.prop_cycle"]
 colors = prop_cycle.by_key()["color"]
@@ -381,17 +396,30 @@ class McyclePlotter:
             colors=expert_colors[: self.num_experts],
             N=self.num_experts,
         )
-        ax.scatter(
-            self.test_inputs_broadcast,
-            self.y_samples,
-            c=self.alpha_samples,
-            # s=9,
-            s=3,
-            cmap=cmap,
-            # rasterized=True,
-            alpha=0.8,
-            label="MoSVGPE samples",
-        )
+        for k in range(self.num_experts):
+            ax.scatter(
+                self.test_inputs_broadcast[self.alpha_samples == k],
+                self.y_samples[self.alpha_samples == k],
+                # c=self.alpha_samples[self.alpha_samples == k],
+                c=expert_colors[k],
+                # s=9,
+                s=3,
+                cmap=cmap,
+                # rasterized=True,
+                alpha=0.8,
+                label="k=" + str(k + 1) + " samples",
+            )
+        # ax.scatter(
+        #     self.test_inputs_broadcast,
+        #     self.y_samples,
+        #     c=self.alpha_samples,
+        #     # s=9,
+        #     s=3,
+        #     cmap=cmap,
+        #     # rasterized=True,
+        #     alpha=0.8,
+        #     label="MoSVGPE samples",
+        # )
         ax.plot(
             self.test_inputs,
             self.svgp_mean - 1.96 * np.sqrt(self.svgp_var),
@@ -405,7 +433,9 @@ class McyclePlotter:
             lw=lw,
             label="SVGP $\pm 2\sigma$",
         )
-        ax.legend(loc=2)
+        # ax.legend(loc=2)
+        ax.legend(facecolor="gray")
+        ax.legend(loc=3)
 
     def plot_experts_y_given_fig_axs(self, fig, axs):
         self.plot_experts_given_fig_axs(fig, axs, self.y_means, self.y_vars, label="y")
