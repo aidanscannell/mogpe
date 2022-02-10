@@ -6,7 +6,8 @@ from gpflow import Module
 from gpflow.models.model import InputData, MeanAndVariance
 
 
-class GatingNetworkBase(Module, ABC):
+# class GatingNetworkBase(Module, ABC):
+class GatingNetworkBase(tf.keras.Model, ABC):
     """Abstract base class for the gating network."""
 
     @abstractmethod
@@ -27,3 +28,6 @@ class GatingNetworkBase(Module, ABC):
         :returns: a batched Tensor with shape [..., num_test, 1, num_experts]
         """
         raise NotImplementedError
+
+    def call(self, Xnew: InputData, **kwargs) -> tf.Tensor:
+        return self.predict_mixing_probs(Xnew, kwargs)

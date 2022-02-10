@@ -4,13 +4,16 @@ from typing import List
 
 import tensorflow_probability as tfp
 
+import tensorflow as tf
 from gpflow import Module
 from gpflow.models.model import InputData
 
 tfd = tfp.distributions
 
 
-class ExpertBase(Module, ABC):
+# class ExpertBase(Module, ABC):
+# class ExpertBase(tf.keras.Model):
+class ExpertBase(tf.keras.Model, Module):
     """Abstract base class for an individual expert.
 
     Each subclass that inherits ExpertBase should implement the predict_dist()
@@ -30,7 +33,9 @@ class ExpertBase(Module, ABC):
         raise NotImplementedError
 
 
-class ExpertsBase(Module, ABC):
+# class ExpertsBase(Module, ABC):
+# class ExpertsBase(tf.keras.Model):
+class ExpertsBase(tf.keras.Model, Module):
     """Abstract base class for a set of experts.
 
     Provides an interface between ExpertBase and MixtureOfExperts.
@@ -43,7 +48,8 @@ class ExpertsBase(Module, ABC):
         """
         :param experts_list: A list of experts that inherit from ExpertBase
         """
-        super().__init__(name=name)
+        # super().__init__(name=name)
+        super().__init__()
         assert isinstance(
             experts_list, list
         ), "experts_list should be a list of ExpertBase instances"

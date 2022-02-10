@@ -11,7 +11,8 @@ from mogpe.gating_networks import GatingNetworkBase
 tfd = tfp.distributions
 
 
-class MixtureOfExperts(BayesianModel, ABC):
+# class MixtureOfExperts(BayesianModel, ABC):
+class MixtureOfExperts(tf.keras.Model, BayesianModel):
     """Abstract base class for mixture of experts models.
 
     Given an input :math:`x` and an output :math:`y` the mixture of experts
@@ -43,11 +44,17 @@ class MixtureOfExperts(BayesianModel, ABC):
         :param experts: an instance of the ExpertsBase class with the
                         predict_dists(Xnew) method implemented.
         """
+        # super().__init__()
+        tf.keras.Model.__init__(self)
+        BayesianModel.__init__(self)
         assert isinstance(gating_network, GatingNetworkBase)
         self.gating_network = gating_network
         assert isinstance(experts, ExpertsBase)
         self.experts = experts
         self.num_experts = experts.num_experts
+
+    # def call(self, Xnew: InputData):
+    #     return tf.reduce_sum(Xnew)
 
     def predict_mixing_probs(self, Xnew: InputData, **kwargs):
         """Calculates the mixing probabilities at Xnew.
@@ -120,3 +127,29 @@ class MixtureOfExperts(BayesianModel, ABC):
         :returns: a Tensor with shape [num_samples, num_test, output_dim]
         """
         return self.predict_y(Xnew, **kwargs).sample(num_samples)
+
+    def get_config(self):
+        config = super.get_config()
+        config.update(
+            {
+                "experts": self.experts.getconfig(),
+                "gating_network": self.gating_network.get_config(),
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+    # def get_config(self):
+    #     """Returns the config for keras"""
+    #     config = {
+    #         "predict_y_samples_fn": _serialize_function(self.predict_y_samples),
+    #         "predict_y_fn": _serialize_function(self.predict_y),
+    #         "predict_mixing_probs_fn": _serialize_function(self.predict_mixing_probs),
+    #         "predict_experts_dists_fn": _serialize_function(self.predict_experts_dists),
+    #     }
+    #     return config
+    # base_config = super(DistributionLambda, self).get_config()
+    # return dict(list(base_config.items()) + list(config.items()))

@@ -10,7 +10,7 @@ from mogpe.gating_networks import GatingNetworkBase
 from mogpe.gps import SVGPModel
 
 
-class SVGPGatingNetwork(GatingNetworkBase, SVGPModel):
+class SVGPGatingNetwork(SVGPModel, GatingNetworkBase):
     def __init__(
         self,
         kernel: Kernel,

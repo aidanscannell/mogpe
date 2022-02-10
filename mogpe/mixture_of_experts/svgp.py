@@ -13,7 +13,7 @@ from mogpe.mixture_of_experts import MixtureOfExperts
 tfd = tfp.distributions
 
 
-class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
+class MixtureOfSVGPExperts(MixtureOfExperts):
     """Mixture of SVGP experts using stochastic variational inference.
 
     Implemention of a mixture of Gaussian process (GPs) experts method where
@@ -44,6 +44,59 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         self.num_samples = num_samples
         self.num_data = num_data
         self.bound = bound
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
+        # self.input = tf.keras.layers.Input(4)
+        # self.mae_tracker = tf.keras.metrics.MeanAbsoluteError(name="mae")
+        # self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
+
+    def get_config(self):
+        config = super.get_config()
+        config.update(
+            {
+                "num_data": self.num_data,
+                "num_samples": self.num_samples,
+                "bound": self.bound,
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+    def build(self, input_shape):
+        input_dim, output_dim = input_shape
+        self.w = self.add_weight(
+            shape=(input_dim, output_dim), initializer="random_normal", trainable=True
+        )
+
+    def call(self, input, training=None):
+        # if training:
+        #     self.add_los(self.elbo)
+        #     return self.elbo(input)
+        # else:
+        #     return tf.reduce_sum(input)
+        return tf.reduce_sum(input)
+        # return self.elbo(data)
+        #
+
+    @property
+    def metrics(self):
+        return [self.loss_tracker]
+
+    def train_step(self, data: Tuple[tf.Tensor, tf.Tensor]):
+        print("self.trainable_weights")
+        print(self.trainable_weights)
+        print("AFTER self.trainable_weights ")
+        # print(self.optimizer)
+        with tf.GradientTape() as tape:
+            loss = -self.elbo(data)
+        gradients = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
+
+        # Update metrics (includes the metric that tracks the loss)
+        self.loss_tracker.update_state(loss)
+        return {"loss": self.loss_tracker.result()}
 
     def maximum_log_likelihood_objective(
         self, data: Tuple[tf.Tensor, tf.Tensor]
@@ -86,6 +139,7 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
                      and outputs [num_data, ouput_dim])
         :returns: loss - a Tensor with shape ()
         """
+        print("inside further gating")
         with tf.name_scope("ELBO") as scope:
             X, Y = data
 
