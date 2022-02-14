@@ -6,8 +6,7 @@ from gpflow import Module
 from gpflow.models.model import InputData, MeanAndVariance
 
 
-# class GatingNetworkBase(Module, ABC):
-class GatingNetworkBase(tf.keras.Model, ABC):
+class GatingNetworkBase(Module, ABC):
     """Abstract base class for the gating network."""
 
     @abstractmethod

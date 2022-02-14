@@ -13,7 +13,7 @@ from mogpe.mixture_of_experts import MixtureOfExperts
 tfd = tfp.distributions
 
 
-class MixtureOfSVGPExperts(MixtureOfExperts):
+class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     """Mixture of SVGP experts using stochastic variational inference.
 
     Implemention of a mixture of Gaussian process (GPs) experts method where

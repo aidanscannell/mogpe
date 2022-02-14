@@ -11,9 +11,7 @@ from gpflow.models.model import InputData
 tfd = tfp.distributions
 
 
-# class ExpertBase(Module, ABC):
-# class ExpertBase(tf.keras.Model):
-class ExpertBase(tf.keras.Model, Module):
+class ExpertBase(Module, ABC):
     """Abstract base class for an individual expert.
 
     Each subclass that inherits ExpertBase should implement the predict_dist()
@@ -33,9 +31,7 @@ class ExpertBase(tf.keras.Model, Module):
         raise NotImplementedError
 
 
-# class ExpertsBase(Module, ABC):
-# class ExpertsBase(tf.keras.Model):
-class ExpertsBase(tf.keras.Model, Module):
+class ExpertsBase(Module, ABC):
     """Abstract base class for a set of experts.
 
     Provides an interface between ExpertBase and MixtureOfExperts.
