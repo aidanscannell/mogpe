@@ -27,8 +27,6 @@ gpflow = {path = "/Users/aidanscannell/Developer/forked-repos/gpflow", develop=t
 tensor-annotations = {git = "https://github.com/deepmind/tensor_annotations"}
 matplotlib = "^3.2"
 pandas = "^1.3.2"
-# seaborn = "^0.11.2"
-python-configuration = "^0.8.2"
 scikit-learn = "^1.0.1"  # for test_train_split
 dataclasses = { version = "*", python = "^3.6.0" }
 bunch = "^1.0.1"
