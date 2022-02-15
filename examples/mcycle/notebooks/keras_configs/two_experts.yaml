@@ -1,0 +1,65 @@
+---
+class_name: MixtureOfSVGPExperts
+config:
+  experts_list:
+  - class_name: SVGPExpert
+    config:
+      kernel:
+        class_name: SquaredExponential
+        config:
+          lengthscales: 10.0
+          variance: 1.0
+      likelihood:
+        class_name: Gaussian
+        config:
+          variance: 1.0
+      mean_function:
+        class_name: Constant
+        config:
+          c: 0.0
+      inducing_variable:
+        class_name: InducingPoints
+        config:
+          num_inducing: 10
+          input_dim: 1
+      num_latent_gps: 1
+  - class_name: SVGPExpert
+    config:
+      kernel:
+        class_name: SquaredExponential
+        config:
+          lengthscales: 1.0
+          variance: 1.0
+      likelihood:
+        class_name: Gaussian
+        config:
+          variance: 1.0
+      mean_function:
+        class_name: Constant
+        config:
+          c: 0.0
+      inducing_variable:
+        class_name: InducingPoints
+        config:
+          num_inducing: 10
+          input_dim: 1
+      num_latent_gps: 1
+  gating_network:
+    class_name: SVGPGatingNetwork
+    config:
+      kernel:
+        class_name: SquaredExponential
+        config:
+          lengthscales: 1.0
+          variance: 1.0
+      mean_function:
+        class_name: Zero
+        config:
+          output_dim: 1
+      inducing_variable:
+        class_name: InducingPoints
+        config:
+          num_inducing: 10
+          input_dim: 1
+keras_version: 2.6.0
+backend: tensorflow
