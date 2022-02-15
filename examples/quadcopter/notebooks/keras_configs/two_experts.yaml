@@ -1,0 +1,83 @@
+---
+class_name: MixtureOfSVGPExperts
+config:
+  experts_list:
+  - class_name: SVGPExpert
+    config:
+      kernel:
+        class_name: SeparateIndependent
+        config:
+          kernels:
+            - class_name: SquaredExponential
+              config:
+                lengthscales: [1.0, 1.0]
+                variance: 1.0
+            - class_name: SquaredExponential
+              config:
+                lengthscales: [1.0, 1.0]
+                variance: 1.0
+      likelihood:
+        class_name: Gaussian
+        config:
+          variance: [1.0, 1.0]
+          # variance: 1.0
+      mean_function:
+        class_name: Constant
+        config:
+          c: [0.0, 0.0]
+      inducing_variable:
+        class_name: SharedIndependentInducingVariables
+        config:
+          inducing_variable:
+            class_name: InducingPoints
+            config:
+              num_inducing: 90
+              input_dim: 2
+      num_latent_gps: 2
+  - class_name: SVGPExpert
+    config:
+      kernel:
+        class_name: SeparateIndependent
+        config:
+          kernels:
+            - class_name: SquaredExponential
+              config:
+                lengthscales: [1.0, 1.0]
+                variance: 1.0
+            - class_name: SquaredExponential
+              config:
+                lengthscales: [1.0, 1.0]
+                variance: 1.0
+      likelihood:
+        class_name: Gaussian
+        config:
+          variance: [1.0, 1.0]
+          # variance: 1.0
+      mean_function:
+        class_name: Constant
+        config:
+          c: [0.0, 0.0]
+      inducing_variable:
+        class_name: SharedIndependentInducingVariables
+        config:
+          inducing_variable:
+            class_name: InducingPoints
+            config:
+              num_inducing: 90
+              input_dim: 2
+      num_latent_gps: 2
+  gating_network:
+    class_name: SVGPGatingNetwork
+    config:
+      kernel:
+        class_name: SquaredExponential
+        config:
+          lengthscales: [1.0, 1.0]
+          variance: 1.0
+      inducing_variable:
+        class_name: InducingPoints
+        config:
+          num_inducing: 100
+          input_dim: 2
+keras_version: 2.6.0
+backend: tensorflow
