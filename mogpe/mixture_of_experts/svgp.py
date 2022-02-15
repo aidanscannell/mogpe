@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import tensorflow as tf
 import tensorflow_probability as tfp
 from gpflow import default_float
 from gpflow.models import ExternalDataTrainingLossMixin
 from gpflow.models.training_mixins import InputData, RegressionData
+from mogpe.custom_types import Dataset, DatasetBatch, InputData
 from mogpe.experts import SVGPExperts
 from mogpe.gating_networks import SVGPGatingNetwork
 from mogpe.mixture_of_experts import MixtureOfExperts
@@ -49,34 +50,13 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         # self.mae_tracker = tf.keras.metrics.MeanAbsoluteError(name="mae")
         # self.optimizer = keras.optimizers.Adam(learning_rate=1e-3)
 
-    def get_config(self):
-        config = super.get_config()
-        config.update(
-            {
-                "num_data": self.num_data,
-                "num_samples": self.num_samples,
-                "bound": self.bound,
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
-
-    def build(self, input_shape):
-        input_dim, output_dim = input_shape
-        self.w = self.add_weight(
-            shape=(input_dim, output_dim), initializer="random_normal", trainable=True
-        )
-
-    def call(self, input, training=None):
+    def call(self, Xnew: InputData, training: Optional[bool] = False):
         # if training:
         #     self.add_los(self.elbo)
         #     return self.elbo(input)
         # else:
         #     return tf.reduce_sum(input)
-        return tf.reduce_sum(input)
+        return self.predict_y(Xnew)
         # return self.elbo(data)
         #
 
@@ -84,17 +64,38 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
     def metrics(self):
         return [self.loss_tracker]
 
-    def train_step(self, data: Tuple[tf.Tensor, tf.Tensor]):
-        print("self.trainable_weights")
-        print(self.trainable_weights)
-        print("AFTER self.trainable_weights ")
-        # print(self.optimizer)
-        with tf.GradientTape() as tape:
-            loss = -self.elbo(data)
-        gradients = tape.gradient(loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
+    def train_step(self, data: DatasetBatch):
+        # print("self.trainable_weights")
+        # print(self.trainable_weights)
+        # print("AFTER self.trainable_weights ")
+        # with tf.GradientTape() as tape:
+        #     loss = -self.maximum_log_likelihood_objective(data)
+        #     print("loss: {}".format(loss))
+        # # gradients = tape.gradient(loss, self.trainable_weights)
+        # # self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
 
+        # # Update metrics (includes the metric that tracks the loss)
+        # self.loss_tracker.update_state(loss)
+        # return {"loss": self.loss_tracker.result()}
+
+        x, y = data
+        with tf.GradientTape() as tape:
+            # y_pred = self(x, training=True)  # Forward pass
+            loss = -self.maximum_log_likelihood_objective(data)
+            # Compute the loss value
+            # (the loss function is configured in `compile()`)
+            # loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
         # Update metrics (includes the metric that tracks the loss)
+        y_pred = 0.0
+        self.compiled_metrics.update_state(y, y_pred)
+        # Return a dict mapping metric names to current value
+        # return {m.name: m.result() for m in self.metrics}
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
@@ -1079,4 +1080,33 @@ class MixtureOfSVGPExperts(MixtureOfExperts, ExternalDataTrainingLossMixin):
         """
         return self.experts.predict_fs(
             Xnew, num_inducing_samples, full_cov, full_output_cov
+        )
+
+    def get_config(self):
+        return {
+            "gating_network": tf.keras.layers.serialize(self.gating_network),
+            "experts": tf.keras.layers.serialize(self.experts),
+            "num_data": self.num_data,
+            "num_samples": self.num_samples,
+            "bound": self.bound,
+        }
+
+    @classmethod
+    def from_config(cls, cfg: dict):
+        gating_network = tf.keras.layers.deserialize(
+            cfg["gating_network"], custom_objects=GATING_NETWORK_OBJECTS
+        )
+        experts = tf.keras.layers.deserialize(
+            cfg["experts"], custom_objects=EXPERT_OBJECTS
+        )
+        try:
+            num_samples = cfg["num_samples"]
+        except KeyError:
+            num_samples = 1
+        return cls(
+            gating_network=gating_network,
+            experts=experts,
+            num_data=try_val_except_none(cfg, "num_data"),
+            num_samples=num_samples,
+            bound=try_val_except_none(cfg, "bound"),
         )

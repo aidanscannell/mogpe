@@ -103,3 +103,63 @@ class SVGPGatingNetwork(SVGPModel, GatingNetworkBase):
         if self.num_gating_functions == 1:
             mixing_probs = tf.concat([mixing_probs, 1 - mixing_probs], -1)
         return mixing_probs
+
+    def get_config(self):
+        return {
+            "kernel": tf.keras.layers.serialize(self.kernel),
+            "likelihood": tf.keras.layers.serialize(self.likelihood),
+            "inducing_variable": tf.keras.layers.serialize(self.inducing_variable),
+            "mean_function": tf.keras.layers.serialize(self.mean_function),
+            "num_gating_functions": self.num_gating_functions,
+            "q_diag": self.q_diag,
+            "q_mu": self.q_mu.numpy(),
+            "q_sqrt": self.q_sqrt.numpy(),
+            "whiten": self.whiten,
+        }
+
+    @classmethod
+    def from_config(cls, cfg: dict):
+        kernel = tf.keras.layers.deserialize(
+            cfg["kernel"], custom_objects=KERNEL_OBJECTS
+        )
+        likelihood = tf.keras.layers.deserialize(
+            cfg["likelihood"], custom_objects=LIKELIHOOD_OBJECTS
+        )
+        inducing_variable = tf.keras.layers.deserialize(
+            cfg["inducing_variable"], custom_objects=INDUCING_VARIABLE_OBJECTS
+        )
+        mean_function = tf.keras.layers.deserialize(
+            cfg["mean_function"], custom_objects=MEAN_FUNCTION_OBJECTS
+        )
+        try:
+            num_gating_functions = cfg["num_gating_functions"]
+        except KeyError:
+            num_gating_functions = 1
+        return cls(
+            kernel=kernel,
+            likelihood=likelihood,
+            mean_function=mean_function,
+            inducing_variable=inducing_variable,
+            num_gating_functions=num_gating_functions,
+            q_diag=try_val_except_none(cfg, "q_diag"),
+            q_mu=try_array_except_none(cfg, "q_mu"),
+            q_sqrt=try_array_except_none(cfg, "q_sqrt"),
+            whiten=try_val_except_none(cfg, "whiten"),
+        )
+
+
+def try_array_except_none(cfg: dict, key: str):
+    # np.array(cfg["q_mu"]) works for deserializing model using keras
+    # and setting q_mu=None/not setting them, allows users to write custom configs
+    # without specifying q_mu/q_sqrt in the config
+    try:
+        return np.array(cfg[key]) if cfg[key] is not None else None
+    except KeyError:
+        return None
+
+
+def try_val_except_none(cfg: dict, key: str):
+    try:
+        return cfg[key]
+    except KeyError:
+        return None

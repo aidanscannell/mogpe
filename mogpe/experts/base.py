@@ -62,3 +62,18 @@ class ExpertsBase(Module, ABC):
         :returns: a batched tfd.Distribution with batch_shape [..., num_test, output_dim, num_experts]
         """
         raise NotImplementedError
+
+    def get_config(self):
+        experts_list = []
+        for expert in self.experts_list:
+            experts_list.append(tf.keras.layers.serialize(expert))
+        return {"experts_list": experts_list}
+
+    @classmethod
+    def from_config(cls, cfg: dict):
+        expert_list = []
+        for expert_cfg in cfg["experts_list"]:
+            expert_list.append(
+                tf.keras.layers.deserialize(expert_cfg, custom_objects=EXPERT_OBJECTS)
+            )
+        return cls(experts_list=expert_list)

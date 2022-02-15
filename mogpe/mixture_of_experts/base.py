@@ -11,7 +11,7 @@ from mogpe.gating_networks import GatingNetworkBase
 tfd = tfp.distributions
 
 
-class MixtureOfExperts(BayesianModel, ABC):
+class MixtureOfExperts(BayesianModel, tf.keras.Model, ABC):
     """Abstract base class for mixture of experts models.
 
     Given an input :math:`x` and an output :math:`y` the mixture of experts
