@@ -273,6 +273,22 @@ class MixtureOfSVGPExperts(MixtureOfExpertsBase):
         scale = variational_expectation_scale(num_data, batch_size=tf.shape(X)[0])
         return var_exp * scale - kl_gating - kl_experts
 
+    def predict_experts_f(self, Xnew: InputData):
+        f_means, f_vars = [], []
+        for expert in self.experts_list:
+            f_mean, f_var = expert.predict_f(Xnew)
+            f_means.append(f_mean)
+            f_vars.append(f_var)
+        return tf.stack(f_means, -1), tf.stack(f_vars, -1)
+
+    def predict_experts_y(self, Xnew: InputData):
+        y_means, y_vars = [], []
+        for expert in self.experts_list:
+            y_mean, y_var = expert.predict_y(Xnew)
+            y_means.append(y_mean)
+            y_vars.append(y_var)
+        return tf.stack(y_means, -1), tf.stack(y_vars, -1)
+
     @property
     def metrics(self):
         return [self.loss_tracker]
