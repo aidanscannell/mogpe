@@ -164,7 +164,7 @@ class MixtureOfSVGPExperts(MixtureOfExpertsBase):
         var_exp = tf.reduce_mean(log_prob, axis=[0, 1])  # Average gating/expert samples
         var_exp = tf.reduce_sum(var_exp, 0)
 
-        scale = variational_expectation_scale(self.num_data, batch_size=tf.shape(X)[0])
+        scale = variational_expectation_scale(num_data, batch_size=tf.shape(X)[0])
         return var_exp * scale - kl_gating - kl_experts
 
     def lower_bound_tight(
