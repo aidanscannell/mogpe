@@ -4,10 +4,9 @@ import os
 import numpy as np
 import palettable
 import tensorflow as tf
-from gpflow.monitor import MonitorTaskGroup
 from matplotlib import patches
 from matplotlib import pyplot as plt
-from mogpe.training.monitor import ImageWithCbarToTensorBoard
+from mogpe.keras.monitor.tensorboard_image import ImageWithCbarToTensorBoard
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # plt.style.use("science")
@@ -45,7 +44,7 @@ class QuadcopterPlotter:
         cmap=palettable.scientific.sequential.Bilbao_15.mpl_colormap,
         static: bool = True,  # whether or not to recalculate model predictions at each call
     ):
-        print("using quadco9tper plotter")
+        print("using quadcotper plotter")
         self.model = model
         self.X = X
         self.Y = Y
@@ -66,31 +65,41 @@ class QuadcopterPlotter:
             )
             xx, yy = np.meshgrid(xx, yy)
             self.test_inputs = np.column_stack([xx.reshape(-1), yy.reshape(-1)])
+            if X.shape[-1] > 2:
+                zeros = np.zeros((num_test, X.shape[-1] - 2))
+                self.test_inputs = np.concatenate([self.test_inputs, zeros], -1)
         else:
             self.test_inputs = test_inputs
 
-        self.y_mm_dist = self.model.predict_y(self.test_inputs)
-        self.y_mm_means = self.y_mm_dist.mean()
-        self.y_mm_vars = self.y_mm_dist.variance()
-        self.experts_dists = self.model.predict_experts_dists(self.test_inputs)
-        self.f_means, self.f_vars = [], []
-        self.y_means, self.y_vars = [], []
-        for expert in self.model.experts_list:
-            f_means, f_vars = expert.predict_f(self.test_inputs)
-            self.f_means.append(f_means)
-            self.f_vars.append(f_vars)
-            y_means, y_vars = expert.predict_y(self.test_inputs)
+        # If static calcualte models predictions
+        if static:
+            self.y_mm_dist = self.model.predict_y(self.test_inputs)
+            self.y_mm_means = self.y_mm_dist.mean()
+            self.y_mm_vars = self.y_mm_dist.variance()
+            self.f_means, self.f_vars = self.model.predict_experts_f(self.test_inputs)
+            self.y_means, self.y_vars = self.model.predict_experts_y(self.test_inputs)
+            self.h_means, self.h_vars = self.model.gating_network.predict_h(
+                self.test_inputs
+            )
+            self.mixing_probs = self.model.gating_network.predict_mixing_probs(
+                self.test_inputs
+            )
+        else:
+            # Compile predict functions
+            self.predict_gating_network_h = tf.function(
+                self.model.gating_network.predict_h
+            )
+            self.predict_mixing_probs = tf.function(
+                self.model.gating_network.predict_mixing_probs
+            )
+            self.predict_experts_f = tf.function(self.model.predict_experts_f)
+            self.predict_experts_y = tf.function(self.model.predict_experts_y)
 
-        #     dist = expert.predict_dist(self.test_inputs)
-        #     self.y_means, self.y_vars
-        # self.y_means, self.y_vars = self.model.predict_experts_dists(self.test_inputs)
-        # self.f_means, self.f_vars = self.model.predict_experts_fs(self.test_inputs)
-        self.h_means, self.h_vars = self.model.gating_network.predict_h(
-            self.test_inputs
-        )
-        self.mixing_probs = self.model.gating_network.predict_mixing_probs(
-            self.test_inputs
-        )
+            def predict_ymm(Xnew):
+                y_dist = self.model.predict_y(Xnew)
+                return y_dist.mean(), y_dist.variance()
+
+            self.predict_ymm = tf.function(predict_ymm)
 
     def contf(self, fig, ax, z):
         contf = ax.tricontourf(
@@ -276,9 +285,10 @@ class QuadcopterPlotter:
             y_mm_means = self.y_mm_means
             y_mm_vars = self.y_mm_vars
         else:
-            self.y_mm_dist = self.model.predict_y(self.test_inputs)
-            y_mm_means = self.y_mm_dist.mean()
-            y_mm_vars = self.y_mm_dist.variance()
+            # self.y_mm_dist = self.model.predict_y(self.test_inputs)
+            # y_mm_means = y_mm_dist.mean()
+            # y_mm_vars = y_mm_dist.variance()
+            y_mm_means, y_mm_vars = self.predict_ymm(self.test_inputs)
 
         for dim in range(self.output_dim):
             mean_contf, var_contf = self.plot_gp_contf(
@@ -305,7 +315,8 @@ class QuadcopterPlotter:
             y_means = self.y_means
             y_vars = self.y_vars
         else:
-            y_means, y_vars = self.model.experts.predict_ys(self.test_inputs)
+            # y_means, y_vars = self.model.predict_experts_y(self.test_inputs)
+            y_means, y_vars = self.predict_experts_y(self.test_inputs)
         self.plot_experts_given_fig_axs(
             fig, axs, y_means, y_vars, label="\Delta \mathbf{x}"
         )
@@ -315,12 +326,14 @@ class QuadcopterPlotter:
             f_means = self.f_means
             f_vars = self.f_vars
         else:
-            f_means, f_vars = self.model.predict_experts_fs(self.test_inputs)
+            # f_means, f_vars = self.model.predict_experts_f(self.test_inputs)
+            f_means, f_vars = self.predict_experts_f(self.test_inputs)
         self.plot_experts_given_fig_axs(fig, axs, f_means, f_vars, label="f")
 
     def plot_experts_given_fig_axs(self, fig, axs, means, vars, label="f"):
         row = 0
-        for k, (expert_means, expert_vars) in enumerate(zip(means, vars)):
+        # for k, (expert_means, expert_vars) in enumerate(zip(means, vars)):
+        for k in range(self.num_experts):
             for j in range(self.output_dim):
                 # self.plot_inducing_variables(
                 #     fig,
@@ -332,8 +345,8 @@ class QuadcopterPlotter:
                 mean_contf, var_contf = self.plot_gp_contf(
                     fig,
                     axs[row, :],
-                    expert_means[:, j],
-                    expert_vars[:, j],
+                    means[:, j, k],
+                    vars[:, j, k],
                 )
                 self.add_cbar(
                     fig,
@@ -364,7 +377,8 @@ class QuadcopterPlotter:
             h_means = self.h_means
             h_vars = self.h_vars
         else:
-            h_means, h_vars = self.model.gating_network.predict_fs(self.test_inputs)
+            # h_means, h_vars = self.model.gating_network.predict_h(self.test_inputs)
+            h_means, h_vars = self.predict_gating_network_h(self.test_inputs)
 
         if desired_mode is None:
             for k in range(self.num_experts):
@@ -427,7 +441,10 @@ class QuadcopterPlotter:
         if self.static:
             mixing_probs = self.mixing_probs
         else:
-            mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+            # mixing_probs = self.model.gating_network.predict_mixing_probs(
+            #     self.test_inputs
+            # )
+            mixing_probs = self.predict_mixing_probs(self.test_inputs)
         if desired_mode is None:
             for k in range(self.num_experts):
                 prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
@@ -450,7 +467,8 @@ class QuadcopterPlotter:
         if self.static:
             mixing_probs = self.mixing_probs
         else:
-            mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+            # mixing_probs = self.model.predict_mixing_probs(self.test_inputs)
+            mixing_probs = self.predict_mixing_probs(self.test_inputs)
         for k in range(self.num_experts):
             prob_contf = self.contf(fig, axs[k], z=mixing_probs[:, k])
             self.add_cbar(
@@ -460,10 +478,11 @@ class QuadcopterPlotter:
                 "$\Pr(\\alpha = " + str(k + 1) + " \mid \mathbf{x})$",
             )
 
-    def tf_monitor_task_group(self, log_dir, slow_tasks_period=500):
+    def tf_monitor_task_group(self, log_dir, logging_epoch_freq=500):
         image_task_experts_f = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_f_given_fig_axs,
+            logging_epoch_freq=logging_epoch_freq,
             name="experts_latent_function_posterior",
             fig_kw={"figsize": self.figsize},
             subplots_kw={
@@ -477,6 +496,7 @@ class QuadcopterPlotter:
         image_task_experts_y = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_experts_y_given_fig_axs,
+            logging_epoch_freq=logging_epoch_freq,
             name="experts_output_posterior",
             fig_kw={"figsize": self.figsize},
             subplots_kw={
@@ -490,6 +510,7 @@ class QuadcopterPlotter:
         image_task_gating_gps = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_gating_gps_given_fig_axs,
+            logging_epoch_freq=logging_epoch_freq,
             name="gating_network_gps_posteriors",
             fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 2)},
             subplots_kw={
@@ -503,6 +524,7 @@ class QuadcopterPlotter:
         image_task_mixing_probs = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_mixing_probs_given_fig_axs,
+            logging_epoch_freq=logging_epoch_freq,
             name="gating_network_mixing_probabilities",
             fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 4)},
             subplots_kw={
@@ -515,6 +537,7 @@ class QuadcopterPlotter:
         image_task_y = ImageWithCbarToTensorBoard(
             log_dir,
             self.plot_y_mm_given_fig_axs,
+            logging_epoch_freq=logging_epoch_freq,
             name="predictive_posterior_moment_matched",
             fig_kw={"figsize": (self.figsize[0], self.figsize[1] / 2)},
             subplots_kw={
@@ -532,4 +555,4 @@ class QuadcopterPlotter:
             image_task_gating_gps,
             image_task_y,
         ]
-        return MonitorTaskGroup(image_tasks, period=slow_tasks_period)
+        return image_tasks
