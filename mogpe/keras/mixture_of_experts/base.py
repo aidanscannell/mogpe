@@ -5,6 +5,7 @@ from typing import List, Optional
 import tensorflow as tf
 import tensorflow_probability as tfp
 from mogpe.custom_types import InputData, MixingProb
+from gpflow.models import BayesianModel
 
 from .. import EXPERT_OBJECTS, GATING_NETWORK_OBJECTS
 from ..experts import ExpertBase
@@ -15,7 +16,8 @@ tfpl = tfp.layers
 
 
 # class MixtureOfExpertsBase(gpf.models.BayesianModel, abc.ABC):
-class MixtureOfExpertsBase(tf.keras.Model, abc.ABC):
+# class MixtureOfExpertsBase(tf.keras.Model, abc.ABC):
+class MixtureOfExpertsBase(tf.keras.Model, BayesianModel, abc.ABC):
     r"""Interface for mixture of experts models.
 
     Given an input :math:`x` and an output :math:`y` the mixture of experts
@@ -70,10 +72,6 @@ class MixtureOfExpertsBase(tf.keras.Model, abc.ABC):
         """
         expert_indicator_categorical_dist = self.gating_network(Xnew, **kwargs)
         experts_dists = self.predict_experts_dists(Xnew, **kwargs)
-        # return self.mixture_layer()
-        print(expert_indicator_categorical_dist)
-        print(expert_indicator_categorical_dist.probs.shape)
-        print(type(expert_indicator_categorical_dist))
         return tfd.Mixture(
             cat=expert_indicator_categorical_dist, components=experts_dists
         )
