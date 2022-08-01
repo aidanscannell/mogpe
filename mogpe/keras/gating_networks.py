@@ -28,7 +28,7 @@ from .gps import predict_f_given_inducing_samples
 tfd = tfp.distributions
 
 
-class GatingNetworkBase(gpf.Module):
+class GatingNetworkBase(gpf.Module, tf.keras.layers.Layer):
     """Interface for gating networks"""
 
     def __init__(self, num_experts: int, name: Optional[str] = "gating_network"):
@@ -153,7 +153,7 @@ class SVGPGatingNetwork(GPGatingNetworkBase):
             Xnew, num_samples=num_h_samples, full_cov=False
         )
         mixing_probs = self.predict_mixing_probs_given_h(h_samples)  # [S, N, K]
-        cat = tfd.Categorical(probs=mixing_probs, name="ExpertIndicatorCategorical")
+        # cat = tfd.Categorical(probs=mixing_probs, name="ExpertIndicatorCategorical")
         return tfd.Categorical(probs=mixing_probs, name="ExpertIndicatorCategorical")
 
     def predict_categorical_dist_given_inducing_samples(
@@ -244,6 +244,8 @@ class SVGPGatingNetwork(GPGatingNetworkBase):
             mixing_probs = self.gp.likelihood.predict_mean_and_var(h_mean, h_var)[0]
         else:
             mixing_probs = self.gp.likelihood.conditional_mean(h_mean)
+        # if self.num_gating_gps == 1:
+        #     mixing_probs = tf.concat([mixing_probs, 1 - mixing_probs], -1)
         return mixing_probs
 
     def prior_kl(self) -> ttf.Tensor1[NumGatingFunctions]:
@@ -456,3 +458,22 @@ class SVGPGatingNetwork(GPGatingNetworkBase):
 #             cfg["svgp"], custom_objects={"SVGPPrior": SVGPPrior}
 #         )
 #         return cls(svgp_layer)
+
+
+class SoftmaxGatingNetwork(GatingNetworkBase):
+    def __init__(self, num_experts: int, name: str = "softmax_gating_network"):
+        super().__init__(num_experts=num_experts, name=name)
+
+    def predict_mixing_probs(self, Xnew: InputData, experts: SVGPExpert) -> MixingProb:
+        r"""Calculates the set of experts mixing probabilities at Xnew
+
+        :math:`\{\Pr(\\alpha=k | x)\}^K_{k=1}`
+        """
+        probs = []
+        for expert in experts:
+            f_mean, f_var = expert.predict_f(
+                Xnew, num_inducing_samples=None, full_cov=False
+            )
+            probs = tfd.MultivariateNormalDiag(loc=f_mean, scale_diag=f_var)
+            mixing_probs.append(probs)
+        mixing_probs = tf.stack(mixing_probs, 0)
