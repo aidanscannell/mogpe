@@ -22,7 +22,7 @@ tfd = tfp.distributions
 ExpertDist = Union[tfd.MultivariateNormalFullCovariance, tfd.MultivariateNormalDiag]
 
 
-class ExpertBase(gpf.Module):
+class ExpertBase(gpf.Module, tf.keras.layers.Layer):
     """Interface for individual expert."""
 
     @abc.abstractmethod
@@ -116,7 +116,8 @@ class SVGPExpert(ExpertBase):
             num_inducing_samples=num_inducing_samples,
             full_cov=full_cov,
         )
-        y_mean, y_var = self.gp.likelihood((f_mean, f_var))
+        # y_mean, y_var = self.gp.likelihood((f_mean, f_var))
+        y_mean, y_var = self.gp.likelihood.predict_mean_and_var(f_mean, f_var)
         return self.predict_dist_given_y(y_mean, y_var)
 
     def predict_dist_given_f_samples(
@@ -154,7 +155,7 @@ class SVGPExpert(ExpertBase):
             num_inducing_samples=num_inducing_samples,
             full_cov=full_cov,
         )
-        return self.gp.likelihood((f_mean, f_var))
+        return self.gp.likelihood.predict_mean_and_var(f_mean, f_var)
 
     def predict_dist_given_y(self, y_mean, y_var) -> ExpertDist:
         """Returns the mean and (co)variance of the expert's prediction at Xnew.
