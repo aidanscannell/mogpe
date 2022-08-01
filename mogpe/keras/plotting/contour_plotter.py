@@ -9,7 +9,23 @@ from mogpe.custom_types import Dataset, InputData
 from mogpe.keras.mixture_of_experts import MixtureOfSVGPExperts
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+plt.style.use("seaborn-paper")
 CMAP = palettable.scientific.sequential.Bilbao_15.mpl_colormap
+
+# SMALL_SIZE = 14
+# MEDIUM_SIZE = 16
+# BIGGER_SIZE = 18
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+BIGGER_SIZE = 14
+
+plt.rc("font", size=SMALL_SIZE)  # controls default text sizes
+plt.rc("axes", titlesize=SMALL_SIZE)  # fontsize of the axes title
+plt.rc("axes", labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+plt.rc("xtick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("ytick", labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc("legend", fontsize=MEDIUM_SIZE)  # legend fontsize
+plt.rc("figure", titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
 class MixtureOfSVGPExpertsContourPlotter:
@@ -23,7 +39,11 @@ class MixtureOfSVGPExpertsContourPlotter:
         model: MixtureOfSVGPExperts,
         dataset: Dataset = None,
         test_inputs: Optional[InputData] = None,
-        figsize: Tuple[float, float] = (12, 4),
+        # figsize: Tuple[float, float] = (16, 4),
+        # figsize: Tuple[float, float] = (10, 4),
+        # figsize: Tuple[float, float] = (6.4, 2.4),
+        figsize: Tuple[float, float] = (6.4, 3.4),
+        # figsize: Tuple[float, float] = (12, 4),
         cmap=CMAP,
         static: bool = False,
     ):
@@ -85,9 +105,48 @@ class MixtureOfSVGPExpertsContourPlotter:
                 self.test_inputs
             )
         for k in range(self.num_experts):
-            self.plot_contf(axs[k], self.mixing_probs[:, k])
-            axs[k].set_title("$\Pr(\\alpha=" + str(k + 1) + " \mid \mathbf{x})$")
+            self.plot_contf(
+                axs[k],
+                self.mixing_probs[:, k],
+                label="$\Pr(\\alpha=" + str(k + 1) + " \mid \mathbf{x})$",
+            )
+            # axs[k].set_title("$\Pr(\\alpha=" + str(k + 1) + " \mid \mathbf{x})$")
         [ax.set_ylabel("") for ax in axs[1:].flat]
+        fig.tight_layout()
+        return fig
+
+    def plot_single_mixing_prob(self, k: int):
+        fig = plt.figure(figsize=(self.figsize[0] / 2, self.figsize[1]))
+        gs = fig.add_gridspec(1, 1)
+        ax = gs.subplots(sharex=True, sharey=True)
+        if not self.static:
+            self.mixing_probs = self.model.gating_network.predict_mixing_probs(
+                self.test_inputs
+            )
+        self.plot_contf(
+            ax,
+            self.mixing_probs[:, k],
+            label="$\Pr(\\alpha=" + str(k + 1) + " \mid \mathbf{x})$",
+        )
+        ax.set_ylabel("")
+        fig.tight_layout()
+        return fig
+
+    def plot_single_gating_network_gp(self, desired_mode: int = 0):
+        fig = plt.figure(figsize=(self.figsize[0], self.figsize[1]))
+        gs = fig.add_gridspec(1, 2)
+        axs = gs.subplots(sharex=True, sharey=True)
+        if not self.static:
+            self.h_means, self.h_vars = self.model.gating_network.predict_h(
+                self.test_inputs
+            )
+        self.plot_gp(
+            axs,
+            self.h_means[:, desired_mode],
+            self.h_vars[:, desired_mode],
+            label="Gating function $h_" + str(desired_mode + 1) + "(\mathbf{x})$",
+        )
+        axs[1].set_ylabel("")
         fig.tight_layout()
         return fig
 
@@ -116,40 +175,39 @@ class MixtureOfSVGPExpertsContourPlotter:
         return fig
 
     def plot_gp(self, axs, mean, var, label: str = ""):
-        axs[0].set_title(label + " mean")
-        axs[1].set_title(label + " variance")
-        return self.plot_contf(axs[0], mean), self.plot_contf(axs[1], var)
+        contf_mean = self.plot_contf(axs[0], mean, label + " mean")
+        contf_var = self.plot_contf(axs[1], var, label + " variance")
+        # axs[0].set_title(label + " mean")
+        # axs[1].set_title(label + " variance")
+        return contf_mean, contf_var
 
-    def plot_contf(self, ax, z):
+    def plot_contf(self, ax, z, label: str = None):
         contf = ax.tricontourf(
             self.test_inputs[:, 0], self.test_inputs[:, 1], z, levels=10, cmap=self.cmap
         )
-        plt.colorbar(contf, ax=ax)
+        # plt.colorbar(contf, ax=ax)
         ax.set_xlabel("$x$")
         ax.set_ylabel("$y$")
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("top", size="5%", pad=0.05)
+        cbar = plt.colorbar(
+            contf,
+            use_gridspec=True,
+            cax=cax,
+            orientation="horizontal",
+        )
+
+        cax.xaxis.set_ticks_position("top")
+        cax.xaxis.set_label_position("top")
+        if label:
+            cbar.set_label(label)
         return contf
-
-    # def add_cbar(self, fig, ax, contfs, label=""):
-    #     # divider = make_axes_locatable(ax)
-
-    #     if isinstance(ax, np.ndarray):
-    #         divider = make_axes_locatable(ax[0])
-    #     else:
-    #         divider = make_axes_locatable(ax)
-    #     cax = divider.append_axes("top", size="5%", pad=0.05)
-
-    #     cbar = fig.colorbar(
-    #         contfs, use_gridspec=True, cax=cax, orientation="horizontal"
-    #     )
-    #     cax.xaxis.set_ticks_position("top")
-    #     cax.xaxis.set_label_position("top")
-    #     cbar.set_label(label)
-    #     return cbar
 
 
 def create_test_inputs(X, num_test: int = 400):
-    num_test = 400
-    num_test = 1600
+    # num_test = 400
+    # num_test = 1600
     factor = 1.2
     sqrtN = int(np.sqrt(num_test))
     xx = np.linspace(tf.reduce_min(X[:, 0]) * factor, np.max(X[:, 0]) * factor, sqrtN)
